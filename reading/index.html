@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Books I've Read In 2026 | dhr.vn</title>
+<meta name="description" content="A 3D reading shelf of my reads in 2026, with detailed information about each book.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+</head>
+<body>
+
+<header class="page-header">
+  <span class="page-header-nav">
+    <a href="/">← Back to home</a>
+    <a href="/reading/stats">Stats</a>
+  </span>
+  <p class="book-counter" id="book-counter">0 books read so far in 2026 (0 print, 0 audio)</p>
+</header>
+
+<nav class="shelf-genre-filter" id="shelf-genre-filter" aria-label="Filter books by genre">
+  <span class="shelf-toolbar-label">Filter:</span>
+  <button type="button" class="shelf-chip-btn is-active" data-genre="all">All</button>
+  <button type="button" class="shelf-chip-btn" data-genre="business">Business</button>
+  <button type="button" class="shelf-chip-btn" data-genre="biography">Biography</button>
+  <button type="button" class="shelf-chip-btn" data-genre="finance">Finance</button>
+  <button type="button" class="shelf-chip-btn" data-genre="history">History</button>
+  <button type="button" class="shelf-chip-btn" data-genre="science">Science</button>
+  <button type="button" class="shelf-chip-btn" data-genre="scifi">Sci-Fi</button>
+</nav>
+
+<nav class="shelf-sort" id="shelf-sort" aria-label="Sort books on shelf">
+  <span class="shelf-toolbar-label">Sort:</span>
+  <button type="button" class="shelf-chip-btn is-active" data-sort="oldest">By date</button>
+  <button type="button" class="shelf-chip-btn" data-sort="rating">By rating</button>
+</nav>
+
+<div id="canvas-container"></div>
+
+<!-- Book detail modal -->
+<div class="modal" id="book-modal" hidden>
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+    <div class="modal-body">
+      <div class="modal-cover" id="modal-cover"></div>
+      <div class="modal-details">
+        <h2 class="modal-title" id="modal-title"></h2>
+        <p class="modal-author" id="modal-author"></p>
+        <p class="modal-meta">
+          <span id="modal-read-date"></span><span id="modal-pages"></span><span id="modal-format"></span>
+        </p>
+        <p class="modal-genres" id="modal-genres"></p>
+        <div class="modal-rating-wrap" id="modal-rating-wrap">
+          <p class="modal-rating" id="modal-rating"></p>
+          <span class="modal-rating-info-wrap" id="modal-rating-info-wrap">
+            <span class="modal-rating-info" id="modal-rating-info" aria-label="Ratings reflect personal enjoyment. I use the full scale: 3★ = good, 4★ = great, 5★ = perfect." role="button" tabindex="0">ⓘ</span>
+            <span class="modal-rating-popover" id="modal-rating-popover">Ratings reflect personal enjoyment. I use the full scale: 3★ = good, 4★ = great, 5★ = perfect.</span>
+          </span>
+        </div>
+        <p class="modal-section-label" id="modal-review-label">My Thoughts</p>
+        <p class="modal-review" id="modal-review"></p>
+        <p class="modal-section-label" id="modal-description-label">Description</p>
+        <p class="modal-description" id="modal-description"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SEO consultant and digital marketing business owner based in Ho Chi Minh City, Vietnam. Founder of Rosser Brothers, Logeix, and others.">
+    <title>dhr.vn</title>
+    <link rel="stylesheet" href="css/mac.css">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+</head>
+<body>
+    <noscript>
+        <style>
+            body {
+                /* Add space for the static dock at the bottom so it doesn't overlap content */
+                padding-bottom: 100px !important;
+            }
+            .terminal {
+                /* Make the terminal a static block, but keep its window-like appearance */
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                margin: 5vh auto !important;
+                resize: none !important;
+            }
+            .terminal-header {
+                cursor: default !important; /* No dragging without JS */
+            }
+            .terminal-body {
+                /* Let the body content flow naturally */
+                overflow-y: visible !important;
+            }
+            /* Make all pre-written lines visible at once */
+            .line[class*="delay-"] {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                animation: none !important;
+            }
+            /* Hide elements that need JS to work */
+            .terminal-footer {
+                display: none !important;
+            }
+            /* Hide dock items for apps that require JS */
+            .dock-item[data-app="calendar-app"],
+            .dock-item[data-app="messages-app"] {
+                display: none !important;
+            }
+        </style>
+    </noscript>
+
+    <div class="terminal">
+        <div class="terminal-header">
+            <div class="terminal-buttons">
+                <div class="terminal-button close"></div>
+                <div class="terminal-button minimize"></div>
+                <div class="terminal-button maximize"></div>
+            </div>
+            <div class="terminal-title">dhr@vietnam: ~</div>
+        </div>
+        
+        <div class="terminal-body">
+            <div class="line delay-1">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">whoami</span>
+            </div>
+            
+            <div class="line delay-2">
+                <div class="output">
+                    <div class="section-header">Daryl Hensman-Rosser<br>Currently based in Ho Chi Minh City, Vietnam</div>
+                </div>
+            </div>
+            
+            <div class="line delay-3">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">cat about.txt</span>
+            </div>
+            
+            <div class="line delay-4">
+                <div class="output">
+                    I've spent the last decade in the SEO world, consulting with fast growing e-commerce brands and marketing agencies.
+                    <br><br>
+                    Entered the business world in 2009, growing a viral Facebook Page up to 8 million "fans" organically, and driving millions of visitors to my affiliate sites.
+                    <br><br>
+                    These days I run a few small digital marketing ventures remotely from Vietnam. Entirely self-funded, simple cashflowing businesses. Fully remote team in 5 countries. Lots and lots of AI use.
+                </div>
+            </div>
+            
+            <div class="line delay-5">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">ls -la work/</span>
+            </div>
+            
+            <div class="line delay-6">
+                <div class="output">
+                    <div style="margin-bottom: 0.5rem;">total 4</div>
+                    <div>drwxr-xr-x  2 dhr  dhr   512 Jun 20 15:30 .</div>
+                    <div>drwxr-xr-x  3 dhr  dhr   512 Jun 20 15:30 ..</div>
+                    <div>-rw-r--r--  1 dhr  dhr   1.2K Jun 20 15:30 logeix.md</div>
+                    <div>-rw-r--r--  1 dhr  dhr   0.8K Jun 20 15:30 rosser.md</div>
+                    <div>-rw-r--r--  1 dhr  dhr   2.1K Jun 15 09:15 consulting_history.log</div>
+                </div>
+            </div>
+
+            <div class="line delay-7">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">cat work/rosser.md</span>
+            </div>
+            
+            <div class="line delay-8">
+                <div class="output">
+                    <span class="company">Rosser Brothers</span> (<a href="https://rosser.com" target="_blank"><span class="domain">rosser.com</span></a>) is a tiny holding company for me and my brother's various marketing ventures. Currently includes an agency, an e-commerce brand, and other projects I'm building.
+                </div>
+            </div>
+
+            <div class="line delay-9">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">cat work/logeix.md</span>
+            </div>
+            
+            <div class="line delay-10">
+                <div class="output">
+                    <span class="company">Logeix</span> (<a href="https://logeix.com" target="_blank"><span class="domain">logeix.com</span></a>) is my Shopify SEO agency focused on helping e-commerce brands grow through organic search. We work with established stores looking to scale their revenue through technical SEO, content strategy, and search optimization.
+                </div>
+            </div>
+            
+            <div class="line delay-11">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <span class="command">exit</span>
+            </div>
+            
+            <div class="line delay-12">
+                <div class="output">Thanks for stopping by!</div>
+            </div>
+            
+        </div>
+        <div class="terminal-footer">
+            <div class="command-suggestions">
+                <button class="suggestion-btn" data-command="help">help</button>
+                <button class="suggestion-btn" data-command="projects">projects</button>
+                <button class="suggestion-btn" data-command="stack">stack</button>
+                <button class="suggestion-btn" data-command="partner">partner</button>
+            </div>
+
+            <div class="interactive-prompt">
+                <span class="prompt">dhr@vietnam:~$</span>
+                <input type="text" class="command-input" placeholder="Type a command or click above..." id="commandInput" autocapitalize="none" autocomplete="off" spellcheck="false">
+                <span class="cursor">_</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="blog-app" style="width: 800px; height: 550px; top: 40%; left: 45%;">
+        <div class="app-header">
+            <div class="app-buttons">
+                <div class="app-button close"></div>
+                <div class="app-button minimize"></div>
+                <div class="app-button maximize"></div>
+            </div>
+            <div class="app-title">Blog</div>
+        </div>
+        <div class="app-body notes-body">
+            <div class="notes-sidebar">
+                <div class="sidebar-toolbar">
+                    <button class="sidebar-action-btn" id="delete-note-btn" title="Delete Note">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 2.5C6 2.22386 6.22386 2 6.5 2H9.5C9.77614 2 10 2.22386 10 2.5V3H13C13.2761 3 13.5 3.22386 13.5 3.5C13.5 3.77614 13.2761 4 13 4H12V12.5C12 13.3284 11.3284 14 10.5 14H5.5C4.67157 14 4 13.3284 4 12.5V4H3C2.72386 4 2.5 3.77614 2.5 3.5C2.5 3.22386 2.72386 3 3 3H6V2.5ZM7 3H9V2.5C9 2.5 9 2.5 9 2.5H7V3ZM5 4V12.5C5 12.7761 5.22386 13 5.5 13H10.5C10.7761 13 11 12.7761 11 12.5V4H5Z" fill="currentColor"/>
+                            <path d="M6.5 6C6.77614 6 7 6.22386 7 6.5V10.5C7 10.7761 6.77614 11 6.5 11C6.22386 11 6 10.7761 6 10.5V6.5C6 6.22386 6.22386 6 6.5 6Z" fill="currentColor"/>
+                            <path d="M9.5 6C9.77614 6 10 6.22386 10 6.5V10.5C10 10.7761 9.77614 11 9.5 11C9.22386 11 9 10.7761 9 10.5V6.5C9 6.22386 9.22386 6 9.5 6Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <ul>
+                    <li class="active-note" data-note="welcome">Welcome to My Blog</li>
+                    <li data-note="book-hunting">Book Hunting in Saigon</li>
+                    <li data-note="vietnam-life">Coming soon</li>
+                    <li data-note="remote-work">Maybe later</li>
+                </ul>
+            </div>
+            <div class="notes-content">
+                <div class="content-toolbar">
+                    <div class="toolbar-left">
+                        <button class="content-action-btn" id="add-note-btn" title="New Note">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 3.5C2 2.67157 2.67157 2 3.5 2H8.5C8.63261 2 8.75979 2.05268 8.85355 2.14645L11.8536 5.14645C11.9473 5.24021 12 5.36739 12 5.5V12.5C12 13.3284 11.3284 14 10.5 14H3.5C2.67157 14 2 13.3284 2 12.5V3.5ZM3.5 3C3.22386 3 3 3.22386 3 3.5V12.5C3 12.7761 3.22386 13 3.5 13H10.5C10.7761 13 11 12.7761 11 12.5V6H8.5C8.22386 6 8 5.77614 8 5.5V3H3.5ZM9 3.70711L10.2929 5H9V3.70711Z" fill="currentColor"/>
+                                <path d="M7 9.5L12.5 4L13.5 5L8 10.5L7 10.5L7 9.5Z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="toolbar-group">
+                            <button class="format-btn" data-command="bold" title="Bold (⌘B)">𝐁</button>
+                            <button class="format-btn" data-command="italic" title="Italic (⌘I)">𝐼</button>
+                            <button class="format-btn" data-command="underline" title="Underline (⌘U)">U̲</button>
+                        </div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-group">
+                            <button class="format-btn" data-command="fontSize" data-size="small" title="Small Text">Aa</button>
+                            <button class="format-btn" data-command="fontSize" data-size="large" title="Large Text">𝐀𝐚</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="note-content-area">
+                    <div class="note-title" id="note-title-area"></div>
+                    <div class="note-body" id="note-body-area"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="mail-app" style="width: 520px; height: 420px; top: 55%; left: 55%;">
+        <div class="app-header">
+            <div class="app-buttons">
+                <div class="app-button close"></div>
+                <div class="app-button minimize"></div>
+                <div class="app-button maximize"></div>
+            </div>
+            <div class="app-title">New Message</div>
+        </div>
+        <div class="app-body">
+            <form id="email-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                <input type="hidden" name="form-name" value="contact" />
+                
+                <!-- Honeypot field to catch bots -->
+                <p class="hidden">
+                    <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+                </p>
+
+                <div class="email-header">
+                    <div class="email-field">
+                        <span>To:</span>
+                        <input type="text" id="email-to" value="Daryl Hensman-Rosser" readonly>
+                    </div>
+                    <div class="email-field">
+                        <span>From:</span>
+                        <input type="email" id="email-from" name="email" placeholder="your.email@example.com" required>
+                    </div>
+                    <div class="email-field">
+                        <span>Subject:</span>
+                        <input type="text" id="email-subject" name="subject" placeholder="Website Inquiry" required>
+                    </div>
+                </div>
+                <div class="email-body">
+                    <textarea id="email-body-content" name="message" placeholder="Your message..." required></textarea>
+                </div>
+                <div class="email-footer">
+                    <button type="submit" class="send-btn">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="finder-app" style="width: 680px; height: 450px; top: 50%; left: 50%;">
+        <div class="app-header">
+            <div class="app-buttons">
+                <div class="app-button close"></div>
+                <div class="app-button minimize"></div>
+                <div class="app-button maximize"></div>
+            </div>
+            <div class="app-title">home</div>
+        </div>
+        <div class="app-body finder-body">
+            <div class="finder-sidebar">
+                 <ul>
+                    <li class="active"><span class="icon">🏠</span> home</li>
+                    <li style="display: none;" id="finder-back-button"><span class="icon">⬅️</span> Back</li>
+                 </ul>
+            </div>
+            <div class="finder-content">
+                <div class="finder-item" data-name="work" data-type="folder">
+                    <div class="finder-icon folder"></div>
+                    <span>work</span>
+                </div>
+                <div class="finder-item" data-name="about.txt" data-type="file">
+                    <div class="finder-icon file"></div>
+                    <span>about.txt</span>
+                </div>
+                <div class="finder-item" data-name="README.md" data-type="file">
+                    <div class="finder-icon file"></div>
+                    <span>README.md</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="messages-app" style="width: 700px; height: 500px; top: 45%; left: 40%;">
+        <div class="app-header">
+            <div class="app-buttons">
+                <div class="app-button close"></div>
+                <div class="app-button minimize"></div>
+                <div class="app-button maximize"></div>
+            </div>
+            <div class="app-title">Messages</div>
+        </div>
+        <div class="app-body messages-body">
+            <div class="messages-sidebar">
+                <div class="messages-search">
+                    <input type="text" placeholder="Search conversations..." id="messages-search-input">
+                </div>
+                <div class="conversations-list">
+                    <div class="conversation-item locked" data-conversation="fiancee">
+                        <div class="conversation-avatar">💍</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Fiancée</div>
+                            <div class="conversation-preview">Dinner tonight?</div>
+                        </div>
+                        <div class="conversation-time">26m</div>
+                    </div>
+                    <div class="conversation-item active" data-conversation="liam">
+                        <div class="conversation-avatar">👨‍💼</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Liam Rosser</div>
+                            <div class="conversation-preview">got 5 mins? had a crazy...</div>
+                        </div>
+                        <div class="conversation-time">3h</div>
+                    </div>
+                    <div class="conversation-item" data-conversation="client">
+                        <div class="conversation-avatar">🛍️</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Client</div>
+                            <div class="conversation-preview">That's great news! More to...</div>
+                        </div>
+                        <div class="conversation-time">2d</div>
+                    </div>
+                    <div class="conversation-item" data-conversation="self">
+                        <div class="conversation-avatar">📝</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Daryl (Me)</div>
+                            <div class="conversation-preview">Vietnam weather is still...</div>
+                        </div>
+                        <div class="conversation-time">4d</div>
+                    </div>
+                    <div class="conversation-item locked" data-conversation="mum">
+                        <div class="conversation-avatar">👩‍🦳</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Mum</div>
+                            <div class="conversation-preview">Got my dress ready for...</div>
+                        </div>
+                        <div class="conversation-time">5d</div>
+                    </div>
+                    <div class="conversation-item" data-conversation="spammer">
+                        <div class="conversation-avatar">📈</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">Crypto Recovery</div>
+                            <div class="conversation-preview">I am reporting your wallet...</div>
+                        </div>
+                        <div class="conversation-time">8d</div>
+                    </div>
+                </div>
+            </div>
+            <div class="messages-content">
+                <div class="messages-header">
+                    <button class="messages-back-btn" aria-label="Back to conversations">&lt;</button>
+                    <div class="current-conversation-info">
+                        <div class="current-conversation-name">Daryl (Notes)</div>
+                        <div class="current-conversation-status">Active now</div>
+                    </div>
+                </div>
+                <div class="messages-list" id="messages-list">
+                    <!-- Messages will be populated by JavaScript -->
+                </div>
+                <div class="messages-input-area">
+                    <div class="messages-input-container">
+                        <input type="text" placeholder="iMessage" id="messages-input" disabled>
+                        <button class="send-message-btn" disabled>↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-window hidden" id="calendar-app" style="width: 900px; height: 600px; top: 50%; left: 50%;">
+        <div class="app-header">
+            <div class="app-buttons">
+                <div class="app-button close"></div>
+                <div class="app-button minimize"></div>
+                <div class="app-button maximize"></div>
+            </div>
+            <div class="app-title">Calendar</div>
+        </div>
+        <div class="app-body calendar-body">
+            
+        </div>
+    </div>
+
+    <div class="dock">
+        <a href="/" class="dock-item" data-app="finder-app">
+            <div class="dock-icon dock-icon-finder"></div>
+            <span class="dock-label">Finder</span>
+        </a>
+        <a href="#" class="dock-item" data-app="terminal-main">
+            <div class="dock-icon dock-icon-terminal"></div>
+            <span class="dock-label">Terminal</span>
+        </a>
+        <a href="#" class="dock-item" data-app="messages-app">
+            <div class="dock-icon dock-icon-messages"></div>
+            <span class="dock-label">Messages</span>
+        </a>
+        <a href="#" class="dock-item" data-app="calendar-app">
+            <div class="dock-icon dock-icon-calendar"></div>
+            <span class="dock-label">Calendar</span>
+        </a>
+        <a href="/blog" class="dock-item" data-app="blog-app">
+            <div class="dock-icon dock-icon-notes"></div>
+            <span class="dock-label">Blog</span>
+        </a>
+        <a href="/contact" class="dock-item" data-app="mail-app">
+            <div class="dock-icon dock-icon-mail"></div>
+            <span class="dock-label">Contact</span>
+        </a>
+    </div>
+
+    <script type="module" src="scripts/dhr-os.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | dhr.vn</title>
+    <meta name="description" content="Get in touch — Daryl Hensman-Rosser. Based in Saigon.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+</head>
+<body>
+    <header class="site-header">
+        <a href="/" class="site-title">// dhr.vn: </a>
+        <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+        </button>
+        <nav class="site-nav" aria-hidden="true">
+            <button type="button" class="nav-close" aria-label="Close menu">×</button>
+            <a href="/" class="nav-link">/..</a>
+            <a href="/blog" class="nav-link">/Blog</a>
+            <a href="/reading/" class="nav-link">/Reading</a>
+            <a href="/contact" class="nav-link active">/Contact</a>
+        </nav>
+    </header>
+
+    <main class="page-content">
+        <article class="contact-page">
+            <h1>How To Get In Touch</h1>
+
+            <div class="contact-content">
+                <div class="contact-intro">
+                    <p>First, don't try social media. I have profiles. I don't check them.</p>
+                    <p>Second, who should reach out?</p>
+                    <p>I'm always up for nerdy conversations with people who think way too hard about things that absolutely do not matter. And possibly sometimes things that do. If you're into sci-fi, business biographies, creating absolutely pointless things because "fun", or you just want to chat about something I've written - send me a message.</p>
+                    <p><strong>Fair warning:</strong> I'm not interested in "opportunities" that involve me giving you money, access to my customer list, or promoting your thing. If that's why you're here, we're probably not a match.</p>
+                    <p>But if you're a fellow nerd, you've got a genuine question, or you just want to argue about which Cixin Liu novel is best (it's The Dark Forest, obviously), my inbox is open.</p>
+                    <p>If that sounds like you, use the form below or find my email address - it's literally my first name at my surname.com (minus the H part).</p>
+                    <p>Besides writing nonsense on this website, I do run actual companies, read far too many books, and am getting excruciatingly close to having a wedding to the point where every other hour is some sort of planning activity.</p>
+                <p>So I may not reply. But if you're a real person, trying to have a conversation, not sell or ask me for something, I'll try my best.</p>
+                </div>
+
+                <form class="contact-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                    <input type="hidden" name="form-name" value="contact" />
+
+                    <p class="hidden">
+                        <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+                    </p>
+
+                    <div class="form-group">
+                        <label for="name">Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject *</label>
+                        <input type="text" id="subject" name="subject" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Message *</label>
+                        <textarea id="message" name="message" rows="6" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="submit-btn">Send message</button>
+                    </div>
+                </form>
+
+            </div>
+        </article>
+    </main>
+
+    <div class="content-separator content-separator--three-body">
+        <div class="content-separator-marquee content-separator-marquee--three-body">
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="site-footer-content">
+            <nav class="site-footer-nav" aria-label="Footer">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/blog">Blog</a>
+                <a href="/reading/">Reading</a>
+                <a href="/contact">Contact</a>
+            </nav>
+            <p class="site-footer-meta">© 2026 DHR.vn</p>
+            <div class="site-footer-badges">
+                <img src="images/badges/aol-sucks.gif" alt="AOL Sucks" width="88" height="31">
+                <a href="/mac"><img src="images/badges/mac-made.gif" alt="Made on a Mac" width="88" height="31"></a>
+                <img src="images/badges/valid-xhtml.gif" alt="Valid XHTML" width="88" height="31">
+                <img src="images/badges/claude-powered.gif" alt="Claude Powered" width="88" height="31">
+            </div>
+        </div>
+    </footer>
+    <script src="scripts/nav-mobile.js"></script>
+</body>
+</html>

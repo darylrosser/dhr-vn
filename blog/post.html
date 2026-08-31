@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building a Terminal-Style Blog</title>
+    <meta name="description" content="How I built a terminal-inspired blog with modern web technologies and a focus on developer experience">
+    <meta property="article:published_time" content="2024-07-28">
+    <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+</head>
+<body>
+    <header class="site-header">
+        <a href="/" class="site-title">// dhr.vn: </a>
+        <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+        </button>
+        <nav class="site-nav" aria-hidden="true">
+            <button type="button" class="nav-close" aria-label="Close menu">×</button>
+            <a href="/" class="nav-link">/..</a>
+            <a href="/blog" class="nav-link">/Blog</a>
+            <a href="/reading/" class="nav-link">/Reading</a>
+            <a href="/contact" class="nav-link">/Contact</a>
+        </nav>
+    </header>
+    
+    <main class="page-content">
+        <p class="back-home">
+            <a href="/blog"><span class="pixel-cursor"></span>Back to Blog</a>
+        </p>
+
+        <article>
+                <h1>Building a Terminal-Style Blog</h1>
+                <time datetime="2024-07-28">July 28, 2024</time>
+                <p>I've always been fascinated by terminal interfaces and the aesthetic of developer tools. When I decided to rebuild my blog, I wanted to create something that felt both modern and nostalgic—a web experience that captures the essence of working in a terminal while being fully accessible and responsive.</p>
+                    <h2>The Inspiration</h2>
+                    <p>My inspiration came from several sources:</p>
+                    <ul>
+                        <li>The clean, monospace typography of code editors</li>
+                        <li>The glassmorphism effects in modern macOS</li>
+                        <li>The efficiency of terminal-based workflows</li>
+                        <li>The challenge of making something technical feel approachable</li>
+                    </ul>
+
+                    <h2>Technical Implementation</h2>
+                    <p>Here's a code example showing how I implemented the terminal window effect:</p>
+
+                    <pre><code>.terminal {
+    background-color: rgba(22, 27, 34, 0.75);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}</code></pre>
+
+                    <h2>Design Decisions</h2>
+                    <p>I made several key design decisions to balance aesthetics with usability:</p>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Rationale</th>
+                                <th>Implementation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Monospace Font</td>
+                                <td>Authentic terminal feel</td>
+                                <td>JetBrains Mono</td>
+                            </tr>
+                            <tr>
+                                <td>Glassmorphism</td>
+                                <td>Modern, premium aesthetic</td>
+                                <td>Backdrop blur + transparency</td>
+                            </tr>
+                            <tr>
+                                <td>Dark Theme</td>
+                                <td>Reduces eye strain</td>
+                                <td>GitHub-inspired color palette</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h2>Challenges and Solutions</h2>
+                    <p>One of the biggest challenges was making the terminal aesthetic work well for long-form content. Here's how I solved it:</p>
+
+                    <blockquote>
+                        "The key is to maintain the terminal aesthetic while ensuring readability and accessibility. It's about finding the right balance between style and substance."
+                        <footer>— <cite>Author Name</cite></footer>
+                    </blockquote>
+
+                    <h2>Code Examples and Syntax Highlighting</h2>
+                    <p>For code blocks, I wanted something that felt integrated with the overall design:</p>
+
+                    <pre><code>// Example JavaScript function
+function createTerminalEffect() {
+    const terminal = document.querySelector('.terminal');
+    terminal.style.backdropFilter = 'blur(20px)';
+    terminal.style.backgroundColor = 'rgba(22, 27, 34, 0.75)';
+}
+
+// Call the function
+createTerminalEffect();</code></pre>
+
+                    <h2>Responsive Design</h2>
+                    <p>The blog needed to work well on all devices. I used a mobile-first approach with these breakpoints:</p>
+                    <ul>
+                        <li><strong>Mobile:</strong> Full-width terminal with simplified navigation</li>
+                        <li><strong>Tablet:</strong> Optimized spacing and typography</li>
+                        <li><strong>Desktop:</strong> Full terminal experience with dock</li>
+                    </ul>
+
+                    <h2>Performance Considerations</h2>
+                    <p>To maintain the smooth terminal experience, I focused on:</p>
+                    <ul class="task-list">
+                        <li class="task-list-item">
+                            <input type="checkbox" checked disabled>
+                            Optimized CSS with minimal repaints
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" checked disabled>
+                            Efficient backdrop-filter usage
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" disabled>
+                            Lazy loading for images
+                        </li>
+                    </ul>
+
+                    <h2>Future Enhancements</h2>
+                    <p>I'm planning several improvements:</p>
+                    <ol>
+                        <li>Add terminal command animations</li>
+                        <li>Implement a dark/light theme toggle</li>
+                        <li>Add more interactive terminal elements</li>
+                        <li>Create a command-line interface for navigation</li>
+                    </ol>
+
+                    <hr />
+
+                    <h2>Conclusion</h2>
+                    <p>Building this terminal-style blog has been both challenging and rewarding. It's taught me that with the right approach, you can create something that's both visually striking and highly functional.</p>
+
+                    <p>The key takeaway is that <em>aesthetics and usability don't have to be mutually exclusive</em>. By carefully considering each design decision and its impact on the user experience, you can create something that looks great and works even better.</p>
+
+                    <h2>Resources and References</h2>
+                    <p>If you're interested in building something similar, here are some helpful resources:</p>
+                    <ul>
+                        <li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter" target="_blank">MDN Web Docs - backdrop-filter</a></li>
+                        <li><a href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank">JetBrains Mono Font</a></li>
+                        <li><a href="https://github.com/primer/primitives" target="_blank">GitHub Primer Design System</a></li>
+                    </ul>
+
+                    <h2>Footnotes</h2>
+                    <p>This design approach was inspired by modern terminal emulators<sup><a href="#fn1" id="ref1">1</a></sup> and the growing trend of bringing developer tools aesthetics to consumer applications<sup><a href="#fn2" id="ref2">2</a></sup>.</p>
+
+                    <div class="footnotes">
+                        <ol>
+                            <li id="fn1">
+                                Particularly iTerm2 and Alacritty, which have excellent customization options.
+                                <a href="#ref1" title="Return to reference 1">↩</a>
+                            </li>
+                            <li id="fn2">
+                                Examples include Discord's developer mode and various code editor themes.
+                                <a href="#ref2" title="Return to reference 2">↩</a>
+                            </li>
+                        </ol>
+                    </div>
+        </article>
+    </main>
+
+    <div class="content-separator content-separator--three-body">
+        <div class="content-separator-marquee content-separator-marquee--three-body">
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+            <span>YOU ARE BUGS.</span>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="site-footer-content">
+            <nav class="site-footer-nav" aria-label="Footer">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/blog">Blog</a>
+                <a href="/reading/">Reading</a>
+                <a href="/contact">Contact</a>
+            </nav>
+            <p class="site-footer-meta">© 2026 DHR.vn</p>
+            <div class="site-footer-badges">
+                <img src="/images/badges/aol-sucks.gif" alt="AOL Sucks" width="88" height="31">
+                <a href="/mac"><img src="/images/badges/mac-made.gif" alt="Made on a Mac" width="88" height="31"></a>
+                <img src="/images/badges/valid-xhtml.gif" alt="Valid XHTML" width="88" height="31">
+                <img src="/images/badges/claude-powered.gif" alt="Claude Powered" width="88" height="31">
+            </div>
+        </div>
+    </footer>
+    <script src="../scripts/nav-mobile.js"></script>
+</body>
+</html> 
