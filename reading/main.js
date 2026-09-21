@@ -183,8 +183,11 @@ function openModal(book) {
   modalReviewLabel.style.display = book.review ? '' : 'none';
   modalReview.textContent = book.review || '';
   modalReview.style.display = book.review ? '' : 'none';
-  modalDescriptionLabel.style.display = '';
-  modalDescription.textContent = book.description || 'No description.';
+  // Prefer the personal review over the publisher synopsis when both exist.
+  const showDescription = !book.review;
+  modalDescriptionLabel.style.display = showDescription ? '' : 'none';
+  modalDescription.style.display = showDescription ? '' : 'none';
+  modalDescription.textContent = showDescription ? (book.description || 'No description.') : '';
   renderModalCover(modalCover, book);
   modalEl.hidden = false;
   updateShelfToolbarUI();
