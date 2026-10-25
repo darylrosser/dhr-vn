@@ -1,6 +1,6 @@
 # dhr.vn: vision
 
-The site should feel like being inside a video game: a rainy cyberpunk warehouse in Saigon
+The site should feel like being inside a video game: a dusty cyberpunk workshop in Saigon
 where the pages of the site are places. Underneath it all, every page is a plain, fast,
 readable HTML page, so nobody is ever forced to wait for (or be able to run) the 3D.
 
@@ -15,57 +15,46 @@ What exists today is the vibe check: the terminal, the reader, and a procedural 
   **Long text never is:** posts are read in the calm reader (Lora, ~68ch, paper or night theme).
   The fiction lives in transitions and frames, not on top of paragraphs.
 
-## The warehouse
+## The workshop
 
-Daryl's dream office: one huge cyberpunk warehouse you **walk around** in first person,
-point and click like a virtual tour, the same on desktop and phone: click / tap the floor to
-walk there, drag to look, click things to use them (WASD / arrows work too, quietly). It's split into
-**zones**, each a little diorama lit by its own pool of light, joined by the hall: a dark,
-dirty concrete floor, brick walls, roof trusses and a few dim lamps over the walkways. The
-plain pages are the accessible way in, so world mode doesn't need fast-travel buttons.
+Daryl's dream workshop: one dusty brick room you **walk around** in first person, point and
+click like a virtual tour, the same on desktop and phone: click / tap the floor to walk there,
+drag to look, click things to use them (WASD / arrows work too, quietly). Late sun pours
+through a huge factory window into the haze; the time machine sits in the middle, cables
+snaking off it across a dark, dirty concrete floor. The room is analogue and lived-in; the
+tech in it stays cyberpunk (amber and teal screens, neon on the kit). The plain pages are the
+accessible way in, so world mode doesn't need fast-travel buttons.
 
-| Zone | What's there | Page it could hold |
-|------|--------------|--------------------|
-| **Command deck** | Desk, the terminal, the curved wall of screens | `/` home |
-| **Garage** | The Back to the Future DeLorean under a single spotlight, doors up, tool chest, oil-slick floor | Projects / things I've built |
-| **Gym** | Squat rack, barbell, a few plates, chalk dust in a light shaft, a whiteboard with PRs | A "now" page or training log, or just a joke hotspot |
-| **Lounge** | Old leather sofa, rug, record player, low warm lamps, maybe an F1 sim rig | Contact ("pull up a seat"), or the podcast archive |
-| **Library / reading room** | Floor-to-ceiling shelves, ladder, reading chair, warm light | `/reading/` |
-| **Evidence board** | Case file, photos, red string, VK machine | `/about/` |
+One room on purpose: fewer, more detailed things beat a big empty hall of dioramas.
+
+| Thing | What's there | Page |
+|-------|--------------|------|
+| **The desk** | A battered workbench, the terminal plus four more screens on poles, keyboard, solder station, coffee rings | `/` home |
+| **The TV wall** | Floor-to-ceiling rack of mismatched old TVs, each a different colour of static; the big one on the bench is the blog | `/blog/` |
+| **Evidence board** | Case file, photos, red string | `/about/` |
+| **Payphone** | On the east wall under pink neon | `/contact/` |
+| **Bookcase** | Full of books, an armchair and an oil lamp beside it | `/reading/` |
+| **The time machine** | The Back to the Future DeLorean, kit bolted on, valves glowing | Projects (coming) |
+| **F1 sim rig** | Front corner, live timing on its screen | (just for fun) |
 
 Notes for the build:
 - Props and materials come from Poly Haven (CC0, scanned) where they fit; anything bespoke
-  (the desk rig, the screen wall, the time machine) is modelled by script. The DeLorean is a
-  fan replica built from scratch: no badges or logos.
-- Each zone is a separately loaded GLB. The zone you start in (plus the hall) loads first; the
-  rest stream in nearest-first once you're in, each fading up out of the dark.
-- The floor is dark and dirty, nearly black: light lives in pools, neon and reflections.
-
-### Zone detail
-
-- **The desk + terminal:** the home page *is* this monitor. Jacking out pulls the camera back
-  from it. It's the one screen you can actually use.
-- **The wall of screens:** a curved Batcave-style array (currently 7 × 3) behind the desk.
-  Purely for show: oscilloscopes, rain radar over Saigon, a district map of tracked bookshops,
-  F1 live timing, library inventory, CCTV of the loading dock, a VK subject-lock reticle,
-  syslog, a Saigon clock. Personal fake data, animated cheaply (canvas textures, a few fps).
-- **The window:** huge industrial grid, rain, distant city lights.
-- **The bookshelf → reading room:** a warm, quieter space (lamp light, wood, paper tones).
-  It's the bridge to the existing three.js reading shelf, so the vibe change is on purpose.
-- Later: more places as pages appear (see below), sound, easter eggs.
+  (the desk rig, the TVs, the time machine) is modelled by script. The DeLorean is a fan
+  replica built from scratch: no badges or logos.
+- The room is one GLB (`workshop`), loaded before you see it.
+- Later: looping video on some of the TVs.
 
 ## Pages are places
 
 | Page | Place | Notes |
 |------|-------|-------|
 | `/` | Desk terminal | The monitor. Jack out / in. |
-| `/blog/` | News terminal or a dot-matrix printer | Posts "print"; picking one opens the reader. |
+| `/blog/` | The big TV on the TV wall | Picking a post opens the reader. |
 | `/blog/<post>/` | Datapad | Reader layout over the dimmed, paused scene. |
 | `/about/` | Case file on an evidence board, beside a VK machine | The dossier panel. |
-| `/reading/` | Bookshelf → reading room | Warm lighting shift. |
-| `/contact/` | Lounge sofa (or a payphone / radio) | |
-| Projects (future) | Garage, the car | |
-| Now / training (future) | Gym whiteboard | |
+| `/reading/` | Bookcase → reading room | Warm lighting shift. |
+| `/contact/` | The payphone | |
+| Projects (future) | The time machine | |
 
 ## How it should behave
 
@@ -75,8 +64,10 @@ Notes for the build:
    The jack-out control doubles as the loading status.
 3. **Once in the world, you stay in it.** Walk up to something and its action shows up like
    in a game (**[E] Open the case file**, a button you can tap too); clicking it works as well.
-   The page then appears on your **AR visor**: projected in front of you, barely see-through,
-   the room dimmed but visible around the edges (pushState / fetch, no reloads). Links on it
+   The page then appears on your **AR visor**: its tinted lens slides down over your view, the
+   page projects in from a thin line and flickers as it catches, barely see-through, the room
+   dimmed but visible around the edges (pushState / fetch, no reloads). Closing folds it back to
+   a line and the lens lifts. Links on it
    do the same; "Full page" opens the page on its own.
 4. **Any page can be an entry point.** A post opened from Google shows the reader with a
    jack-out control; jacking out loads the world and flies to the blog's place.
@@ -145,10 +136,10 @@ pipeline" below) and loaded by `src/js/warehouse.js`; walking is `src/js/walker.
 
 ### The Blender pipeline
 
-- `blender/build.py <zone…> [--quick]`: model, bake and export zones to `blender/out/` (needs
-  the `bpy==5.2.3` module in a Python 3.13 venv outside the repo). Zones are in
-  `blender/zones/` (`hall`, `deck`, `board`, `library`, `lounge`, `garage` + `delorean`, `gym`),
-  written in three.js coordinates; helpers in `blender/lib.py`.
+- `blender/build.py [workshop] [--quick]`: model, bake and export to `blender/out/` (needs
+  the `bpy==5.2.3` module in a Python 3.13 venv outside the repo). The room is
+  `blender/zones/workshop.py` (with `delorean.py` and `books.py`), written in three.js
+  coordinates; helpers in `blender/lib.py`.
 - Look: scanned PBR materials (Poly Haven, fetched on demand into `blender/cache/` by
   `assets.py`; needs `polyhaven.com`, `api.polyhaven.com`, `dl.polyhaven.org` reachable),
   shaded live in three.js, lit by a Cycles-baked, OIDN-denoised lightmap per group (second UV
@@ -158,13 +149,13 @@ pipeline" below) and loaded by `src/js/warehouse.js`; walking is `src/js/walker.
   camera (three.js coordinates), for checking a layout without baking.
 - `cd blender && npm install && node pack.mjs`: resize textures, KTX2 (Basis ETC1S) + Meshopt
   into `src/models/<zone>.glb`, lightmaps to `src/models/<zone>_<group>.ktx2`.
-- Extras on GLB nodes wire up the live bits: `role` (`screen`, `window`, `flicker`, `spin`,
-  `pulse`, `shaft`, `board`, `light`), `hotspot`, `lightmap` + `lm`.
+- Extras on GLB nodes wire up the live bits: `role` (`screen` + `painter`/`tint`, `window`,
+  `flicker`, `spin`, `pulse`, `shaft`, `board`, `display`, `light`), `hotspot`, `lightmap` + `lm`.
 
 ### Constraints
 
-- Performance: first zone ≤ ~5 MB (Meshopt + KTX2 via gltf-transform), baked lighting,
-  emissive + bloom for neon, other zones stream in after, fog hides the far end.
+- Performance: the room ≤ ~5–6 MB (Meshopt + KTX2 via gltf-transform), baked lighting,
+  emissive + bloom for neon and the window.
   World mode only loads after the page is usable and only on capable devices.
 - three.js: `0.170.0` via an import map everywhere, `/reading/` included (moved up from
   `0.158.0` with the GLB warehouse: lightmaps / emissive props rendered dark on the old one).

@@ -1,4 +1,4 @@
-// World mode: the whole site is a warehouse. Every page has a place in it.
+// World mode: the whole site is a workshop. Every page has a place in it.
 //
 // The rooms themselves (Blender-built GLB zones, streamed in) and the live
 // props are in warehouse.js. This file is the plumbing:
@@ -6,7 +6,7 @@
 //   CSS3DRenderer; the camera starts where the screen fills the viewport.
 // - Every other page: the live page becomes a floating datapad over its place.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
-//   standing at the warehouse bookshelf; going back to the library fades it in.
+//   standing at the workshop bookshelf; going back to the library fades it in.
 // - In the world you walk around (walker.js, point and click). Clicking a thing walks you up to
 //   it and opens its page in the datapad, without reloads; "jack in" drops you
 //   into a page as a normal page again. Places are where each page's exit and
@@ -18,7 +18,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { createWarehouse, zonePoint, DESK_TOP } from './warehouse.js';
+import { createWarehouse, DESK_TOP } from './warehouse.js';
 import { createWalker } from './walker.js';
 
 const START_FOV = 40;
@@ -27,18 +27,17 @@ const READING_URL = '/reading/';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const isPortrait = () => innerWidth / innerHeight < 0.9;
 
-// Where each page lives: a zone of the warehouse (loaded on the way there) and
-// a camera pose in it. Poses are landscape; portrait screens step back along
-// the view direction so the subject still fits. Places without a url are just
+// Where each page lives in the workshop (blender/zones/workshop.py): a camera
+// pose. Poses are landscape; portrait screens step back along the view
+// direction so the subject still fits. Places without a url are just
 // somewhere to stand (for now).
 const PLACES = {
-  home: { url: '/', label: 'Desk', zone: 'deck', pos: V(1.5, 1.75, 3.5), look: V(-0.3, 1.55, -1.2), fov: 52, back: 1.7 },
-  blog: { url: '/blog/', label: 'Blog', zone: 'deck', pos: V(0, 1.95, 1.0), look: V(0, 1.8, -2.75), fov: 50, back: 1.0 },
-  about: { url: '/about/', label: 'Case file', zone: 'board', pos: zonePoint('board', 0.35, 1.6, 2.5), look: zonePoint('board', 0, 1.45, 0), fov: 50, back: 1.0 },
-  contact: { url: '/contact/', label: 'Lounge', zone: 'lounge', pos: zonePoint('lounge', 0.4, 1.5, 3.4), look: zonePoint('lounge', 0, 0.7, 0), fov: 50, back: 1.4 },
-  reading: { url: READING_URL, label: 'Library', zone: 'library', pos: zonePoint('library', 0.5, 1.5, 2.4), look: zonePoint('library', -0.2, 1.35, -1.4), fov: 50, back: 1.0 },
-  garage: { url: null, label: 'Garage', zone: 'garage', pos: zonePoint('garage', 2.6, 1.6, 4.6), look: zonePoint('garage', 0, 0.75, 0), fov: 48, back: 1.4 },
-  gym: { url: null, label: 'Gym', zone: 'gym', pos: zonePoint('gym', 0.8, 1.6, 3.6), look: zonePoint('gym', 0, 1.1, 0), fov: 50, back: 1.2 },
+  home: { url: '/', label: 'Desk', zone: 'workshop', pos: V(1.5, 1.75, 3.5), look: V(-0.3, 1.45, -1.2), fov: 52, back: 1.7 },
+  blog: { url: '/blog/', label: 'TV wall', zone: 'workshop', pos: V(-3.4, 1.65, -2.4), look: V(-6.5, 1.55, -4.3), fov: 54, back: 1.2 },
+  about: { url: '/about/', label: 'Case file', zone: 'workshop', pos: V(4.1, 1.6, -1.4), look: V(6.55, 1.45, -1.6), fov: 50, back: 1.0 },
+  contact: { url: '/contact/', label: 'Payphone', zone: 'workshop', pos: V(4.7, 1.55, 1.4), look: V(6.8, 1.35, 1.1), fov: 50, back: 1.2 },
+  reading: { url: READING_URL, label: 'Bookshelf', zone: 'workshop', pos: V(-3.5, 1.55, 2.8), look: V(-6.6, 1.3, 2.1), fov: 50, back: 1.0 },
+  garage: { url: null, label: 'Time machine', zone: 'workshop', pos: V(3.6, 1.6, -1.6), look: V(0.3, 0.7, -5.4), fov: 48, back: 1.4 },
 };
 
 function placePose(id) {
@@ -73,9 +72,9 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#04050a');
-  scene.fog = new THREE.FogExp2('#05060b', 0.07);
+  scene.fog = new THREE.FogExp2('#1a130d', 0.035); // dusty air
 
-  const camera = new THREE.PerspectiveCamera(START_FOV, innerWidth / innerHeight, 0.02, 220); // far: the skyline outside
+  const camera = new THREE.PerspectiveCamera(START_FOV, innerWidth / innerHeight, 0.02, 220); // far: the city outside
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   // phones: fewer pixels (the bloom pass and the lit materials cost per pixel)
@@ -106,7 +105,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   if (kind !== 'terminal') world.setMonitorIdle();
   // the zone you start in has to be there before you see it; the rest stream
   world.onProgress = (zone, k) => { if (zone === PLACES[place].zone) onStatus(`syncing ${Math.round(25 + k * 60)}%`); };
-  await Promise.all([world.load(PLACES[place].zone), world.load('hall')]);
+  await world.load(PLACES[place].zone);
   world.onProgress = null;
   onStatus('syncing 90%');
   await nextFrame();
@@ -129,7 +128,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   ui.className = 'world-ui';
   ui.innerHTML = `
     <button type="button" class="world-prompt" data-act="prompt"></button>
-    <button type="button" class="world-leave" data-act="leave">${EXIT_SVG}<span>${kind === 'terminal' ? 'Back to the terminal' : 'Leave the warehouse'}</span></button>
+    <button type="button" class="world-leave" data-act="leave">${EXIT_SVG}<span>${kind === 'terminal' ? 'Back to the terminal' : 'Leave the workshop'}</span></button>
     <p class="world-hint"><span class="world-hint-keys">Click the floor to walk · drag to look · click things to use them · Esc goes back</span><span class="world-hint-touch">Tap the floor to walk · drag to look · tap things to use them</span></p>`;
   ui.addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -153,6 +152,9 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     </header>
     <div class="datapad-body"></div>`;
   const dpTitle = datapad.querySelector('.datapad-title');
+  // the visor's lens: slides down over the view while a page is projected
+  const lens = document.createElement('div');
+  lens.className = 'visor-lens';
   const dpBody = datapad.querySelector('.datapad-body');
   let dpOpen = false;
   let dpUrl = null;
@@ -174,6 +176,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     dpTitle.textContent = title.replace(/ \| dhr\.vn$/, '');
     dpUrl = url;
     dpOpen = true;
+    lens.classList.add('is-down');
     if (full) {
       // appear at full size with no transition, then glide to the panel
       datapad.style.transition = 'none';
@@ -192,6 +195,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   function closeDatapad() {
     datapad.classList.remove('is-open', 'is-full');
+    lens.classList.remove('is-down');
     dpOpen = false;
   }
 
@@ -218,7 +222,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   // Size the monitor so its screen has the viewport's aspect ratio: the
   // terminal is shown 1:1, so the handoff is seamless at any window size.
   function fitMonitor(aspect) {
-    const w = Math.min(0.64, 0.56 * aspect);
+    const w = Math.min(0.92, 0.6 * aspect);
     const h = w / aspect;
     const center = V(0, Math.max(1.12, DESK_TOP + 0.09 + h / 2 + 0.035), -0.12);
     world.shapeMonitor(w, h, center);
@@ -466,7 +470,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   function attach() {
     document.documentElement.classList.add('in-world');
-    document.body.append(renderer.domElement, ...(kind === 'terminal' ? [cssRenderer.domElement] : []), datapad, ui, tip);
+    document.body.append(renderer.domElement, ...(kind === 'terminal' ? [cssRenderer.domElement] : []), lens, datapad, ui, tip);
     onResize();
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('click', onClick);
@@ -505,7 +509,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     else exitPage();
   }
 
-  // The reading shelf app: fade it out and step back from the warehouse shelf.
+  // The reading shelf app: fade it out and step back from the workshop shelf.
   let hiddenApp = [];
   function exitApp() {
     hiddenApp = [...document.body.children];
@@ -704,6 +708,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     cssRenderer.domElement.remove();
     closeDatapad();
     datapad.remove();
+    lens.remove();
     ui.remove();
     tip.remove();
     document.documentElement.classList.remove('in-world');

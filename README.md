@@ -50,9 +50,9 @@ Footnotes use the same markup as the old site (`<sup><a href="#fn1" id="ref1">1<
 
 ## World mode (`src/js/uplink.js`, `world.js`, `warehouse.js`, `walker.js`)
 
-Every page has a place in a 3D warehouse (`data-place` on `<html>`, `PLACES` in world.js):
-home → desk monitor, blog → the screen wall, about → evidence board, contact → lounge,
-reading → library (hands off to the `/reading/` app). There's also a garage and a gym.
+Every page has a place in a 3D workshop (`data-place` on `<html>`, `PLACES` in world.js):
+home → desk monitor, blog → the TV wall, about → evidence board, contact → payphone,
+reading → bookcase (hands off to the `/reading/` app). The time machine is a place too.
 
 - **`uplink.js`** (every page): loads `world.js` in the background on capable devices
   (WebGL2, no Save-Data, `deviceMemory` >= 4 when reported) and wires every `[data-jack]`
@@ -66,9 +66,10 @@ reading → library (hands off to the `/reading/` app). There's also a garage an
   offers its action (**[E] …**); it opens the page on the AR visor (the datapad), as do its
   links and terminal `cd` (no reloads; URL follows with `#world`). "Full page" opens it on its
   own. Esc closes the visor, then returns to the page you started on.
-- **`warehouse.js`** loads the zones (GLB from `src/models/`, built by `blender/`, see
+- **`warehouse.js`** loads the room (GLB from `src/models/`, built by `blender/`, see
   VISION.md) and owns the live props: monitor (`shapeMonitor`), link (socket/plug/sparks),
-  screen wall, window rain, neon flicker, light shafts, collisions for walking.
+  what the screens and TVs show, the hazy view out of the window, neon flicker, the sunbeam,
+  collisions for walking.
 - three.js `0.170.0` from jsDelivr via an import map (KTX2 transcoder and Meshopt decoder come
   from the same place).
 

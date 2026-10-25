@@ -1,14 +1,14 @@
-// The warehouse: zones built and baked in Blender (blender/), loaded as GLB
-// (Meshopt geometry, KTX2 textures, baked lighting → unlit materials), and
-// streamed in as the camera heads their way; until then fog and darkness
-// stand in for them, and each zone fades up out of the dark as it arrives.
+// The workshop: one room built and baked in Blender (blender/), loaded as a
+// GLB (Meshopt geometry, KTX2 textures, baked lighting → unlit materials),
+// fading up out of the dark as it arrives.
 //
 // JS still owns the live parts: the home monitor (sized to the viewport), the
-// link (desk socket, plug, cable, sparks), the screen-wall content, the city
-// and rain in the window, neon flicker and light shafts. The GLBs say
+// link (desk socket, plug, cable, sparks), what the screens and TVs show, the
+// hazy view out of the window, neon flicker and the sunbeam. The GLB says
 // where those go through glTF extras (three userData):
-//   role: 'screen' (col, row) | 'window' (w, h) | 'flicker' | 'spin' (speed)
-//         | 'pulse' | 'shaft' (r, h, color) | 'board' (canvas, w, h)
+//   role: 'screen' (col, row, painter?, tint?) | 'window' (w, h) | 'flicker'
+//         | 'spin' (speed) | 'pulse' | 'shaft' (r, h, top, sides, color, opacity)
+//         | 'board' (canvas, w, h) | 'display' (painter)
 //   hotspot: a key of HOTSPOTS below → the hotspot contract.
 
 import * as THREE from 'three';
@@ -19,33 +19,17 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 export const DESK_TOP = 0.775;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
-// Zone frames: where each Blender zone sits (keep in step with blender/zones/*.py).
-export const ZONES = {
-  hall: { origin: [0, 0, 0], yaw: 0 },
-  deck: { origin: [0, 0, 0], yaw: 0 },
-  board: { origin: [7.5, 0, 1.0], yaw: -Math.PI / 2 },
-  library: { origin: [-8.0, 0, 0.5], yaw: Math.PI / 2 },
-  lounge: { origin: [-6.5, 0, 8.0], yaw: Math.PI / 2 + 0.35 },
-  garage: { origin: [8.0, 0, 10.0], yaw: -Math.PI / 2 - 0.35 },
-  gym: { origin: [0.0, 0, 14.5], yaw: Math.PI },
-};
-
-/** A point in a zone's own frame (three coords) → world space. */
-export function zonePoint(zone, x, y, z) {
-  const { origin: [ox, oy, oz], yaw } = ZONES[zone];
-  const c = Math.cos(yaw), s = Math.sin(yaw);
-  return V(ox + x * c + z * s, oy + y, oz - x * s + z * c);
-}
+// The Blender zones (blender/zones/*.py); each is built in world space.
+export const ZONES = { workshop: {} };
 
 // What clicking a thing in the room does (hotspot contract labels + targets).
 // `prompt` is the action offered when you walk up to it ([E] …).
 const HOTSPOTS = {
   blog: { label: 'Blog: field reports →', prompt: 'Read the blog', reach: 4.3, visit: '/blog/' },
   about: { label: 'Case file: about →', prompt: 'Open the case file', visit: '/about/' },
-  reading: { label: 'Library: reading room →', prompt: 'Browse the library', visit: '/reading/' },
-  contact: { label: 'Lounge: get in touch →', prompt: 'Get in touch', visit: '/contact/' },
-  garage: { label: 'Garage: projects (coming soon)', prompt: 'Projects: coming soon', action: 'place', place: 'garage' },
-  gym: { label: 'Gym: training log (coming soon)', prompt: 'Training log: coming soon', action: 'place', place: 'gym' },
+  reading: { label: 'Bookshelf: reading list →', prompt: 'Browse the books', visit: '/reading/' },
+  contact: { label: 'Payphone: get in touch →', prompt: 'Make a call', visit: '/contact/' },
+  garage: { label: 'Time machine: projects (coming soon)', prompt: 'Projects: coming soon', action: 'place', place: 'garage' },
 };
 
 const AMBER = '#ffb000', TEAL = '#2ad4c9', HOT = '#ff6a1a', DIM = '#6b4c12';
@@ -77,21 +61,16 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const ktx2 = new KTX2Loader().setTranscoderPath(`${addonsBase()}libs/basis/`).detectSupport(renderer);
   const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
 
-  // the floor of the whole hall, under the zones' own baked floors, and its
-  // roof (so the city outside only shows through the window)
+  // dark ground under the baked floor, for the moment before the room arrives
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: '#06070a' }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
   scene.add(ground);
-  const roof = new THREE.Mesh(new THREE.PlaneGeometry(23, 26.4), new THREE.MeshBasicMaterial({ color: '#040507' }));
-  roof.rotation.x = Math.PI / 2;
-  roof.position.set(0, 9.0, 5.7);
-  scene.add(roof);
 
   // The zones' diffuse light is baked (lightmaps). Live light is only what the
   // bake can't do: the desk lamp's highlights on wet and shiny things, the
   // screen's spill on the JS-built monitor and plug, and reflections (an
-  // environment of neon strips and the window, blurred).
+  // environment of the bright window, warm bulbs and screens, blurred).
   const lamp = new THREE.SpotLight('#ffd9a0', 5, 7, 0.75, 0.65, 1.6);
   lamp.position.set(0.1, 3.15, 0.3);
   lamp.target.position.set(0, DESK_TOP, 0);
@@ -104,7 +83,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const spareSpot = new THREE.SpotLight('#ffffff', 0, 9, 0.6, 0.5, 1.6);
   scene.add(spareSpot, spareSpot.target);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(neonRoom(), 0.035).texture;
+  scene.environment = pmrem.fromScene(workshopRoom(), 0.035).texture;
   pmrem.dispose();
 
   const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.1, ...o });
@@ -366,11 +345,11 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   }
 
   // ---------------------------------------------------------------- collisions
-  // A 10 cm grid over the hall floor: a cell is blocked when any surface of a
-  // zone passes through it between ankle and head height. Filled in as zones
-  // load (sampling their triangles), read by the walker.
+  // A 10 cm grid over the floor: a cell is blocked when any surface passes
+  // through it between ankle and head height. Filled in when the room loads
+  // (sampling its triangles), read by the walker.
 
-  const CELL = 0.1, GX0 = -11.6, GZ0 = -7.6, GW = 236, GH = 268;
+  const CELL = 0.1, GX0 = -7.6, GZ0 = -10.6, GW = 152, GH = 168;
   const grid = new Uint8Array(GW * GH);
   const tri = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   const p = new THREE.Vector3(), ab = new THREE.Vector3(), ac = new THREE.Vector3();
@@ -403,7 +382,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   function blocked(x, z, r = 0.28) {
     const x0 = Math.floor((x - r - GX0) / CELL), x1 = Math.floor((x + r - GX0) / CELL);
     const z0 = Math.floor((z - r - GZ0) / CELL), z1 = Math.floor((z + r - GZ0) / CELL);
-    if (x0 < 0 || z0 < 0 || x1 >= GW || z1 >= GH) return true; // outside the hall
+    if (x0 < 0 || z0 < 0 || x1 >= GW || z1 >= GH) return true; // outside the room
     for (let gz = z0; gz <= z1; gz++) {
       for (let gx = x0; gx <= x1; gx++) {
         if (!grid[gz * GW + gx]) continue;
@@ -464,7 +443,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
         const base = o.scale.clone();
         updaters.push((t) => { o.scale.copy(base).multiplyScalar(0.85 + 0.15 * Math.sin(t * 2.2)); o.updateMatrix(); });
       }
-      else if (d.role === 'shaft') lightShaft(o, d);
+      else if (d.role === 'shaft') sunbeam(o, d);
       else if (d.role === 'board') whiteboard(o, d);
       else if (d.role === 'light') lights.push(o);
       else if (d.role === 'display') display(o, d.painter);
@@ -510,6 +489,9 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       const key = `${o.material.uuid}|${name}`;
       if (!litMaterials.has(key)) {
         const m = o.material.clone();
+        // three lights only the diffuse part with a lightmap, so fully metallic
+        // surfaces (the car's stainless) would go black: keep some diffuse
+        m.metalness = Math.min(m.metalness, 0.35);
         m.lightMap = tex;
         m.lightMapIntensity = range * LIGHTMAP_GAIN;
         litMaterials.set(key, m);
@@ -548,12 +530,13 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     }
   });
 
-  // ---------------------------------------------------------------- the wall of screens
-  // A curved Batcave-style array behind the desk, purely for show. Each screen
-  // is a small canvas redrawn a few times a second (round-robin, 3 per frame).
+  // ---------------------------------------------------------------- screens and TVs
+  // Every screen in the room (the desk's, the TV wall, the benches), purely for
+  // show. Each is a small canvas redrawn a few times a second (round-robin,
+  // 3 per frame). A screen can name its painter (the TVs: 'static') and tint.
 
   function buildScreenWall(faces) {
-    const kinds = shuffle(Object.keys(SCREEN_PAINTERS).filter((k) => k !== 'blog'), rand);
+    const kinds = shuffle(Object.keys(SCREEN_PAINTERS).filter((k) => k !== 'blog' && k !== 'static'), rand);
     const screens = [];
     faces.sort((a, b) => (a.userData.col - b.userData.col) || (a.userData.row - b.userData.row));
     for (const face of faces) {
@@ -565,9 +548,10 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.flipY = false; // glTF UVs
       face.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.25, 1.25, 1.25) });
-      const isBlog = face.userData.hotspot === 'blog';
-      const kind = isBlog ? 'blog' : kinds[(col * 3 + row) % kinds.length];
-      screens.push({ ctx: canvas.getContext('2d'), tex, paint: SCREEN_PAINTERS[kind], state: { seed: rand() * 1000 } });
+      // (by now makeHotspot has swapped the 'blog' tag for the hotspot itself)
+      const isBlog = face.userData.hotspot === 'blog' || face.userData.hotspot?.visit === '/blog/';
+      const kind = isBlog ? 'blog' : SCREEN_PAINTERS[face.userData.painter] ? face.userData.painter : kinds[(col * 3 + row) % kinds.length];
+      screens.push({ ctx: canvas.getContext('2d'), tex, paint: SCREEN_PAINTERS[kind], state: { seed: rand() * 1000, tint: face.userData.tint } });
       if (isBlog) face.userData.onHighlight = (on) => face.material.color.setScalar(on ? 1.8 : 1.25);
     }
     for (const sc of screens) { sc.paint(sc.ctx, 0, sc.state); sc.tex.needsUpdate = true; }
@@ -603,33 +587,28 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
   }
 
-  // ---------------------------------------------------------------- the window: city, rain
+  // ---------------------------------------------------------------- the window: late sun through haze
 
-  // The view out, Blade Runner 2049 style: mostly haze. An amber glow low over
-  // the city, huge tower silhouettes fading into it in three layers, a few long
-  // neon strips, one giant hologram ad, a spinner drifting across. All big,
-  // flat, opaque shapes built here (no downloads, nothing fine enough to
-  // shimmer as you move). Local frame: the window's centre, +z into the room,
+  // The view out: blown-out late-afternoon haze, the city beyond only ghosts
+  // of towers in it (one tall ad still glowing teal), and grimy glass. Bright
+  // enough to bloom. Local frame: the window's centre, +z into the room,
   // outside is -z.
-  function buildWindow(anchor, { w = 10, h = 5 }) {
-    const STREET = -6.5; // street level, below the window centre
-    const HAZE = new THREE.Color('#c8642a');   // sodium glow at the horizon
-    const flat = (color, opts = {}) => new THREE.MeshBasicMaterial({ color, fog: false, ...opts });
+  function buildWindow(anchor, { w = 8, h = 4 }) {
+    const STREET = -4.5; // street level, below the window centre
+    const GLOW = new THREE.Color('#ffd9a8');
+    const flat = (color, opts = {}) => new THREE.MeshBasicMaterial({ color, fog: false, toneMapped: false, ...opts });
 
-    // the sky: amber haze at the bottom, through rust, up into dark teal
-    const sky = new THREE.Mesh(new THREE.PlaneGeometry(400, 160), flat('#ffffff', { map: hazeTexture() }));
-    sky.position.set(0, STREET + 60, -150);
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(300, 120), flat('#ffffff', { map: hazeTexture() }));
+    sky.position.set(0, STREET + 40, -120);
     anchor.add(sky);
 
-    // towers: three rows, the further the hazier (blended towards the glow)
+    // towers: two rows of soft silhouettes, nearly lost in the glare
     const rows = [
-      { z: -110, n: 16, spread: 260, hmin: 40, hmax: 110, wmin: 10, wmax: 26, haze: 0.62 },
-      { z: -70, n: 12, spread: 170, hmin: 30, hmax: 90, wmin: 8, wmax: 20, haze: 0.38 },
-      { z: -38, n: 8, spread: 100, hmin: 22, hmax: 60, wmin: 6, wmax: 14, haze: 0.16 },
+      { z: -90, n: 14, spread: 200, hmin: 30, hmax: 90, wmin: 10, wmax: 24, k: 0.9 },
+      { z: -45, n: 9, spread: 110, hmin: 20, hmax: 60, wmin: 6, wmax: 14, k: 0.78 },
     ];
     for (const row of rows) {
-      const col = new THREE.Color('#06080c').lerp(HAZE, row.haze * 0.55);
-      const mat = flat(col);
+      const mat = flat(new THREE.Color('#6a5040').lerp(GLOW, row.k).multiplyScalar(1.15));
       for (let i = 0; i < row.n; i++) {
         const bw = row.wmin + rand() * (row.wmax - row.wmin);
         const bh = row.hmin + rand() * (row.hmax - row.hmin);
@@ -637,67 +616,17 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
         const tower = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), mat);
         tower.position.set(x, STREET + bh / 2, row.z + (rand() - 0.5) * 6);
         anchor.add(tower);
-        // a few long neon strips down the edges of the nearer towers
-        if (row.haze < 0.5 && rand() < 0.55) {
-          const neon = ['#2ad4c9', '#ff3d8a', '#ffb000'][Math.floor(rand() * 3)];
-          const k = 1 - row.haze; // dimmer in the haze
-          const strip = new THREE.Mesh(new THREE.PlaneGeometry(0.6, bh * (0.4 + rand() * 0.5)),
-            flat(new THREE.Color(neon).multiplyScalar(1.4 * k), { toneMapped: false }));
-          strip.position.set(x + (rand() < 0.5 ? -1 : 1) * (bw / 2 - 0.4), STREET + bh * (0.35 + rand() * 0.3), tower.position.z + bw / 2 + 0.05);
-          anchor.add(strip);
-        }
       }
     }
+    // a tall teal ad on the nearer skyline, washed out by the sun, breathing
+    const ad = new THREE.Mesh(new THREE.PlaneGeometry(3, 18), flat(new THREE.Color(TEAL), { transparent: true, opacity: 0.5 }));
+    ad.position.set(12, STREET + 22, -44);
+    anchor.add(ad);
+    updaters.push((t) => { ad.material.opacity = 0.35 + 0.15 * Math.sin(t * 0.7) + (Math.sin(t * 23) > 0.97 ? -0.2 : 0); });
 
-    // the hologram ad: a giant soft figure of light on the nearer skyline, breathing
-    const holo = new THREE.Mesh(new THREE.PlaneGeometry(16, 28), flat('#ffffff', {
-      map: holoTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
-    }));
-    holo.position.set(-14, STREET + 26, -44);
-    anchor.add(holo);
-    updaters.push((t) => { holo.material.opacity = 0.55 + 0.25 * Math.sin(t * 0.7) + (Math.sin(t * 23) > 0.97 ? -0.3 : 0); });
-
-    // a spinner drifting across, red and white
-    const spinner = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), flat('#ffffff', { toneMapped: false }));
-    anchor.add(spinner);
-    updaters.push((t) => {
-      const k = (t % 30) / 30;
-      spinner.position.set(-90 + k * 180, STREET + 34 + Math.sin(k * 5) * 3, -60);
-      spinner.material.color.set(Math.sin(t * 8) > 0 ? '#ff4a4a' : '#ffffff').multiplyScalar(3);
-    });
-
-    // rain, outside: a slab of falling streaks between the glass and the street
-    const count = 420;
-    const pos = new Float32Array(count * 6);
-    const speed = new Float32Array(count);
-    const len = new Float32Array(count);
-    const top = 5, bottom = STREET;
-    for (let i = 0; i < count; i++) {
-      // kept back from the glass, so up close it reads as rain, not stripes
-      const x = (rand() - 0.5) * (w + 6), y = bottom + rand() * (top - bottom), z = -1.5 - rand() * 9;
-      len[i] = 0.25 + rand() * 0.35;
-      pos.set([x, y, z, x - 0.03, y - len[i], z], i * 6);
-      speed[i] = 8 + rand() * 4;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#8fbcd6', transparent: true, opacity: 0.16, fog: false }));
-    rain.frustumCulled = false;
-    anchor.add(rain);
-    updaters.push((t, dt) => {
-      for (let i = 0; i < count; i++) {
-        const o = i * 6;
-        let y = pos[o + 1] - speed[i] * dt;
-        if (y < bottom) y += top - bottom;
-        pos[o + 1] = y;
-        pos[o + 4] = y - len[i];
-      }
-      geo.attributes.position.needsUpdate = true;
-    });
-
-    // the glass: barely there, but it catches reflections
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({
-      color: '#0b1418', roughness: 0.08, metalness: 0, transparent: true, opacity: 0.18, depthWrite: false, envMapIntensity: 1.2,
+    // the glass: years of dust, thicker towards the bottom edge
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
+      map: grimeTexture(), transparent: true, depthWrite: false, fog: false, color: '#c8a880',
     }));
     glass.position.z = -0.03;
     anchor.add(glass);
@@ -716,26 +645,17 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
   }
 
-  // a cone of light with dust in it (cheap volumetrics)
-  function lightShaft(anchor, { r = 1, h = 4, color = '#ffd9a0' }) {
-    const geo = new THREE.CylinderGeometry(r * 0.25, r, h, 32, 1, true);
+  // a beam of light through the dusty air (cheap volumetrics): an open prism
+  // fading along its length; sides 4 makes it square, like the window
+  function sunbeam(anchor, { r = 1, h = 4, top = 0.25, sides = 32, color = '#ffd9a0', opacity = 0.07 }) {
+    const geo = new THREE.CylinderGeometry(r * top, r, h, sides, 1, true);
+    if (sides === 4) geo.rotateY(Math.PI / 4);
     geo.translate(0, -h / 2, 0);
-    const cone = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      map: gradientTexture(), color, transparent: true, opacity: 0.07, depthWrite: false,
-      blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    const beam = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      map: gradientTexture(), color, transparent: true, opacity, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
     }));
-    anchor.add(cone);
-    const n = 60;
-    const p = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const y = -rand() * h, rr = r * (0.25 + 0.75 * (-y / h)) * Math.sqrt(rand()), a = rand() * Math.PI * 2;
-      p.set([Math.cos(a) * rr, y, Math.sin(a) * rr], i * 3);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    const motes = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.006, transparent: true, opacity: 0.22, depthWrite: false }));
-    anchor.add(motes);
-    updaters.push((t) => { motes.rotation.y = t * 0.03; motes.position.y = Math.sin(t * 0.25) * 0.05; });
+    anchor.add(beam);
   }
 
   // the gym whiteboard: PRs in marker
@@ -807,40 +727,39 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
 
 // ---------------------------------------------------------------- environment
 
-// What shiny things reflect: a dark hall with the window's cold light, warm
-// lamps overhead and neon strips (blurred into an environment map).
-function neonRoom() {
+// What shiny things reflect: a dim brick room, the big bright window at one
+// end, warm bulbs overhead, the glow of the TV wall (blurred into an
+// environment map).
+function workshopRoom() {
   const room = new THREE.Scene();
-  room.background = new THREE.Color('#06080c');
+  room.background = new THREE.Color('#120d0a');
   const strip = (color, k, w, h, x, y, z, ry = 0) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), side: THREE.DoubleSide }));
     m.position.set(x, y, z);
     m.rotation.y = ry;
     room.add(m);
   };
-  strip('#5fa8d3', 1.2, 10, 5, 0, 4, -7);         // the window
-  strip('#ffb46a', 3, 1.2, 0.6, 0, 6, 0);          // lamps overhead
-  strip('#2ad4c9', 4, 0.1, 3, -4.3, 2.2, -3.2);    // neon tubes
-  strip('#ff7a1a', 4, 0.1, 3, 4.3, 2.2, -3.2);
-  strip('#ffb000', 1.5, 5, 1.8, 0, 1.8, -2.8);     // the screen wall
-  strip('#ff4f8a', 2, 2, 0.5, -8, 3, 6, Math.PI / 2);
+  strip('#ffd9a8', 4, 8, 4.2, 0, 3.6, -10);        // the window
+  strip('#ffb15a', 3, 1.2, 0.6, 0, 6, -2);         // bulbs overhead
+  strip('#2ad4c9', 1.2, 4, 2.5, -6.9, 1.9, -4.2, Math.PI / 2); // the TV wall
+  strip('#ff3fa4', 0.8, 2, 1.5, -6.9, 2.4, -3, Math.PI / 2);
+  strip('#ffb000', 1.5, 2.2, 0.8, 0, 1.2, -0.4);   // the desk's screens
   return room;
 }
 
 // ---------------------------------------------------------------- canvas textures
 
-// sky gradient for the view out: amber at the horizon, rust, then dark teal
+// sky for the view out: a warm glare low down, paling up into dusty haze
 function hazeTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 4;
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, '#03070b');
-  g.addColorStop(0.45, '#0b1a22');
-  g.addColorStop(0.72, '#4a2a1c');
-  g.addColorStop(0.88, '#b05a26');
-  g.addColorStop(1, '#d9813a');
+  g.addColorStop(0, '#a89070');
+  g.addColorStop(0.5, '#e8c89a');
+  g.addColorStop(0.8, '#fff0d8');
+  g.addColorStop(1, '#ffe2b0');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, 256);
   const tex = new THREE.CanvasTexture(canvas);
@@ -848,30 +767,30 @@ function hazeTexture() {
   return tex;
 }
 
-// the hologram: a tall soft-edged figure of pink and teal light (abstract, a
-// head and shoulders, glowing), additive, so the haze shows through it
-function holoTexture() {
-  const W = 128, H = 224;
+// dirty glass: blotchy dust, streaks, heavier along the bottom
+function grimeTexture() {
+  const W = 256, H = 128;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const glow = (x, y, rx, ry, color) => {
-    const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
-    g.addColorStop(0, color);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry));
-    ctx.translate(-x, -y);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    ctx.restore();
-  };
-  glow(64, 150, 58, 80, 'rgba(255, 70, 160, 0.75)');  // shoulders
-  glow(64, 70, 28, 36, 'rgba(255, 120, 200, 0.9)');   // head
-  glow(64, 70, 14, 18, 'rgba(120, 255, 240, 0.6)');   // face glow
-  glow(64, 120, 64, 110, 'rgba(60, 220, 230, 0.25)'); // aura
+  const r = mulberry32(77);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, 'rgba(90,70,50,0.10)');
+  g.addColorStop(0.7, 'rgba(90,70,50,0.18)');
+  g.addColorStop(1, 'rgba(70,55,40,0.45)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 160; i++) {
+    const x = r() * W, y = r() * H, rr = 3 + r() * 14;
+    const b = ctx.createRadialGradient(x, y, 0, x, y, rr);
+    b.addColorStop(0, `rgba(80,62,44,${0.03 + r() * 0.06})`);
+    b.addColorStop(1, 'rgba(80,62,44,0)');
+    ctx.fillStyle = b;
+    ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+  }
+  ctx.fillStyle = 'rgba(70,55,40,0.12)';
+  for (let i = 0; i < 40; i++) ctx.fillRect(r() * W, r() * H * 0.6, 1, 10 + r() * 50); // drip streaks
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
@@ -929,7 +848,51 @@ function scanlines(ctx) {
 
 const F1_CODES = ['VER', 'NOR', 'LEC', 'PIA', 'HAM', 'RUS', 'SAI', 'ALO'];
 
+// one big frame of TV snow, shared: each TV shows a random window of it
+let snow = null;
+function snowCanvas() {
+  if (snow) return snow;
+  snow = document.createElement('canvas');
+  snow.width = 512;
+  snow.height = 320;
+  const ctx = snow.getContext('2d');
+  const img = ctx.createImageData(512, 320);
+  const r = mulberry32(5);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.pow(r(), 1.6) * 230;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return snow;
+}
+
 const SCREEN_PAINTERS = {
+  // an old TV between channels, tinted: snow, a rolling band, now and then a test card
+  static(ctx, t, s) {
+    const tint = s.tint || '#ffffff';
+    const phase = (t + s.seed) % 17;
+    if (phase < 1.6) {
+      const bars = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
+      bars.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(i * 256 / 7, 0, 256 / 7 + 1, 160); });
+      ctx.fillStyle = '#000';
+      ctx.fillRect(70, 62, 116, 30);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px "Share Tech Mono", monospace';
+      ctx.textBaseline = 'top';
+      ctx.fillText('NO SIGNAL', 88, 70);
+    } else {
+      ctx.drawImage(snowCanvas(), Math.random() * 256, Math.random() * 160, 256, 160, 0, 0, 256, 160);
+      const y = ((t * 40 + s.seed * 7) % 220) - 30; // the rolling band
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(0, y, 256, 26);
+    }
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, 256, 160);
+    ctx.globalCompositeOperation = 'source-over';
+    scanlines(ctx);
+  },
   blog(ctx, t) {
     screenBase(ctx, 'TRANSMISSIONS // BLOG');
     ctx.fillStyle = AMBER;

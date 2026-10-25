@@ -340,6 +340,15 @@ class Zone:
         self.col = bpy.data.collections.new(name)
         bpy.context.scene.collection.children.link(self.col)
 
+    def sub(self, origin, yaw=0.0):
+        """A frame inside this one (same collection): place an assembly with
+        its own local coordinates at `origin` (this frame), turned by `yaw`."""
+        f = Zone.__new__(Zone)
+        f.name, f.col = self.name, self.col
+        f.origin = self.W(origin)
+        f.yaw = self.yaw + yaw
+        return f
+
     # zone frame → world (three coords)
     def W(self, p):
         x, y, z = p
@@ -363,7 +372,7 @@ class Zone:
                 obj[k] = v
         return obj
 
-    def model(self, name, asset, pos, rot=(0, 0, 0), scale=1.0, max_tris=4000, tex=256, **tags):
+    def model(self, name, asset, pos, rot=(0, 0, 0), scale=1.0, max_tris=1500, tex=256, **tags):
         """A Poly Haven prop (CC0), imported once, joined into one mesh,
         decimated to max_tris, placed like any other object. tex = shipped
         colour-map size for its textures."""
@@ -460,6 +469,8 @@ class Zone:
                 ld.size_y = size[1]
         elif kind in ('POINT', 'SPOT'):
             ld.shadow_soft_size = size
+        elif kind == 'SUN':
+            ld.angle = size  # the sun's apparent size (radians): how soft its shadows are
         if kind == 'SPOT':
             ld.spot_size = spot or math.radians(60)
             ld.spot_blend = blend

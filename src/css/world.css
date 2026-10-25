@@ -160,8 +160,26 @@ html.in-world .skip-link { display: none; }
 /* ---------------------------------------------------------------- datapad (the AR visor) */
 /* A page shown inside the world, projected by your visor: same reader styles,
    a barely see-through panel with HUD corners, the room dimmed but visible
-   around it. Starts full-screen (is-full) when you step out of a flat page,
-   so the handoff is seamless. The text itself is never effected. */
+   around it. Opening it, the visor's lens slides down over your eyes, then
+   the page projects in from a thin line and flickers as it catches; closing
+   folds it back to a line and the lens lifts. Starts full-screen (is-full)
+   when you step out of a flat page, so the handoff is seamless. The text
+   itself is never effected. */
+
+.visor-lens {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  /* dark tinted glass (the room dims behind the page), faint scan lines, a
+     bright rim along its lower edge */
+  background:
+    repeating-linear-gradient(to bottom, rgba(42, 212, 201, .035) 0 1px, transparent 1px 3px),
+    linear-gradient(to bottom, rgba(3, 12, 16, .42), rgba(8, 30, 34, .34) 92%, rgba(42, 212, 201, .4) 99.6%, rgba(160, 255, 248, .9));
+  transform: translateY(-101%);
+  transition: transform .42s cubic-bezier(.5, 0, .75, 0) .22s;
+}
+.visor-lens.is-down { transform: translateY(0); transition: transform .38s cubic-bezier(.2, .8, .3, 1); }
 
 .datapad {
   /* reader night palette, independent of the page it's opened on */
@@ -193,13 +211,14 @@ html.in-world .skip-link { display: none; }
   font-family: var(--font-serif);
   border: 1px solid rgba(42, 212, 201, .3);
   border-radius: 6px;
-  /* the room dims around the projection, still there at the edges */
-  box-shadow: 0 0 0 100vmax rgba(2, 4, 8, .38), 0 0 40px rgba(42, 212, 201, .14);
   overflow: hidden;
   opacity: 0;
-  transform: translateX(-50%) scale(.96);
+  transform: translateX(-50%);
+  /* folded to a line across its middle until it's projected */
+  clip-path: inset(50% 0 50% 0);
+  filter: blur(6px) brightness(1.8);
   pointer-events: none;
-  transition: opacity .3s, transform .3s,
+  transition: opacity .2s .1s, clip-path .22s cubic-bezier(.6, 0, .9, .4), filter .22s,
     top .6s cubic-bezier(.2, .7, .2, 1), bottom .6s cubic-bezier(.2, .7, .2, 1),
     width .6s cubic-bezier(.2, .7, .2, 1), border-radius .6s, border-color .6s;
 }
@@ -213,7 +232,17 @@ html.in-world .skip-link { display: none; }
     --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
   }
 }
-.datapad.is-open { opacity: 1; transform: translateX(-50%); pointer-events: auto; animation: visor-on .45s steps(1, end) 1; }
+.datapad.is-open {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  filter: none;
+  pointer-events: auto;
+  /* after the lens is down: open out from the line, sharpen, flicker */
+  transition: opacity .05s .3s, clip-path .34s cubic-bezier(.2, .9, .3, 1) .32s, filter .5s .4s,
+    top .6s cubic-bezier(.2, .7, .2, 1), bottom .6s cubic-bezier(.2, .7, .2, 1),
+    width .6s cubic-bezier(.2, .7, .2, 1), border-radius .6s, border-color .6s;
+  animation: visor-on .45s steps(1, end) .62s 1 backwards;
+}
 .datapad.is-full { top: 0; bottom: 0; width: 100vw; border-radius: 0; border-color: transparent; background: var(--bg); box-shadow: none; }
 /* HUD corner brackets */
 .datapad::before, .datapad::after {
@@ -230,7 +259,11 @@ html.in-world .skip-link { display: none; }
 .datapad.is-full::before, .datapad.is-full::after { opacity: 0; }
 /* the projection catching: a quick flicker as it comes on */
 @keyframes visor-on { 0% { opacity: .35; } 25% { opacity: .9; } 40% { opacity: .55; } 60% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .datapad.is-open { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .datapad, .datapad.is-open { clip-path: none; filter: none; transition: opacity .2s; animation: none; }
+  .visor-lens, .visor-lens.is-down { transform: none; opacity: 0; transition: opacity .2s; }
+  .visor-lens.is-down { opacity: 1; }
+}
 
 .datapad-bar {
   display: flex;
@@ -243,7 +276,6 @@ html.in-world .skip-link { display: none; }
   border-bottom: 1px solid var(--rule);
 }
 .datapad-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.datapad-title::before { content: '◉ AR  '; color: #2ad4c9; }
 .datapad-bar button {
   display: inline-flex;
   align-items: center;

@@ -14,7 +14,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lib  # noqa: E402
 
-ZONES = ['hall', 'deck', 'board', 'library', 'lounge', 'garage', 'gym']
+ZONES = ['workshop']
 
 
 def run(name, quick):
