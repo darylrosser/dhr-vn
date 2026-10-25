@@ -1,12 +1,18 @@
 # Shared helpers for the warehouse zone builds: geometry in three.js
-# coordinates, procedural materials, the lightmap bake and the GLB export.
+# coordinates, materials (scanned PBR sets from Poly Haven, or plain
+# procedural colours for small things), Poly Haven props, the lightmap bake
+# and the GLB export.
+#
+# Look: real materials (colour, normal, roughness) shaded live in three.js,
+# lit by a baked lightmap per atlas group (Cycles, denoised) on the second
+# UV set, plus reflections from an environment map.
 #
 # Coordinates: everything here is written in three.js space (metres, +y up,
 # the home camera looks down -z), so numbers can be copied straight from
 # world.js. Blender is z-up: three (x, y, z) == Blender (x, -z, y).
 #
 # Object tags (custom properties, exported as glTF extras → three userData):
-#   bake    atlas group the object is baked into ('hero', 'env', ...)
+#   bake    lightmap group the object is baked into ('hero', 'env', ...)
 #   live    kept with its own material (neon, screens): not baked
 #   proxy   only there while baking (shadows / light of something JS builds)
 #   hotspot place id the object links to (world.js turns it into the contract)
@@ -22,8 +28,12 @@ from mathutils import Matrix, Vector
 
 import numpy as np
 
+import assets
+
 HERE = os.path.dirname(os.path.abspath(__file__))
+SITE = os.path.dirname(HERE)
 OUT = os.path.join(HERE, 'out')
+LM_RANGE = 4.0  # lightmap headroom: stored value × LM_RANGE = irradiance
 
 
 def B(x, y, z):
@@ -72,6 +82,7 @@ def reset(quick=False):
 # ---------------------------------------------------------------- materials
 
 _mats = {}
+_models = {}
 
 
 def _principled(m):
@@ -142,6 +153,163 @@ def mat(name, color, color2=None, noise=0.0, scale=6.0, detail=6.0, rough=0.6, m
     return m
 
 
+def pbr(name, asset, scale=1.0, tint=None, rough=1.0, metal=0.0, normal=1.0, tex=512):
+    """A scanned Poly Haven material. scale = metres per texture repeat on
+    box-mapped primitives. tint / rough multiply the maps (applied as glTF
+    factors when packing). tex = shipped colour-map size (normals get half,
+    roughness a quarter)."""
+    if name in _mats:
+        return _mats[name]
+    maps = assets.fetch_texture(asset)
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    p = _principled(m)
+    uv = nt.nodes.new('ShaderNodeUVMap')
+    uv.uv_map = 'UVMap'
+
+    def image(path, colour):
+        n = nt.nodes.new('ShaderNodeTexImage')
+        n.image = bpy.data.images.load(path, check_existing=True)
+        n.image.colorspace_settings.name = 'sRGB' if colour else 'Non-Color'
+        nt.links.new(uv.outputs['UV'], n.inputs['Vector'])
+        return n
+    nt.links.new(image(maps['diff'], True).outputs['Color'], p.inputs['Base Color'])
+    if 'rough' in maps:
+        nt.links.new(image(maps['rough'], False).outputs['Color'], p.inputs['Roughness'])
+    if 'metal' in maps:
+        nt.links.new(image(maps['metal'], False).outputs['Color'], p.inputs['Metallic'])
+    else:
+        p.inputs['Metallic'].default_value = metal
+    if 'nor' in maps:
+        nm = nt.nodes.new('ShaderNodeNormalMap')
+        nm.inputs['Strength'].default_value = normal
+        nt.links.new(image(maps['nor'], False).outputs['Color'], nm.inputs['Color'])
+        nt.links.new(nm.outputs['Normal'], p.inputs['Normal'])
+    m['uvscale'] = scale
+    m['tex'] = tex
+    if tint:
+        m['tint'] = list(hex_rgb(tint)[:3])
+    if rough != 1.0:
+        m['rough'] = rough
+    if metal and 'metal' not in maps:
+        m['metal'] = metal
+    _mats[name] = m
+    return m
+
+
+def photo(name, path, rough=0.4, tex=256):
+    """A material showing one image across the face (plane UVs 0..1)."""
+    if name in _mats:
+        return _mats[name]
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    n = nt.nodes.new('ShaderNodeTexImage')
+    n.image = bpy.data.images.load(path, check_existing=True)
+    nt.links.new(n.outputs['Color'], _principled(m).inputs['Base Color'])
+    _principled(m).inputs['Roughness'].default_value = rough
+    m['tex'] = tex
+    _mats[name] = m
+    return m
+
+
+def noise_texture(name, base, spots, size=512, density=0.25, seed=1):
+    """A speckled colour texture (cork, chalk, felt) generated with numpy;
+    returns its PNG path in out/."""
+    rng = np.random.default_rng(seed)
+    img = np.zeros((size, size, 3), np.float32) + np.array(hex_rgb(base)[:3])
+    k = np.zeros((size, size), np.float32)
+    for scale in (2, 4, 8):
+        n = rng.random((size // scale, size // scale)).astype(np.float32)
+        k += np.kron(n, np.ones((scale, scale), np.float32)) / 3
+    for colour, lo, hi in spots:
+        mask = ((k > lo) & (k < hi)).astype(np.float32)[..., None]
+        img = img * (1 - mask * density) + np.array(hex_rgb(colour)[:3]) * mask * density
+    img *= (0.85 + 0.3 * rng.random((size, size, 1))).astype(np.float32)
+    srgb = np.where(img <= 0.0031308, img * 12.92, 1.055 * np.power(np.clip(img, 0, 1), 1 / 2.4) - 0.055)
+    out = bpy.data.images.new(name, size, size, alpha=False)
+    px = np.ones((size, size, 4), np.float32)
+    px[..., :3] = srgb
+    out.pixels.foreach_set(px.ravel())
+    os.makedirs(OUT, exist_ok=True)
+    out.filepath_raw = os.path.join(OUT, f'{name}.png')
+    out.file_format = 'PNG'
+    out.save()
+    return out.filepath_raw
+
+
+def brushed_texture(name, base='#b8bcc0', size=512, seed=7):
+    """Brushed metal: fine streaks along u, a few long scratches; PNG in out/."""
+    rng = np.random.default_rng(seed)
+    rows = rng.normal(0, 1, (size, 1)).astype(np.float32)
+    streak = np.repeat(rows, size, 1)
+    for w in (3, 9, 27):  # streaks of a few lengths, wrapping along u
+        n = rng.normal(0, 1, (size, -(-size // w))).astype(np.float32)
+        streak += np.repeat(n, w, 1)[:, :size] * 0.5
+    k = 1 + 0.035 * streak / streak.std()
+    img = np.array(hex_rgb(base)[:3], np.float32)[None, None, :] * k[..., None]
+    srgb = np.where(img <= 0.0031308, img * 12.92, 1.055 * np.power(np.clip(img, 0, 1), 1 / 2.4) - 0.055)
+    out = bpy.data.images.new(name, size, size, alpha=False)
+    px = np.ones((size, size, 4), np.float32)
+    px[..., :3] = srgb
+    out.pixels.foreach_set(px.ravel())
+    os.makedirs(OUT, exist_ok=True)
+    out.filepath_raw = os.path.join(OUT, f'{name}.png')
+    out.file_format = 'PNG'
+    out.save()
+    return out.filepath_raw
+
+
+def image_pbr(name, path, scale=1.0, rough=0.8, tex=512, metal=0.0):
+    """Like pbr() but from one local colour image (tiled, box-mapped)."""
+    if name in _mats:
+        return _mats[name]
+    m = photo(name, path, rough, tex)
+    _principled(m).inputs['Metallic'].default_value = metal
+    nt = m.node_tree
+    uv = nt.nodes.new('ShaderNodeUVMap')
+    uv.uv_map = 'UVMap'
+    nt.links.new(uv.outputs['UV'], [n for n in nt.nodes if n.type == 'TEX_IMAGE'][0].inputs['Vector'])
+    m['uvscale'] = scale
+    return m
+
+
+def box_uv(mesh, scale=1.0, matrix=None):
+    """'UVMap': box projection in real-world units (1 repeat per `scale` m),
+    in world space when given the object's matrix, so neighbours line up."""
+    uv = mesh.uv_layers.get('UVMap') or mesh.uv_layers.new(name='UVMap')
+    n = len(mesh.loops)
+    if not n:
+        return
+    co = np.empty(len(mesh.vertices) * 3, np.float32)
+    mesh.vertices.foreach_get('co', co)
+    co = co.reshape(-1, 3)
+    if matrix is not None:
+        m = np.array(matrix, np.float32)
+        co = co @ m[:3, :3].T + m[:3, 3]
+    lv = np.empty(n, np.int32)
+    mesh.loops.foreach_get('vertex_index', lv)
+    nrm = np.empty(len(mesh.polygons) * 3, np.float32)
+    mesh.polygons.foreach_get('normal', nrm)
+    nrm = nrm.reshape(-1, 3)
+    if matrix is not None:
+        nrm = nrm @ np.array(matrix, np.float32)[:3, :3].T
+    nrm = np.abs(nrm)
+    start = np.empty(len(mesh.polygons), np.int32)
+    mesh.polygons.foreach_get('loop_start', start)
+    total = np.empty(len(mesh.polygons), np.int32)
+    mesh.polygons.foreach_get('loop_total', total)
+    axis = np.repeat(np.argmax(nrm, axis=1), total)
+    p = co[lv]
+    u = np.where(axis == 0, p[:, 1], p[:, 0])
+    v = np.where(axis == 2, p[:, 1], p[:, 2])
+    out = np.stack([u, v], 1).astype(np.float32) / scale
+    uv.data.foreach_set('uv', out.ravel())
+    mesh.uv_layers.active = uv
+    uv.active_render = True
+
+
 def emissive(name, color, strength=4.0, textured=False):
     """Neon / screens: kept live (not baked) and exported as emissive.
     textured: drive the colour from a tiny image so the exporter keeps the
@@ -187,6 +355,68 @@ class Zone:
         self.col.objects.link(obj)
         if material is not None:
             mesh.materials.append(material)
+        self._place(obj, pos, rot)
+        if 'UVMap' not in mesh.uv_layers or (material is not None and material.get('uvscale')):
+            box_uv(mesh, material.get('uvscale', 1.0) if material is not None else 1.0, obj.matrix_world)
+        for k, v in tags.items():
+            if v is not None:
+                obj[k] = v
+        return obj
+
+    def model(self, name, asset, pos, rot=(0, 0, 0), scale=1.0, max_tris=4000, tex=256, **tags):
+        """A Poly Haven prop (CC0), imported once, joined into one mesh,
+        decimated to max_tris, placed like any other object. tex = shipped
+        colour-map size for its textures."""
+        src = _models.get(asset)
+        if src is None:
+            before = set(bpy.data.objects)
+            bpy.ops.import_scene.gltf(filepath=assets.fetch_model(asset))
+            new = [o for o in bpy.data.objects if o not in before]
+            meshes = [o for o in new if o.type == 'MESH']
+            for o in meshes:
+                o.data = o.data.copy()
+                mw = o.matrix_world.copy()
+                o.parent = None
+                o.data.transform(mw)
+                o.matrix_world = Matrix.Identity(4)
+                # the props' texture UVs are 'UVMap'; lightmap UVs come later
+                if o.data.uv_layers:
+                    o.data.uv_layers[0].name = 'UVMap'
+                for extra in list(o.data.uv_layers)[1:]:
+                    o.data.uv_layers.remove(extra)
+                if not o.data.uv_layers:
+                    box_uv(o.data)
+            others = [o.name for o in new if o.type != 'MESH']
+            src = join(meshes, f'src_{asset}')
+            for name in others:  # empties / armatures the importer made
+                if name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[name])
+            tris = sum(len(p.vertices) - 2 for p in src.data.polygons)
+            if tris > max_tris:
+                mod = src.modifiers.new('decimate', 'DECIMATE')
+                mod.ratio = max_tris / tris
+                with bpy.context.temp_override(object=src, active_object=src):
+                    bpy.ops.object.modifier_apply(modifier='decimate')
+            # origin at the bottom centre, so `pos` is where it stands
+            co = np.empty(len(src.data.vertices) * 3, np.float32)
+            src.data.vertices.foreach_get('co', co)
+            co = co.reshape(-1, 3)
+            lo, hi = co.min(0), co.max(0)
+            src.data.transform(Matrix.Translation(Vector((-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]))))
+            print(f'    model {asset}: {len(src.data.polygons)} faces, {hi[0] - lo[0]:.2f} × {hi[2] - lo[2]:.2f} × {hi[1] - lo[1]:.2f} m (w × h × d)', flush=True)
+            for slot in src.material_slots:
+                slot.material['tex'] = tex
+                # scanned props' bulbs come very hot; keep them a glow, not a flare
+                p = _principled(slot.material)
+                if p and p.inputs['Emission Strength'].default_value > 3:
+                    p.inputs['Emission Strength'].default_value = 3
+            for c in src.users_collection:
+                c.objects.unlink(src)
+            _models[asset] = src
+        mesh = src.data.copy()
+        mesh.transform(Matrix.Scale(scale, 4))
+        obj = bpy.data.objects.new(name, mesh)
+        self.col.objects.link(obj)
         self._place(obj, pos, rot)
         for k, v in tags.items():
             if v is not None:
@@ -235,6 +465,7 @@ class Zone:
     def tube(self, name, points, radius, material=None, segs=8, closed=False, **tags):
         """A tube through zone-local points (three coords); object at the origin."""
         mesh = tube_mesh(name, [B(*self.W(p)) for p in points], radius, segs, closed)
+        box_uv(mesh, material.get('uvscale', 1.0) if material is not None else 1.0)
         obj = bpy.data.objects.new(name, mesh)
         self.col.objects.link(obj)
         if material is not None:
@@ -390,6 +621,8 @@ def unwrap(objs, margin):
     """One shared UV atlas ('bake') for a group of objects, with even texel
     density, scaled per object by its 'texel' tag, then packed together."""
     for o in objs:
+        if 'UVMap' not in o.data.uv_layers:
+            box_uv(o.data)
         uv = o.data.uv_layers.get('bake') or o.data.uv_layers.new(name='bake')
         o.data.uv_layers.active = uv
     ctx = {'active_object': objs[0], 'selected_objects': objs, 'selected_editable_objects': objs, 'objects_in_edit_mode': objs}
@@ -440,94 +673,64 @@ def _bake(objs, img, kind, pass_filter, samples):
     return px.reshape(img.size[1], img.size[0], 4)[..., :3]
 
 
-def _upsample(a, n):
-    """Bilinear upsample HxWx3 by an integer factor."""
-    if n == 1:
-        return a
-    h, w, _ = a.shape
-    ys = (np.arange(h * n) + 0.5) / n - 0.5
-    xs = (np.arange(w * n) + 0.5) / n - 0.5
-    y0 = np.clip(np.floor(ys).astype(int), 0, h - 1)
-    x0 = np.clip(np.floor(xs).astype(int), 0, w - 1)
-    y1 = np.clip(y0 + 1, 0, h - 1)
-    x1 = np.clip(x0 + 1, 0, w - 1)
-    fy = np.clip(ys - y0, 0, 1)[:, None, None]
-    fx = np.clip(xs - x0, 0, 1)[None, :, None]
-    top = a[y0][:, x0] * (1 - fx) + a[y0][:, x1] * fx
-    bot = a[y1][:, x0] * (1 - fx) + a[y1][:, x1] * fx
-    return top * (1 - fy) + bot * fy
-
-
-def bake_group(zone, group, objs, size, light_div=2, samples=160, exposure=1.0, quick=False):
-    """Bake a group's look into one sRGB texture: albedo × denoised lighting +
-    emission, soft-clipped at 1. Returns the image."""
+def bake_group(zone, group, objs, size=1024, samples=200, quick=False):
+    """Bake one lightmap for a group of objects: the light arriving at each
+    surface (direct + bounced, no surface colour), denoised, stored as sRGB
+    with headroom LM_RANGE (three: lightMapIntensity = lm). Materials stay as
+    they are; each object is tagged with the lightmap it uses."""
     if quick:
-        size, samples = max(256, size // 4), 16
+        size, samples = max(128, size // 4), 16
     print(f'  bake {zone}/{group}: {len(objs)} objects', flush=True)
-    # every material in this group gets its own copy (each points at one image)
+    # each material in this group gets its own copy (each points at one image)
     seen = {}
     for o in objs:
         for slot in o.material_slots:
             m = slot.material
             key = m.name
-            if m.get('__group') not in (None, group):
-                m = m.copy()
-            m['__group'] = group
-            slot.material = seen.setdefault(key, m)
-    unwrap(objs, margin=0.003 if size >= 2048 else 0.005)
+            if key not in seen:
+                if m.get('__group') not in (None, group):
+                    m = m.copy()
+                m['__group'] = group
+                seen[key] = m
+            slot.material = seen[key]
+    unwrap(objs, margin=0.004 if size >= 1024 else 0.008)
     # Blender bakes each selected object in its own pass (slow with hundreds of
     # books): bake the plain ones as one mesh, keep the ones JS needs apart.
     keep = [o for o in objs if o.get('hotspot') or o.get('role')]
     plain = join([o for o in objs if o not in keep], f'{zone}_{group}')
     objs = keep + ([plain] if plain else [])
-    lsize = size // light_div
-    limg = bpy.data.images.new(f'{zone}_{group}_light', lsize, lsize, float_buffer=True)
-    cimg = bpy.data.images.new(f'{zone}_{group}_color', size, size, float_buffer=True)
-    light = _bake(objs, limg, 'DIFFUSE', {'DIRECT', 'INDIRECT'}, samples)
-    light = _upsample(denoise(light), light_div)
-    albedo = _bake(objs, cimg, 'DIFFUSE', {'COLOR'}, 4)
-    emit = _bake(objs, cimg, 'EMIT', {'EMIT'}, 1)
-    rgb = albedo * light * exposure + emit
-    # soft knee above 0.8 so hot spots roll off instead of clipping
-    knee = 0.8
-    rgb = np.where(rgb < knee, rgb, knee + (1 - knee) * (1 - np.exp(-(rgb - knee) / (1 - knee))))
-    srgb = np.where(rgb <= 0.0031308, rgb * 12.92, 1.055 * np.power(np.maximum(rgb, 0), 1 / 2.4) - 0.055)
-    out = bpy.data.images.new(f'{zone}_{group}', size, size, alpha=False)
+    img = bpy.data.images.new(f'{zone}_{group}_lm', size, size, float_buffer=True)
+    light = denoise(_bake(objs, img, 'DIFFUSE', {'DIRECT', 'INDIRECT'}, samples))
+    enc = np.clip(light / LM_RANGE, 0, 1)
+    enc = np.where(enc <= 0.0031308, enc * 12.92, 1.055 * np.power(enc, 1 / 2.4) - 0.055)
+    out = bpy.data.images.new(f'{zone}_{group}_lm_out', size, size, alpha=False)
     px = np.ones((size, size, 4), np.float32)
-    px[..., :3] = np.clip(srgb, 0, 1)
+    px[..., :3] = enc
     out.pixels.foreach_set(px.ravel())
     os.makedirs(OUT, exist_ok=True)
-    out.filepath_raw = os.path.join(OUT, f'{zone}_{group}.png')
+    out.filepath_raw = os.path.join(OUT, f'{zone}_{group}_lm.png')
     out.file_format = 'PNG'
     out.save()
-    # the exported look: the baked texture only (unlit in three)
-    baked = bpy.data.materials.new(f'baked_{zone}_{group}')
-    baked.use_nodes = True
-    nt = baked.node_tree
-    tex = nt.nodes.new('ShaderNodeTexImage')
-    tex.image = out
-    uvn = nt.nodes.new('ShaderNodeUVMap')
-    uvn.uv_map = 'bake'
-    nt.links.new(uvn.outputs['UV'], tex.inputs['Vector'])
-    nt.links.new(tex.outputs['Color'], _principled(baked).inputs['Base Color'])
     for o in objs:
-        o.data.materials.clear()
-        o.data.materials.append(baked)
-        for uv in [u for u in o.data.uv_layers if u.name != 'bake']:
-            o.data.uv_layers.remove(uv)
+        o['lightmap'] = f'{zone}_{group}'
+        o['lm'] = LM_RANGE
+        o.data.uv_layers['UVMap'].active_render = True
+    for m in seen.values():
+        nt = m.node_tree
+        if '__bake' in nt.nodes:
+            nt.nodes.remove(nt.nodes['__bake'])
+        del m['__group']
     return out
 
 
 def bake_zone(zone, groups, quick=False):
-    """groups: {name: {'size': px, 'exposure': k}}. Bakes every object tagged
-    with that group into that group's atlas."""
+    """groups: {name: {'size': px, 'samples': n}}. Bakes a lightmap for every
+    object tagged with that group."""
     t0 = time.time()
     for group, opts in groups.items():
         objs = [o for o in bpy.data.objects if o.type == 'MESH' and o.get('bake') == group]
-        if not objs:
-            continue
-        bake_group(zone, group, objs, opts.get('size', 2048), opts.get('light_div', 2),
-                   opts.get('samples', 160), opts.get('exposure', 1.0), quick)
+        if objs:
+            bake_group(zone, group, objs, opts.get('size', 1024), opts.get('samples', 200), quick)
     print(f'  baked {zone} in {time.time() - t0:.0f}s', flush=True)
 
 
@@ -540,6 +743,10 @@ def export(zone):
         for k in ('bake', 'texel'):
             if k in o:
                 del o[k]
+    for m in bpy.data.materials:
+        for k in ('uvscale', 'textured'):
+            if k in m:
+                del m[k]
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, f'{zone}.glb')
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_extras=True, export_yup=True,

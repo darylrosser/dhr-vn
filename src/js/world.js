@@ -7,8 +7,10 @@
 // - Every other page: the live page becomes a floating datapad over its place.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
 //   standing at the warehouse bookshelf; going back to the library fades it in.
-// - In the world, places are visited without reloads (pages fetched into the
-//   datapad); "jack in" drops you into a page as a normal page again.
+// - In the world you walk around (walker.js). Clicking a thing walks you up to
+//   it and opens its page in the datapad, without reloads; "jack in" drops you
+//   into a page as a normal page again. Places are where each page's exit and
+//   return land the camera.
 
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
@@ -17,6 +19,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createWarehouse, zonePoint, DESK_TOP } from './warehouse.js';
+import { createWalker } from './walker.js';
 
 const START_FOV = 40;
 const FLIGHT_MS = 2300;
@@ -73,7 +76,8 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const camera = new THREE.PerspectiveCamera(START_FOV, innerWidth / innerHeight, 0.02, 80);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  // phones: fewer pixels (the bloom pass and the lit materials cost per pixel)
+  renderer.setPixelRatio(Math.min(devicePixelRatio, matchMedia('(pointer: coarse)').matches ? 1.25 : 1.5));
   renderer.setSize(innerWidth, innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
@@ -82,7 +86,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.7, 0.5, 0.72));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.7, 0.5, 0.8));
   composer.addPass(new OutputPass());
 
   const cssScene = new THREE.Scene();
@@ -100,7 +104,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   if (kind !== 'terminal') world.setMonitorIdle();
   // the zone you start in has to be there before you see it; the rest stream
   world.onProgress = (zone, k) => { if (zone === PLACES[place].zone) onStatus(`syncing ${Math.round(25 + k * 60)}%`); };
-  await world.load(PLACES[place].zone);
+  await Promise.all([world.load(PLACES[place].zone), world.load('hall')]);
   world.onProgress = null;
   onStatus('syncing 90%');
   await nextFrame();
@@ -122,18 +126,12 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const ui = document.createElement('div');
   ui.className = 'world-ui';
   ui.innerHTML = `
-    <nav class="world-hud" aria-label="Warehouse">${Object.entries(PLACES).map(([id, p]) => `<button type="button" data-place="${id}">${p.label}</button>`).join('')}</nav>
     <button type="button" class="world-leave" data-act="leave">${PLUG_SVG}<span>Jack back in</span></button>
-    <p class="world-hint">Click things in the room · Esc closes · Esc again goes back</p>`;
+    <p class="world-hint"><span class="world-hint-keys">WASD to walk · drag to look · </span>click the floor to walk there · click things to open them · Esc goes back</p>`;
   ui.addEventListener('click', (e) => {
     const b = e.target.closest('button');
-    if (!b) return;
-    if (b.dataset.act === 'leave') leave();
-    else if (b.dataset.place) go(b.dataset.place);
+    if (b && b.dataset.act === 'leave') leave();
   });
-  function markHud() {
-    for (const b of ui.querySelectorAll('[data-place]')) b.setAttribute('aria-current', String(b.dataset.place === current));
-  }
 
   const tip = document.createElement('div');
   tip.className = 'world-tip';
@@ -273,24 +271,29 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   async function flyTo(id, opts) {
     current = id;
-    settled = false;
-    markHud();
+    unsettle();
     world.load(PLACES[id].zone); // streams in (and fades up) while we travel
     const from = currentPose();
     const to = placePose(id);
     // across the hall: a longer, higher arc over whatever is in between
     const dist = from.pos.distanceTo(to.pos);
     await flyP(from, to, { ms: Math.min(2600, 1300 + dist * 70), arc: 0.15 + dist * 0.05, ...opts });
-    if (current === id) settled = true;
+    if (current === id) settle();
   }
+
+  // At rest (no flight running) you're on your feet: the walker drives the camera.
+  function settle() { settled = true; walker.enable(); }
+  function unsettle() { settled = false; walker.disable(); }
 
   // ---------------------------------------------------------------- pointer + hotspots
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2(0, 0);
-  const parallax = new THREE.Vector2(0, 0);
   let hovered = null;
-  let settled = false; // camera at rest at a place (hover, parallax)
+  let settled = false; // no flight running: you're walking (hover, clicks)
+  const walker = createWalker({ camera, dom: renderer.domElement, blocked: world.blocked, reducedMotion });
+  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const floorHit = new THREE.Vector3();
 
   const overUi = (target) => screenEl.contains(target) || ui.contains(target) || datapad.contains(target);
 
@@ -322,14 +325,31 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     return 'Terminal: jack in →';
   }
 
+  // Click / tap: a thing in the room → walk up to it and use it; the floor →
+  // walk there; anywhere while reading → put the datapad away.
   function onClick(e) {
-    if (!settled || !hovered || overUi(e.target)) return;
-    const spot = hovered.userData.hotspot;
-    if (spot.action === 'monitor') {
-      if (kind === 'terminal') { if (current === 'home') leave(); else visit('/'); }
-      else jackInto('/');
-    } else if (spot.action === 'place') go(spot.place);
-    else if (spot.visit) visit(spot.visit);
+    if (!settled || entering || overUi(e.target) || walker.dragged) return;
+    if (dpOpen) { closeDatapad(); return; }
+    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.intersectObjects(world.hotspots, true)[0];
+    let node = hit && hit.object;
+    while (node && !node.userData.hotspot) node = node.parent;
+    if (node) { approach(node, hit.point); return; }
+    if (raycaster.ray.intersectPlane(floor, floorHit) && floorHit.distanceTo(camera.position) < 30) walker.walkTo(floorHit);
+  }
+
+  function approach(node, point) {
+    const spot = node.userData.hotspot;
+    const use = () => {
+      if (spot.action === 'monitor') {
+        if (kind === 'terminal') { if (current === 'home') leave(); else visit('/'); }
+        else jackInto('/');
+      } else if (spot.visit) visit(spot.visit);
+    };
+    const d = Math.hypot(point.x - camera.position.x, point.z - camera.position.z);
+    if (d > 3.2 && spot.action !== 'monitor') walker.walkTo(point.clone().setY(0), { arrive: 2.2, onArrive: use });
+    else use();
   }
 
   function onKey(e) {
@@ -358,9 +378,8 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (dpOpen && settled && !flight && shake < 0.0004 && frameNo % 6) return;
     if (flight) stepFlight(now);
     else if (settled) {
-      parallax.lerp(pointer, 0.04);
-      const pose = placePose(current);
-      setPose(pose.pos.add(V(parallax.x * 0.22, parallax.y * 0.1, 0)), pose.look, pose.fov);
+      if (!dpOpen) walker.update(dt);
+      look.copy(walker.look);
     } else if (hold) setPose(hold.pos, hold.look, hold.fov);
     if (shake > 0.0004) {
       camera.position.add(V((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, 0));
@@ -394,7 +413,6 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (location.hash !== '#world') { history.pushState({ world: true }, '', `${location.pathname}#world`); pushedHistory = true; }
     active = true;
     current = place;
-    markHud();
     clock.getDelta();
     raf = requestAnimationFrame(loop);
     prefetch();
@@ -436,7 +454,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     setPose(pose.pos.clone().lerp(pose.look, 0.55), pose.look, pose.fov);
     requestAnimationFrame(() => renderer.domElement.classList.add('is-on'));
     fly(currentPose(), pose, () => {
-      settled = true;
+      settle();
       busy = false;
       ui.classList.add('is-on');
     }, { ms: 1800, arc: 0.03 });
@@ -458,7 +476,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     cssRenderer.render(cssScene, camera);
     screenEl.scrollTop = restore.scrollY;
     fly({ pos: startPos, look: center, fov: START_FOV }, placePose('home'), () => {
-      settled = true;
+      settle();
       busy = false;
       ui.classList.add('is-on');
     }, {
@@ -481,7 +499,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
       renderer.domElement.classList.add('is-on');
     }));
     fly(currentPose(), pose, () => {
-      settled = true;
+      settle();
       busy = false;
       ui.classList.add('is-on');
     }, { ms: 1800, arc: 0.04 });
@@ -511,25 +529,14 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
       await flyTo('home');
       return;
     }
-    const pageP = fetchPage(path).catch(() => null);
-    if (current !== id || !dpOpen) { closeDatapad(); await flyTo(id); }
-    const page = await pageP;
+    // a page opens on the datapad wherever you're standing
+    const page = await fetchPage(path).catch(() => null);
+    current = id;
     if (token !== visitToken || !active || entering) return;
     if (!page) { jackInto(path); return; }
     showDatapad(page.node, page.title, path);
     if (page.node !== surface) dpBody.scrollTop = 0;
     setUrl(path);
-  }
-
-  // HUD buttons: a page's place, or a place with no page yet (just go there)
-  function go(id) {
-    const p = PLACES[id];
-    if (p.url) { visit(p.url); return; }
-    if (!active || entering) return;
-    visitToken++;
-    setHover(null);
-    closeDatapad();
-    flyTo(id);
   }
 
   function setUrl(path) { history.replaceState(history.state, '', `${path}#world`); }
@@ -562,7 +569,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (!active || entering) return;
     entering = true;
     busy = true;
-    settled = false;
+    unsettle();
     visitToken++;
     setHover(null);
     ui.classList.remove('is-on');

@@ -9,11 +9,16 @@
 import math
 import random
 
-from lib import Zone, mat, emissive, join
+import os
+
+import bpy
+import numpy as np
+
+from lib import OUT, Zone, emissive, join, mat, pbr, photo, hex_rgb
 
 GROUPS = {
-    'hero': {'size': 2048, 'exposure': 1.5},  # shelves + books
-    'env': {'size': 2048, 'exposure': 1.5},   # floor, wall, chair, rug, ladder
+    'hero': {'size': 1024},  # shelves + books
+    'env': {'size': 1024},   # floor, wall, chair, rug, ladder
 }
 
 BOOK_COLOURS = ['#5a1f1b', '#1f3a4a', '#2f4a2a', '#6b4a1f', '#3a2a4a', '#7a6a55', '#1d1d22', '#8a3a1a', '#24504f', '#b08a4a', '#7c2d2a', '#d8cfb8']
@@ -23,16 +28,15 @@ def build(quick=False):
     rnd = random.Random(412)
     z = Zone('library', origin=(-8.0, 0, 0.5), yaw=math.pi / 2)
 
-    boards = mat('l_boards', '#5a3d27', '#2b1c12', scale=9, pattern='stripes', coords='Object', stretch=(1, 0, 0))
-    plaster = mat('l_wall', '#3a3029', '#1d1814', noise=0.4, scale=2, detail=8)
-    oak = mat('l_oak', '#5c3f27', '#2f1f12', scale=3, pattern='wood', stretch=(1, 1, 8))
-    dark_oak = mat('l_oak_dark', '#3a2617', '#1c120a', scale=3, pattern='wood', stretch=(1, 1, 8))
-    brass = mat('l_brass', '#9a7a32', '#4a3612', noise=0.3, scale=30)
-    leather = mat('l_leather', '#5a2a18', '#2a120a', noise=0.45, scale=14)
-    rug = mat('l_rug', '#5a1a16', '#1c2440', noise=0.0, scale=7, pattern='wood', coords='Object', stretch=(1, 3, 1))
-    linen = mat('l_shade', '#e8d6b0')
-    covers = [mat(f'l_book_{i}', c, '#e6dcc4' if i % 3 == 0 else None, noise=0.0, scale=1, pattern='stripes' if i % 3 == 0 else None,
-                  coords='Generated', stretch=(0, 0, 30)) for i, c in enumerate(BOOK_COLOURS)]
+    boards = pbr('l_boards', 'old_wood_floor', scale=2.0, tex=1024)
+    plaster = pbr('l_wall', 'plastered_wall_04', scale=2.5, tint='#8a7a6a', tex=512)
+    oak = pbr('l_oak', 'fine_grained_wood', scale=1.2, tex=512)
+    dark_oak = pbr('l_oak_dark', 'dark_wood', scale=1.2, tex=512)
+    brass = mat('l_brass', '#9a7a32', rough=0.35, metal=1.0)
+    rug = pbr('l_rug', 'fabric_pattern_07', scale=1.2, tex=512)
+    linen = mat('l_shade', '#e8d6b0', rough=0.9)
+    spines = photo('l_spines', spine_atlas(), rough=0.7, tex=1024)
+    covers = [mat(f'l_book_{i}', c, rough=0.7) for i, c in enumerate(BOOK_COLOURS)]
 
     # ------------------------------------------------------------ room (env)
     z.box('floor', (6.4, 0.1, 4.6), (0, -0.05, 0.3), material=boards, bake='env', texel=0.6)
@@ -67,9 +71,10 @@ def build(quick=False):
                     break
                 bh = level_h * (0.62 + rnd.random() * 0.28)
                 lean = 0.18 if rnd.random() < 0.04 else 0.0
-                z.box(f'book_{i}_{b}_{x:.3f}', (bw, bh, SD * (0.68 + rnd.random() * 0.2)),
-                      (x + bw / 2 + (bh * 0.09 if lean else 0), y + 0.015 + bh / 2, zc + 0.03), rot=(0, 0, -lean),
-                      material=covers[rnd.randrange(len(covers))], bake='hero')
+                book = z.box(f'book_{i}_{b}_{x:.3f}', (bw, bh, SD * (0.68 + rnd.random() * 0.2)),
+                             (x + bw / 2 + (bh * 0.09 if lean else 0), y + 0.015 + bh / 2, zc + 0.03), rot=(0, 0, -lean),
+                             material=spines, bake='hero')
+                spine_uv(book.data, bw, bh, rnd.randrange(SPINES_X * SPINES_Y))
                 x += bw + (0.012 if lean else 0.0015)
     # the frame is one clickable object (the books join the rest after baking)
     shelves = join(frame, 'shelves')
@@ -88,40 +93,83 @@ def build(quick=False):
     z.cyl('ladder_hook', 0.02, 0.5, (lx, 3.3, zc + 0.32), rot=(0, 0, math.pi / 2), material=brass, bake='env', segs=8)
 
     # ------------------------------------------------------------ wingback chair, side table, lamp
-    cx, cz, cyaw = 1.25, 0.65, -0.65
-    def part(name, size, local, rot=(0, 0, 0), bevel=0.04, m=leather):
-        lx_, ly_, lz_ = local
-        c, s = math.cos(cyaw), math.sin(cyaw)
-        z.box(name, size, (cx + lx_ * c + lz_ * s, ly_, cz - lx_ * s + lz_ * c), rot=(rot[0], cyaw + rot[1], rot[2]), material=m, bake='env', bevel=bevel)
-    part('chair_seat', (0.66, 0.18, 0.62), (0, 0.38, 0.02))
-    part('chair_back', (0.7, 0.85, 0.16), (0, 0.85, -0.3), rot=(-0.12, 0, 0))
-    for sx in (-1, 1):
-        part(f'chair_arm_{sx}', (0.14, 0.32, 0.66), (0.37 * sx, 0.55, 0.0))
-        part(f'chair_wing_{sx}', (0.1, 0.42, 0.26), (0.36 * sx, 1.02, -0.2), rot=(0, 0.3 * sx, 0))
-        for fz in (-0.25, 0.25):
-            part(f'chair_foot_{sx}_{fz}', (0.05, 0.16, 0.05), (0.28 * sx, 0.08, fz), bevel=0.01, m=dark_oak)
-    part('chair_cushion', (0.56, 0.08, 0.5), (0, 0.5, 0.06), bevel=0.035)
-
+    z.model('reading_chair', 'ArmChair_01', (1.25, 0, 0.65), rot=(0, -0.65 + math.pi, 0), bake='env', max_tris=6000, tex=512)
     tx, tz = 2.0, 0.0
-    z.cyl('side_table', 0.25, 0.03, (tx, 0.58, tz), material=oak, bake='env', segs=32, bevel=0.006)
-    z.cyl('side_table_leg', 0.03, 0.56, (tx, 0.29, tz), material=dark_oak, bake='env', segs=12)
-    z.cyl('side_table_foot', 0.18, 0.025, (tx, 0.013, tz), material=dark_oak, bake='env', segs=24)
+    z.model('side_table', 'side_table_tall_01', (tx, 0, tz), bake='env', tex=256)
     for i in range(3):
-        z.box(f'table_book_{i}', (0.17, 0.035, 0.12), (tx - 0.05, 0.615 + i * 0.036, tz + 0.04), rot=(0, rnd.random() * 0.5, 0), material=covers[i * 4], bake='env', bevel=0.003)
-    z.cyl('lamp_base', 0.07, 0.03, (tx + 0.1, 0.61, tz - 0.08), material=brass, bake='env', segs=16)
-    z.cyl('lamp_stem', 0.01, 0.42, (tx + 0.1, 0.83, tz - 0.08), material=brass, bake='env', segs=8)
-    z.cyl('lamp_shade', 0.16, 0.2, (tx + 0.1, 1.08, tz - 0.08), material=linen, bake='env', r2=0.11, cap=False, segs=24)
-    z.cyl('lamp_bulb', 0.03, 0.05, (tx + 0.1, 1.04, tz - 0.08), material=emissive('l_bulb', '#ffcf8a', 8), live=1, segs=12)
-    z.light('POINT', (tx + 0.1, 1.05, tz - 0.08), '#ffbf78', 55, size=0.08, name='reading_lamp')
+        z.box(f'table_book_{i}', (0.17, 0.035, 0.12), (tx - 0.05, 0.778 + i * 0.036, tz + 0.04), rot=(0, rnd.random() * 0.5, 0), material=covers[i * 4], bake='env', bevel=0.003)
+    z.model('oil_lamp', 'vintage_oil_lamp', (tx + 0.08, 0.76, tz - 0.06), bake='env', tex=256)
+    z.light('POINT', (tx + 0.08, 1.0, tz - 0.06), '#ffbf78', 55, size=0.05, name='reading_lamp')
 
     # Edison bulbs hanging over the shelves
     bulb = emissive('edison', '#ffb15a', 10)
     for i, x in enumerate((-1.9, -0.3, 1.3)):
         y = 3.2 - (i % 2) * 0.35
-        z.tube(f'edison_cord_{i}', [(x, y + 0.05, -0.6), (x, 8.0, -0.6)], 0.004, material=mat('l_cord', '#111111'), bake='env')
+        z.tube(f'edison_cord_{i}', [(x, y + 0.05, -0.6), (x, 8.0, -0.6)], 0.004, material=mat('l_cord', '#111111', rough=0.6), bake='env')
         z.cyl(f'edison_{i}', 0.035, 0.1, (x, y, -0.6), material=bulb, live=1, segs=12, r2=0.02)
         z.light('POINT', (x, y - 0.03, -0.6), '#ffb15a', 45, size=0.05, name=f'edison_{i}')
 
     z.light('AREA', (0, 4.6, 0.8), '#ffcf96', 160, size=(5, 2.5), aim=(0, 1.8, -1.9), name='shelf_wash')
     z.light('AREA', (1.5, 3.0, 3.0), '#24364d', 60, size=(3, 3), aim=(0, 1, -1), name='cool_fill')
     return z
+
+
+SPINES_X, SPINES_Y = 16, 2
+
+
+def spine_atlas(seed=412):
+    """A sheet of 32 book spines: cloth or paper colour, head and tail bands,
+    a title block with lines of 'type', a publisher mark, wear."""
+    W, H = 1024, 512
+    cw, ch = W // SPINES_X, H // SPINES_Y
+    rng = np.random.default_rng(seed)
+    img = np.zeros((H, W, 3), np.float32)
+    lin = lambda h: np.array(hex_rgb(h)[:3], np.float32)
+    inks = [lin('#e8d9a8'), lin('#c9a24a'), lin('#111111'), lin('#f0ece0')]
+    for cy in range(SPINES_Y):
+        for cx in range(SPINES_X):
+            c = img[cy * ch:(cy + 1) * ch, cx * cw:(cx + 1) * cw]
+            c[:] = lin(BOOK_COLOURS[rng.integers(len(BOOK_COLOURS))]) * (0.8 + 0.4 * rng.random())
+            ink = inks[rng.integers(len(inks))]
+            for y0 in (int(ch * 0.06), int(ch * 0.9)):  # head + tail bands
+                if rng.random() < 0.7:
+                    c[y0:y0 + max(2, int(ch * 0.025)), 4:-4] = ink
+            if rng.random() < 0.5:  # a title panel
+                c[int(ch * 0.18):int(ch * 0.62), 6:-6] = inks[rng.integers(len(inks))] * 0.9
+                ink = lin('#151515') if ink.mean() > 0.3 else inks[0]
+            for k in range(rng.integers(2, 4)):  # lines of type, running up the spine
+                x = 12 + k * 12 + rng.integers(-2, 3)
+                if x > cw - 10:
+                    break
+                y = int(ch * 0.22) + rng.integers(0, 10)
+                while y < ch * 0.58:
+                    ln = rng.integers(3, 9)
+                    c[y:y + ln, x:x + 5] = ink
+                    y += ln + rng.integers(1, 4)
+            c[int(ch * 0.74):int(ch * 0.79), cw // 2 - 6:cw // 2 + 6] = ink  # publisher mark
+            # rounded spine: darker at the edges; wear speckle
+            edge = 0.65 + 0.35 * np.sin(np.linspace(0.15, np.pi - 0.15, cw))[None, :, None]
+            c *= edge * (0.9 + 0.2 * rng.random((ch, cw, 1)))
+    srgb = np.where(img <= 0.0031308, img * 12.92, 1.055 * np.power(np.clip(img, 0, 1), 1 / 2.4) - 0.055)
+    out = bpy.data.images.new('l_spines', W, H, alpha=False)
+    px = np.ones((H, W, 4), np.float32)
+    px[..., :3] = srgb[::-1]  # Blender images start at the bottom row
+    out.pixels.foreach_set(px.ravel())
+    os.makedirs(OUT, exist_ok=True)
+    out.filepath_raw = os.path.join(OUT, 'library_spines.png')
+    out.file_format = 'PNG'
+    out.save()
+    return out.filepath_raw
+
+
+def spine_uv(mesh, bw, bh, cell):
+    """Map a book box onto one spine of the atlas (the spine faces +z)."""
+    u0, v0 = (cell % SPINES_X) / SPINES_X, (cell // SPINES_X) / SPINES_Y
+    uv = mesh.uv_layers['UVMap'].data
+    for poly in mesh.polygons:
+        for li in poly.loop_indices:
+            co = mesh.vertices[mesh.loops[li].vertex_index].co  # Blender: x, -z, y
+            u = min(max(co.x / bw + 0.5, 0.02), 0.98)
+            v = min(max(co.z / bh + 0.5, 0.0), 1.0)
+            uv[li].uv = (u0 + u / SPINES_X, 1 - (v0 + (1 - v) / SPINES_Y))
+

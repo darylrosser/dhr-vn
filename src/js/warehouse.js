@@ -21,6 +21,7 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // Zone frames: where each Blender zone sits (keep in step with blender/zones/*.py).
 export const ZONES = {
+  hall: { origin: [0, 0, 0], yaw: 0 },
   deck: { origin: [0, 0, 0], yaw: 0 },
   board: { origin: [7.5, 0, 1.0], yaw: -Math.PI / 2 },
   library: { origin: [-8.0, 0, 0.5], yaw: Math.PI / 2 },
@@ -60,7 +61,12 @@ function addonsBase() {
 }
 
 // models ship next to the scripts, with the same cache-busting version
-const modelUrl = (zone) => new URL(`../models/${zone}.glb${new URL(import.meta.url).search}`, import.meta.url).href;
+const modelUrl = (file) => new URL(`../models/${file}${new URL(import.meta.url).search}`, import.meta.url).href;
+
+// Lightmaps store light / LM in sRGB (blender/lib.py); Cycles' diffuse light ×
+// albedo is the outgoing radiance, three divides irradiance by π, and the
+// bake looks right a touch brighter than physical.
+const LIGHTMAP_GAIN = Math.PI * 1.25;
 
 export function createWarehouse(scene, renderer, { reducedMotion = false, camera } = {}) {
   const hotspots = [];
@@ -76,19 +82,24 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   ground.position.y = -0.02;
   scene.add(ground);
 
-  // Realtime light only reaches the live, JS-built things (monitor, plug,
-  // cable); the zones carry their lighting in their textures.
-  scene.add(new THREE.HemisphereLight('#26324a', '#0a0705', 0.6));
-  const lamp = new THREE.SpotLight('#ffd9a0', 14, 7, 0.75, 0.65, 1.6);
+  // The zones' diffuse light is baked (lightmaps). Live light is only what the
+  // bake can't do: the desk lamp's highlights on wet and shiny things, the
+  // screen's spill on the JS-built monitor and plug, and reflections (an
+  // environment of neon strips and the window, blurred).
+  const lamp = new THREE.SpotLight('#ffd9a0', 5, 7, 0.75, 0.65, 1.6);
   lamp.position.set(0.1, 3.15, 0.3);
   lamp.target.position.set(0, DESK_TOP, 0);
   scene.add(lamp, lamp.target);
-  const screenGlow = new THREE.PointLight('#ffb000', 1.2, 2.5, 2);
+  const screenGlow = new THREE.PointLight('#ffb000', 0.6, 2.5, 2);
   screenGlow.position.set(0, 1.1, 0.25);
   scene.add(screenGlow);
-  const wallGlow = new THREE.PointLight('#2ad4c9', 1.2, 4, 2);
-  wallGlow.position.set(0, 1.9, -1.4);
-  scene.add(wallGlow);
+  // one spare spotlight for a zone that asks for live highlights (the garage's
+  // lamp on the stainless car); made up front so loading it recompiles nothing
+  const spareSpot = new THREE.SpotLight('#ffffff', 0, 9, 0.6, 0.5, 1.6);
+  scene.add(spareSpot, spareSpot.target);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(neonRoom(), 0.035).texture;
+  pmrem.dispose();
 
   const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.1, ...o });
 
@@ -99,7 +110,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
 
   const SOCKET = new THREE.Vector3(0.36, DESK_TOP, 0.3);
   const SOCKET_TOP = SOCKET.clone().setY(DESK_TOP + 0.026);
-  const metal = mat('#2c2e33', { roughness: 0.3, metalness: 0.9 });
+  const metal = mat('#2c2e33', { roughness: 0.3, metalness: 0.9, envMapIntensity: 0.6 });
   const rubber = mat('#121214', { roughness: 0.55, metalness: 0.15 });
 
   const socketBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.026, 32), metal);
@@ -359,6 +370,55 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   scene.add(dust);
   updaters.push((t) => { dust.rotation.y = t * 0.02; dust.position.y = Math.sin(t * 0.3) * 0.03; });
 
+  // ---------------------------------------------------------------- collisions
+  // A 10 cm grid over the hall floor: a cell is blocked when any surface of a
+  // zone passes through it between ankle and head height. Filled in as zones
+  // load (sampling their triangles), read by the walker.
+
+  const CELL = 0.1, GX0 = -11.6, GZ0 = -7.6, GW = 236, GH = 268;
+  const grid = new Uint8Array(GW * GH);
+  const tri = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  const p = new THREE.Vector3(), ab = new THREE.Vector3(), ac = new THREE.Vector3();
+
+  function rasterize(root) {
+    root.traverse((o) => {
+      if (!o.isMesh || o.userData.role === 'screen') return;
+      const pos = o.geometry.attributes.position;
+      const index = o.geometry.index;
+      const count = index ? index.count : pos.count;
+      for (let t = 0; t < count; t += 3) {
+        for (let k = 0; k < 3; k++) tri[k].fromBufferAttribute(pos, index ? index.getX(t + k) : t + k).applyMatrix4(o.matrixWorld);
+        const [a, b, c] = tri;
+        if (Math.max(a.y, b.y, c.y) < 0.15 || Math.min(a.y, b.y, c.y) > 1.9) continue;
+        ab.subVectors(b, a);
+        ac.subVectors(c, a);
+        const n = Math.min(400, Math.ceil(Math.max(a.distanceTo(b), a.distanceTo(c), b.distanceTo(c)) / 0.07));
+        for (let i = 0; i <= n; i++) {
+          for (let j = 0; j <= n - i; j++) {
+            p.copy(a).addScaledVector(ab, i / n).addScaledVector(ac, j / n);
+            if (p.y < 0.15 || p.y > 1.9) continue;
+            const gx = Math.floor((p.x - GX0) / CELL), gz = Math.floor((p.z - GZ0) / CELL);
+            if (gx >= 0 && gz >= 0 && gx < GW && gz < GH) grid[gz * GW + gx] = 1;
+          }
+        }
+      }
+    });
+  }
+
+  function blocked(x, z, r = 0.28) {
+    const x0 = Math.floor((x - r - GX0) / CELL), x1 = Math.floor((x + r - GX0) / CELL);
+    const z0 = Math.floor((z - r - GZ0) / CELL), z1 = Math.floor((z + r - GZ0) / CELL);
+    if (x0 < 0 || z0 < 0 || x1 >= GW || z1 >= GH) return true; // outside the hall
+    for (let gz = z0; gz <= z1; gz++) {
+      for (let gx = x0; gx <= x1; gx++) {
+        if (!grid[gz * GW + gx]) continue;
+        const cx = GX0 + (gx + 0.5) * CELL - x, cz = GZ0 + (gz + 0.5) * CELL - z;
+        if (cx * cx + cz * cz <= r * r) return true;
+      }
+    }
+    return false;
+  }
+
   // ---------------------------------------------------------------- zones
 
   const zones = new Map();      // name → Promise<root>
@@ -368,7 +428,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   function load(name) {
     if (!ZONES[name]) return Promise.resolve(null);
     if (!zones.has(name)) {
-      const p = loader.loadAsync(modelUrl(name), (e) => { if (onProgress && e.total) onProgress(name, e.loaded / e.total); })
+      const p = loader.loadAsync(modelUrl(`${name}.glb`), (e) => { if (onProgress && e.total) onProgress(name, e.loaded / e.total); })
         .then((gltf) => install(name, gltf.scene))
         .catch((err) => { console.warn(`zone ${name} failed to load`, err); zones.delete(name); return null; });
       zones.set(name, p);
@@ -379,29 +439,83 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   async function install(name, root) {
     root.name = `zone:${name}`;
     const screens = [];
+    const lit = [];
+    const lights = [];
     root.traverse((o) => {
       const d = o.userData;
       if (o.isMesh) {
         o.matrixAutoUpdate = false;
-        // the baked look is final: no lights, but the room's fog still applies
-        if (o.material.isMeshBasicMaterial && o.material.map) o.material.map.anisotropy = 4;
+        for (const m of [].concat(o.material)) {
+          for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) t.anisotropy = 4;
+          if (m.isMeshStandardMaterial) m.envMapIntensity = 0.5;
+        }
       }
+      if (d.lightmap) lit.push(lightmap(o, d.lightmap, d.lm || 4));
       if (d.role === 'screen') screens.push(o);
       else if (d.role === 'window') buildWindow(o, d);
       else if (d.role === 'flicker') flicker(o);
-      else if (d.role === 'spin') updaters.push((t) => { o.rotation.y = t * (d.speed || 3.5); o.updateMatrix(); });
-      else if (d.role === 'pulse') updaters.push((t) => { o.scale.setScalar(0.85 + 0.15 * Math.sin(t * 2.2)); o.updateMatrix(); });
+      else if (d.role === 'spin') {
+        const base = o.quaternion.clone();
+        const turn = new THREE.Quaternion();
+        const axis = new THREE.Vector3(0, 1, 0);
+        updaters.push((t) => { o.quaternion.copy(base).multiply(turn.setFromAxisAngle(axis, t * (d.speed || 3.5))); o.updateMatrix(); });
+      }
+      else if (d.role === 'pulse') {
+        // relative to its own scale (compressed meshes carry their size in it)
+        const base = o.scale.clone();
+        updaters.push((t) => { o.scale.copy(base).multiplyScalar(0.85 + 0.15 * Math.sin(t * 2.2)); o.updateMatrix(); });
+      }
       else if (d.role === 'shaft') lightShaft(o, d);
       else if (d.role === 'board') whiteboard(o, d);
+      else if (d.role === 'light') lights.push(o);
       if (d.hotspot && HOTSPOTS[d.hotspot]) makeHotspot(o, HOTSPOTS[d.hotspot]);
     });
     if (screens.length) buildScreenWall(screens);
+    await Promise.all(lit);
     root.updateMatrixWorld(true);
+    rasterize(root);
+    for (const a of lights) {
+      const d = a.userData;
+      a.getWorldPosition(spareSpot.position);
+      spareSpot.target.position.copy(spareSpot.position).y -= 1;
+      spareSpot.color.set(d.color || '#ffffff');
+      spareSpot.intensity = d.intensity || 20;
+      spareSpot.angle = d.angle || 0.6;
+      spareSpot.distance = d.distance || 9;
+    }
     // compile shaders off the main path where the browser can (three r158+)
     if (renderer.compileAsync && camera) await renderer.compileAsync(root, camera, scene).catch(() => {});
     scene.add(root);
     fadeIn(root);
     return root;
+  }
+
+  // Baked light for a mesh (or a group of them): its lightmap on the second UV
+  // set. Materials can be shared across lightmaps, so each pair gets a copy.
+  const lightmaps = new Map();
+  const litMaterials = new Map();
+  async function lightmap(object, name, range) {
+    if (!lightmaps.has(name)) {
+      lightmaps.set(name, ktx2.loadAsync(modelUrl(`${name}.ktx2`)).then((tex) => {
+        tex.channel = 1;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.flipY = false;
+        return tex;
+      }));
+    }
+    const tex = await lightmaps.get(name).catch((err) => { console.warn(`lightmap ${name}`, err); return null; });
+    if (!tex) return;
+    object.traverse((o) => {
+      if (!o.isMesh || !o.material.isMeshStandardMaterial) return;
+      const key = `${o.material.uuid}|${name}`;
+      if (!litMaterials.has(key)) {
+        const m = o.material.clone();
+        m.lightMap = tex;
+        m.lightMapIntensity = range * LIGHTMAP_GAIN;
+        litMaterials.set(key, m);
+      }
+      o.material = litMaterials.get(key);
+    });
   }
 
   // Each zone rises out of the dark: every material's colour ramps from black.
@@ -589,8 +703,8 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       highlight(on) {
         if (object.userData.onHighlight) { object.userData.onHighlight(on); return; }
         for (const m of targets) {
-          if (m.material.isMeshBasicMaterial) m.material.color.copy(base.get(m)).multiplyScalar(on ? 1.45 : 1);
-          else if (tint) { m.material.emissive.copy(tint); m.material.emissiveIntensity = on ? 0.18 : 0; }
+          if (m.material.isMeshBasicMaterial || !tint) m.material.color.copy(base.get(m)).multiplyScalar(on ? 1.6 : 1);
+          else { m.material.emissive.copy(tint); m.material.emissiveIntensity = on ? 0.18 : 0; }
         }
       },
     };
@@ -603,10 +717,33 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     shapeMonitor,
     setMonitorIdle,
     load,
+    blocked,
     isLoaded: (name) => zones.has(name),
     set onProgress(fn) { onProgress = fn; },
     update(t, dt) { for (const u of updaters) u(t, dt); },
   };
+}
+
+// ---------------------------------------------------------------- environment
+
+// What shiny things reflect: a dark hall with the window's cold light, warm
+// lamps overhead and neon strips (blurred into an environment map).
+function neonRoom() {
+  const room = new THREE.Scene();
+  room.background = new THREE.Color('#06080c');
+  const strip = (color, k, w, h, x, y, z, ry = 0) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), side: THREE.DoubleSide }));
+    m.position.set(x, y, z);
+    m.rotation.y = ry;
+    room.add(m);
+  };
+  strip('#5fa8d3', 1.2, 10, 5, 0, 4, -7);         // the window
+  strip('#ffb46a', 3, 1.2, 0.6, 0, 6, 0);          // lamps overhead
+  strip('#2ad4c9', 4, 0.1, 3, -4.3, 2.2, -3.2);    // neon tubes
+  strip('#ff7a1a', 4, 0.1, 3, 4.3, 2.2, -3.2);
+  strip('#ffb000', 1.5, 5, 1.8, 0, 1.8, -2.8);     // the screen wall
+  strip('#ff4f8a', 2, 2, 0.5, -8, 3, 6, Math.PI / 2);
+  return room;
 }
 
 // ---------------------------------------------------------------- canvas textures

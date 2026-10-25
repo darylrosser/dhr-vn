@@ -8,7 +8,7 @@
 import math
 import random
 
-from lib import Zone, mat, emissive, hex_rgb
+from lib import Zone, mat, pbr, emissive
 
 DESK_TOP = 0.775
 WALL_R, WALL_CZ = 3.0, 0.25
@@ -17,9 +17,9 @@ ROWS_Y = (1.22, 1.84, 2.46)
 SCR_W, SCR_H = 0.76, 0.5
 
 GROUPS = {
-    'hero': {'size': 2048, 'exposure': 1.6},  # desk, everything on it, the chair
-    'rig': {'size': 2048, 'exposure': 1.6},   # screen wall, racks, lamp
-    'env': {'size': 2048, 'exposure': 1.6},   # floor, walls, window frame, columns
+    'hero': {'size': 1024},  # desk, everything on it, the chair
+    'rig': {'size': 1024},   # screen wall, racks, lamp, props
+    'env': {'size': 1024},   # floor, back wall, window frame
 }
 
 
@@ -27,30 +27,29 @@ def build(quick=False):
     rnd = random.Random(1993)
     z = Zone('deck')
 
-    concrete = mat('concrete', '#47484a', '#1c1d20', noise=0.35, scale=1.4, detail=8)
-    wet = mat('floor', '#3c3d40', '#121315', noise=0.45, scale=0.45, detail=10)
-    brick = mat('brick', '#2c2523', '#141110', noise=0.0, scale=2.2, pattern='tiles', coords='Object')
-    steel = mat('steel', '#3a3d44', '#1d1f24', noise=0.3, scale=8)
-    dark_steel = mat('steel_dark', '#24262b', '#121316', noise=0.3, scale=10)
-    rust = mat('rust', '#4a3a30', '#22201f', noise=0.5, scale=5)
-    wood = mat('walnut', '#4b3424', '#2a1c13', scale=3.5, detail=3, pattern='wood', stretch=(1, 1, 8))
-    black = mat('plastic_black', '#1a1a1d', '#0e0e10', noise=0.2, scale=30)
-    keycap = mat('keycap', '#2b2a28')
-    leather = mat('chair_leather', '#2a2624', '#141211', noise=0.4, scale=20)
-    paper = mat('paper', '#d8d0bf')
-    mug_mat = mat('mug', '#d9d2c3', '#bfb5a3', noise=0.3, scale=40)
-    crate = mat('crate', '#5a4630', '#2e2318', scale=6, pattern='wood', stretch=(1, 1, 10))
-    enamel = mat('enamel', '#33463f', '#1b2521', noise=0.3, scale=12)
-    stencil = mat('stencil', '#b9b1a0')
-    hazard = mat('hazard', '#c08a10', '#151515', scale=6, pattern='stripes', coords='Generated')
+    # scanned materials (Poly Haven, CC0); scale = metres per repeat
+    wet = pbr('floor', 'concrete_floor_damaged_01', scale=3.0, rough=0.5, tint='#4a4744', tex=1024)
+    brick = pbr('brick', 'factory_brick', scale=2.4, tex=1024)
+    concrete = pbr('concrete', 'concrete_wall_004', scale=2.0)
+    steel = pbr('steel', 'metal_plate', scale=1.0, tint='#8a8f98')
+    dark_steel = pbr('steel_dark', 'metal_plate', scale=1.0, tint='#3a3d44')
+    rust = pbr('rust', 'rusty_metal_02', scale=1.5)
+    wood = pbr('walnut', 'dark_wood', scale=1.2)
+    leather = pbr('chair_leather', 'brown_leather', scale=0.6, tint='#5a4c44')
+    bezel = pbr('bezel', 'metal_plate_02', scale=0.6, tint='#2a2c30')
+    black = mat('plastic_black', '#1a1a1d', rough=0.5)
+    keycap = mat('keycap', '#2b2a28', rough=0.55)
+    paper = mat('paper', '#d8d0bf', rough=0.9)
+    mug_mat = mat('mug', '#d9d2c3', rough=0.25)
+    stencil = mat('stencil', '#b9b1a0', rough=0.9)
 
-    # ------------------------------------------------------------ floor, walls, structure (env)
+    # ------------------------------------------------------------ floor + back wall with the window (env)
 
-    z.box('floor', (18, 0.1, 14), (0, -0.05, 0), material=wet, bake='env', texel=0.4)
+    z.box('floor', (11, 0.1, 12), (0, -0.05, -1.0), material=wet, bake='env', texel=0.4)
     # back wall with the big window opening (x -5..5, y 1.5..6.5)
     wz = -7.1
-    z.box('wall_l', (4, 9, 0.25), (-7, 4.5, wz), material=brick, bake='env', texel=0.5)
-    z.box('wall_r', (4, 9, 0.25), (7, 4.5, wz), material=brick, bake='env', texel=0.5)
+    z.box('wall_l', (6, 9, 0.25), (-8, 4.5, wz), material=brick, bake='env', texel=0.5)
+    z.box('wall_r', (6, 9, 0.25), (8, 4.5, wz), material=brick, bake='env', texel=0.5)
     z.box('wall_b', (10, 1.5, 0.25), (0, 0.75, wz), material=brick, bake='env', texel=0.5)
     z.box('wall_t', (10, 2.5, 0.25), (0, 7.75, wz), material=brick, bake='env', texel=0.5)
     z.box('sill', (10.3, 0.12, 0.45), (0, 1.5, wz + 0.1), material=concrete, bake='env')
@@ -63,36 +62,26 @@ def build(quick=False):
         z.box(f'win_mull_{i}', (0.07 if 0 < i < 8 else 0.16, 5, 0.12), (x, 4.0, gz), material=dark_steel, bake='env')
     for j in range(1, 4):
         z.box(f'win_tran_{j}', (10, 0.06, 0.1), (0, 1.5 + j * 5 / 4, gz), material=dark_steel, bake='env')
-    # a few panes are boarded / painted over
+    # a few panes are boarded over
     for (c, r) in ((0, 3), (7, 0), (6, 3)):
         z.box(f'win_board_{c}{r}', (1.18, 1.18, 0.03), (-5 + (c + 0.5) * 1.25, 1.5 + (r + 0.5) * 1.25, gz - 0.02), material=rust, bake='env')
     z.empty('window', (0, 4.0, wz + 0.04), role='window', w=10.0, h=5.0)
-
     # stencilled warning on the wall: "no smoking"
     z.text('stencil_no_smoking', 'CẤM HÚT THUỐC', 0.32, (-6.6, 2.4, wz + 0.13), material=stencil, bake='env')
-    z.box('hazard_band', (4.0, 0.25, 0.02), (-7, 0.9, wz + 0.135), material=hazard, bake='env')
 
-    # columns and roof trusses (silhouettes against the window)
-    for x in (-4.6, 4.6):
-        for cz in (-5.6, -1.5, 2.6):
-            z.box(f'col_{x}_{cz}', (0.36, 9, 0.36), (x, 4.5, cz), material=steel, bake='env', texel=0.4)
-            z.box(f'col_foot_{x}_{cz}', (0.6, 0.12, 0.6), (x, 0.06, cz), material=concrete, bake='env')
-    for cz in (-5.6, -1.5, 2.6):
-        z.box(f'truss_{cz}', (16, 0.45, 0.3), (0, 7.4, cz), material=steel, bake='env', texel=0.3)
-        z.box(f'truss_low_{cz}', (16, 0.12, 0.2), (0, 6.6, cz), material=steel, bake='env', texel=0.3)
-        for i in range(12):
-            x = -7.5 + i * 15 / 11
-            z.box(f'truss_v_{cz}_{i}', (0.06, 0.8, 0.06), (x, 7.0, cz), rot=(0, 0, 0.5 if i % 2 else -0.5), material=steel, bake='env', texel=0.3)
-    # a cable tray along the roof line
-    z.box('tray', (0.4, 0.06, 13), (-2.8, 6.2, 0), material=dark_steel, bake='env', texel=0.3)
-
-    # clutter in the dark: crates, pallets, drums
-    for i, (x, cz, h, yaw) in enumerate(((-6.2, -5.3, 0.8, 0.1), (-6.3, -4.3, 0.6, -0.2), (-5.5, -5.6, 0.7, 0.4), (-6.2, -5.2, 0.5, 0.3))):
-        y = h / 2 if i < 3 else 0.8 + h / 2
-        z.box(f'crate_{i}', (0.9, h, 0.9), (x, y, cz), rot=(0, yaw, 0), material=crate, bake='env', bevel=0.02)
-    for i, (x, cz) in enumerate(((6.0, -5.4), (6.55, -5.0), (6.2, -4.5))):
-        z.cyl(f'drum_{i}', 0.29, 0.88, (x, 0.44, cz), material=rust, bake='env', bevel=0.02)
-    z.box('pallet', (1.2, 0.14, 1.0), (5.9, 0.07, -3.6), rot=(0, 0.3, 0), material=crate, bake='env')
+    # props (Poly Haven, CC0) in the corners: crates, drums, gas, a camera
+    z.model('crate_a', 'wooden_crate_02', (-4.4, 0, -5.6), rot=(0, 0.15, 0), bake='rig')
+    z.model('crate_b', 'wooden_crate_02', (-4.5, 0.46, -5.55), rot=(0, -0.2, 0), bake='rig')
+    z.model('crate_c', 'wooden_crate_01', (-3.4, 0, -6.2), rot=(0, 1.4, 0), bake='rig')
+    z.model('box_a', 'cardboard_box_01', (-3.4, 0.35, -6.2), rot=(0, 0.3, 0), bake='rig')
+    for i, (x, cz) in enumerate(((4.4, -6.2), (4.95, -5.9), (4.6, -5.5))):
+        z.model(f'drum_{i}', 'Barrel_01', (x, 0, cz), rot=(0, i * 1.3, 0), bake='rig')
+    z.model('gas', 'propane_tank', (3.9, 0, -6.3), bake='rig')
+    z.model('shelves', 'steel_frame_shelves_02', (-4.9, 0, -3.0), rot=(0, math.pi / 2, 0), bake='rig')
+    z.model('pipes', 'modular_industrial_pipes_01', (3.2, 2.2, -6.95), bake='rig')
+    z.model('power_box', 'power_box_01', (-3.0, 1.4, -6.95), bake='rig')
+    z.model('cctv', 'security_camera_01', (5.2, 3.6, -6.9), rot=(0, -0.6, 0), bake='rig')
+    z.model('clock', 'wall_clock', (-1.0, 6.9, -6.95), bake='rig')
 
     # ------------------------------------------------------------ desk (hero)
 
@@ -131,14 +120,12 @@ def build(quick=False):
         h = 0.03 + rnd.random() * 0.025
         w, d = 0.22 + rnd.random() * 0.05, 0.15 + rnd.random() * 0.03
         z.box(f'book_{i}', (w, h, d), (-0.62 + (rnd.random() - 0.5) * 0.03, y + h / 2, 0.05), rot=(0, (rnd.random() - 0.5) * 0.35, 0),
-              material=mat(f'cover_{i}', palette[i % len(palette)], '#e0d6c0', noise=0.0, scale=1, pattern='stripes', coords='Generated', stretch=(0, 0, 40)) if i % 2 else mat(f'cover_{i}', palette[(i * 3) % len(palette)]),
+              material=mat(f'cover_{i}', palette[(i * 3) % len(palette)], rough=0.7),
               bake='hero', bevel=0.003)
         y += h
     z.box('notepad', (0.15, 0.008, 0.21), (-0.36, DESK_TOP + 0.004, 0.27), rot=(0, 0.25, 0), material=paper, bake='hero')
     z.cyl('pen', 0.004, 0.14, (-0.33, DESK_TOP + 0.012, 0.28), rot=(math.pi / 2, 0.9, 0), material=black, bake='hero', segs=8)
-    z.box('radio', (0.26, 0.15, 0.1), (0.66, DESK_TOP + 0.075, -0.24), rot=(0, -0.2, 0), material=mat('radio', '#5b4b37', '#2c241a', noise=0.2, scale=20), bake='hero', bevel=0.01)
-    z.cyl('radio_dial', 0.025, 0.012, (0.6, DESK_TOP + 0.08, -0.185), rot=(math.pi / 2, -0.2, 0), material=steel, bake='hero')
-    z.box('radio_grille', (0.11, 0.09, 0.005), (0.7, DESK_TOP + 0.08, -0.188), rot=(0, -0.2, 0), material=black, bake='hero')
+    z.model('tape_deck', 'cassette_player', (0.68, DESK_TOP, -0.22), rot=(0, -0.3, 0), bake='hero')
 
     # bake proxies for the JS monitor (typical 16:10 size): its shadow and glow
     z.box('mon_proxy', (0.62, 0.42, 0.06), (0, 1.12, -0.15), material=black, bake=None, proxy=1)
@@ -164,16 +151,14 @@ def build(quick=False):
     # ------------------------------------------------------------ pendant lamp (rig)
 
     lamp = (0.1, 3.25, 0.3)
-    z.cyl('lamp_shade', 0.26, 0.24, lamp, material=enamel, bake='rig', r2=0.06, cap=False, segs=32)
-    z.cyl('lamp_cap', 0.065, 0.06, (lamp[0], lamp[1] + 0.14, lamp[2]), material=enamel, bake='rig', segs=16)
-    z.tube('lamp_cord', [(lamp[0], lamp[1] + 0.16, lamp[2]), (lamp[0], 7.0, lamp[2]), (lamp[0] + 0.2, 7.35, lamp[2] - 0.3)], 0.006, material=black, bake='rig')
+    z.model('lamp', 'hanging_industrial_lamp', (lamp[0], lamp[1] - 0.2, lamp[2]), bake='rig', max_tris=6000, tex=512)
+    z.tube('lamp_cord', [(lamp[0], lamp[1] + 1.1, lamp[2]), (lamp[0], 7.0, lamp[2]), (lamp[0] + 0.2, 7.35, lamp[2] - 0.3)], 0.006, material=black, bake='rig')
     z.cyl('lamp_bulb', 0.045, 0.07, (lamp[0], lamp[1] - 0.05, lamp[2]), material=emissive('bulb', '#ffd9a0', 12), live=1, segs=16)
     z.light('SPOT', (lamp[0], lamp[1] - 0.08, lamp[2]), '#ffcf96', 420, size=0.08, aim=(lamp[0], 0, lamp[2]), spot=math.radians(100), blend=0.6, name='lamp')
     z.light('POINT', (lamp[0], lamp[1] + 0.02, lamp[2]), '#ffcf96', 15, size=0.05, name='lamp_up')
 
     # ------------------------------------------------------------ the wall of screens (rig)
 
-    bezel = mat('bezel', '#17181c', '#0b0b0d', noise=0.2, scale=25)
     screen_glow = {0: ('#ffb000', 1.6), 1: ('#2ad4c9', 1.2)}
     for col, a in enumerate(ANGLES):
         for row, y in enumerate(ROWS_Y):
@@ -215,7 +200,7 @@ def build(quick=False):
     for s in (-1, 1):
         a = math.radians(64) * s
         rx, rz = (WALL_R + 0.25) * math.sin(a), WALL_CZ - (WALL_R + 0.25) * math.cos(a)
-        z.box(f'rack_{s}', (0.62, 2.1, 0.8), (rx, 1.05, rz), rot=(0, -a, 0), material=mat('rack', '#15161a', '#0a0a0c', noise=0.3, scale=30), bake='rig', bevel=0.01)
+        z.box(f'rack_{s}', (0.62, 2.1, 0.8), (rx, 1.05, rz), rot=(0, -a, 0), material=bezel, bake='rig', bevel=0.01)
         for u in range(9):
             uy = 0.35 + u * 0.19
             fx, fz = rx + math.sin(-a) * 0.41, rz + math.cos(-a) * 0.41

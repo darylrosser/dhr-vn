@@ -12,6 +12,9 @@ html.in-world .skip-link { display: none; }
 .world-gl, .world-css { position: fixed; inset: 0; }
 .world-gl { z-index: 0; display: block; width: 100%; height: 100%; opacity: 0; transition: opacity .6s; }
 .world-gl.is-on { opacity: 1; }
+/* you look around by dragging: no page scroll or pinch on the 3D view */
+.world-gl { touch-action: none; }
+@media (pointer: coarse) { .world-hint-keys { display: none; } }
 .world-css { z-index: 1; pointer-events: none; }
 
 /* the terminal, re-parented onto the monitor */

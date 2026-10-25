@@ -7,11 +7,11 @@
 import math
 import random
 
-from lib import Zone, mat, emissive
+from lib import Zone, emissive, mat, pbr
 
 GROUPS = {
-    'hero': {'size': 2048, 'exposure': 1.5},
-    'env': {'size': 1024, 'exposure': 1.5},
+    'hero': {'size': 1024},
+    'env': {'size': 1024},
 }
 
 
@@ -19,46 +19,34 @@ def build(quick=False):
     rnd = random.Random(24)
     z = Zone('lounge', origin=(-6.5, 0, 8.0), yaw=math.pi / 2 + 0.35)
 
-    concrete = mat('lo_floor', '#3c3b3a', '#171615', noise=0.45, scale=0.6, detail=10)
-    brick = mat('lo_brick', '#3a2a22', '#1a1310', scale=2.2, pattern='tiles')
-    rug = mat('lo_rug', '#6a1d18', '#1d2a4a', scale=5, pattern='wood', coords='Object', stretch=(1, 4, 1))
-    leather = mat('lo_leather', '#5e3220', '#2a140b', noise=0.5, scale=10)
-    walnut = mat('lo_walnut', '#4a3020', '#24170e', scale=3, pattern='wood', stretch=(1, 1, 8))
-    black = mat('lo_black', '#151517', '#0a0a0b', noise=0.2, scale=30)
-    alu = mat('lo_alu', '#6a6d72', '#3a3c40', noise=0.3, scale=25)
-    brass = mat('lo_brass', '#9a7a32', '#4a3612', noise=0.3, scale=30)
-    linen = mat('lo_linen', '#e6d2aa')
-    sleeves = [mat(f'lo_sleeve_{i}', c) for i, c in enumerate(('#c2452d', '#e2c044', '#2d6a8a', '#1b1b1b', '#e8e2d4', '#7a3a8a'))]
+    concrete = pbr('lo_floor', 'concrete_floor_damaged_01', scale=3.0, rough=0.55, tint='#4a4744', tex=1024)
+    brick = pbr('lo_brick', 'factory_brick', scale=2.4, tex=512)
+    rug = pbr('lo_rug', 'fabric_pattern_05', scale=1.5, tex=512)
+    walnut = pbr('lo_walnut', 'dark_wood', scale=1.0, tex=512)
+    black = mat('lo_black', '#151517', rough=0.5)
+    alu = pbr('lo_alu', 'metal_plate', scale=0.5, tint='#b0b4ba', tex=256)
+    brass = mat('lo_brass', '#9a7a32', rough=0.35, metal=1.0)
+    linen = mat('lo_linen', '#e6d2aa', rough=0.9)
+    sleeves = [mat(f'lo_sleeve_{i}', c, rough=0.6) for i, c in enumerate(('#c2452d', '#e2c044', '#2d6a8a', '#1b1b1b', '#e8e2d4', '#7a3a8a'))]
 
     # ------------------------------------------------------------ room (env)
     z.box('floor', (6.0, 0.1, 5.0), (0, -0.05, 0.4), material=concrete, bake='env', texel=0.6)
     z.box('wall', (6.4, 4.5, 0.3), (0, 2.25, -2.0), material=brick, bake='env', texel=0.6)
     z.box('rug', (3.4, 0.012, 2.4), (0, 0.006, 0.55), material=rug, bake='env')
 
-    # ------------------------------------------------------------ the sofa (hero, the hotspot)
-    sofa = []
-    sofa.append(z.box('sofa_base', (2.2, 0.32, 0.9), (0, 0.24, -0.6), material=leather, bake='hero', bevel=0.05))
-    sofa.append(z.box('sofa_back', (2.2, 0.55, 0.22), (0, 0.66, -0.97), rot=(-0.1, 0, 0), material=leather, bake='hero', bevel=0.08))
-    for sx in (-1, 1):
-        sofa.append(z.box(f'sofa_arm_{sx}', (0.22, 0.6, 0.92), (1.06 * sx, 0.45, -0.6), material=leather, bake='hero', bevel=0.09))
-        for fz in (-0.95, -0.25):
-            sofa.append(z.cyl(f'sofa_foot_{sx}_{fz}', 0.03, 0.08, (0.95 * sx, 0.04, fz), material=walnut, bake='hero', segs=10))
-    for i, x in enumerate((-0.47, 0.47)):
-        sofa.append(z.box(f'sofa_cushion_{i}', (0.9, 0.14, 0.7), (x, 0.46, -0.52), material=leather, bake='hero', bevel=0.06))
-        sofa.append(z.box(f'sofa_backcushion_{i}', (0.88, 0.45, 0.14), (x, 0.72, -0.84), rot=(-0.18, 0, 0), material=leather, bake='hero', bevel=0.06))
-    from lib import join
-    s = join(sofa, 'sofa')
-    s['hotspot'] = 'contact'
+    # ------------------------------------------------------------ the sofa (hero, the hotspot) + Poly Haven props
+    z.model('sofa', 'sofa_03', (0, 0, -0.75), bake='hero', max_tris=8000, tex=1024, hotspot='contact')
+    z.model('pillows', 'throw_pillows_01', (0.3, 0.42, -0.85), bake='hero', tex=512)
+    z.model('ottoman', 'Ottoman_01', (-1.5, 0, 0.9), rot=(0, 0.4, 0), bake='hero', tex=512)
+    z.model('payphone', 'korean_public_payphone_01', (2.1, 1.1, -1.82), bake='hero', max_tris=8000, tex=512, hotspot='contact')
+    z.model('crt', 'Television_01', (-2.6, 0.97, -0.6), rot=(0, 0.9, 0), bake='hero', tex=512)
 
-    # low table with a couple of drinks and a magazine
-    z.box('table_top', (1.1, 0.05, 0.55), (0, 0.38, 0.5), material=walnut, bake='hero', bevel=0.01)
-    for sx in (-0.48, 0.48):
-        for fz in (0.3, 0.7):
-            z.box(f'table_leg_{sx}_{fz}', (0.04, 0.36, 0.04), (sx, 0.18, fz), material=walnut, bake='hero')
-    z.box('magazine', (0.22, 0.006, 0.3), (-0.25, 0.408, 0.5), rot=(0, 0.3, 0), material=sleeves[0], bake='hero')
+    # coffee table with a couple of drinks and a magazine
+    z.model('coffee_table', 'coffee_table_round_01', (0, 0, 0.55), bake='hero', tex=512)
+    z.box('magazine', (0.22, 0.006, 0.3), (-0.25, 0.49, 0.5), rot=(0, 0.3, 0), material=sleeves[0], bake='hero')
     for i, x in enumerate((0.18, 0.32)):
-        z.cyl(f'glass_{i}', 0.035, 0.09, (x, 0.45, 0.45 + i * 0.08), material=mat('lo_glass', '#8a9aa0'), bake='hero', segs=16)
-        z.cyl(f'whisky_{i}', 0.032, 0.03, (x, 0.42, 0.45 + i * 0.08), material=mat('lo_whisky', '#a8601a'), bake='hero', segs=16)
+        z.cyl(f'glass_{i}', 0.035, 0.09, (x, 0.535, 0.45 + i * 0.08), material=mat('lo_glass', '#8a9aa0', rough=0.1), bake='hero', segs=16)
+        z.cyl(f'whisky_{i}', 0.032, 0.03, (x, 0.505, 0.45 + i * 0.08), material=mat('lo_whisky', '#a8601a', rough=0.1), bake='hero', segs=16)
 
     # ------------------------------------------------------------ credenza + record player
     cx, cz, cyaw = -2.1, -0.9, 0.5
@@ -67,14 +55,14 @@ def build(quick=False):
         return z.box(name, size, (cx + dx * c + dz * s_, y, cz - dx * s_ + dz * c), rot=(0, cyaw, 0), material=m, **kw)
     on_credenza('credenza', (1.6, 0.6, 0.45), 0, 0.36, 0, walnut, bake='hero', bevel=0.015)
     for i in range(4):
-        on_credenza(f'credenza_door_{i}', (0.38, 0.5, 0.01), -0.6 + i * 0.4, 0.36, 0.226, mat('lo_slats', '#3a2416', '#20140c', scale=40, pattern='stripes', coords='Object', stretch=(1, 0, 0)), bake='hero')
+        on_credenza(f'credenza_door_{i}', (0.38, 0.5, 0.01), -0.6 + i * 0.4, 0.36, 0.226, walnut, bake='hero')
     for sx in (-0.7, 0.7):
         on_credenza(f'credenza_leg_{sx}', (0.04, 0.06, 0.04), sx, 0.03, 0.15, walnut, bake='hero')
-    on_credenza('turntable', (0.46, 0.08, 0.36), -0.25, 0.7, 0, mat('lo_tt', '#2a2420', '#1a1512', noise=0.2, scale=20), bake='hero', bevel=0.01)
+    on_credenza('turntable', (0.46, 0.08, 0.36), -0.25, 0.7, 0, black, bake='hero', bevel=0.01)
     c, s_ = math.cos(cyaw), math.sin(cyaw)
     px, pz = cx - 0.3 * c, cz + 0.3 * s_
     z.cyl('platter', 0.15, 0.012, (px, 0.746, pz), material=alu, bake='hero', segs=32)
-    z.cyl('record', 0.148, 0.004, (px, 0.754, pz), material=mat('lo_vinyl', '#0b0b0b', '#2a2a2a', scale=60, pattern='wood', coords='Object', stretch=(1, 1, 0.01)), bake='hero', segs=40, role='spin', speed=3.5)
+    z.cyl('record', 0.148, 0.004, (px, 0.754, pz), material=mat('lo_vinyl', '#0b0b0b', rough=0.25), bake='hero', segs=40, role='spin', speed=3.5)
     on_credenza('tonearm', (0.012, 0.012, 0.22), -0.07, 0.76, 0.02, alu, bake='hero')
     for i in range(14):  # records in the cabinet's top rack
         on_credenza(f'lp_{i}', (0.008, 0.31, 0.31), 0.18 + i * 0.022, 0.82, 0, sleeves[i % len(sleeves)], bake='hero')
@@ -82,10 +70,10 @@ def build(quick=False):
         on_credenza(f'speaker_{sx}', (0.28, 0.85, 0.28), sx, 0.425, 0.02, black, bake='hero', bevel=0.01)
         for k, (y, r) in enumerate(((0.62, 0.08), (0.3, 0.05))):
             dx = sx
-            z.cyl(f'cone_{sx}_{k}', r, 0.01, (cx + dx * c + 0.16 * s_, y, cz - dx * s_ + 0.16 * c), rot=(math.pi / 2, cyaw, 0), material=mat('lo_cone', '#2a2a2c'), bake='hero', segs=20)
+            z.cyl(f'cone_{sx}_{k}', r, 0.01, (cx + dx * c + 0.16 * s_, y, cz - dx * s_ + 0.16 * c), rot=(math.pi / 2, cyaw, 0), material=mat('lo_cone', '#2a2a2c', rough=0.8), bake='hero', segs=20)
 
     # arc floor lamp over the sofa
-    z.cyl('arc_base', 0.16, 0.05, (1.6, 0.025, -1.1), material=mat('lo_marble', '#d8d4cc', '#8a8680', noise=0.5, scale=8), bake='hero', segs=24)
+    z.cyl('arc_base', 0.16, 0.05, (1.6, 0.025, -1.1), material=pbr('lo_marble', 'marble_01', scale=0.5, tex=256), bake='hero', segs=24)
     z.tube('arc_pole', [(1.6, 0.05, -1.1), (1.6, 1.2, -1.1), (1.4, 2.0, -0.9), (0.8, 2.15, -0.5), (0.4, 1.95, -0.3)], 0.012, material=brass, bake='hero')
     z.cyl('arc_shade', 0.2, 0.18, (0.4, 1.85, -0.3), material=brass, bake='hero', r2=0.05, cap=False, segs=24)
     z.cyl('arc_bulb', 0.04, 0.05, (0.4, 1.8, -0.3), material=emissive('lo_bulb', '#ffcf8a', 9), live=1, segs=12)

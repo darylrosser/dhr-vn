@@ -17,27 +17,28 @@ What exists today is the vibe check: the terminal, the reader, and a procedural 
 
 ## The warehouse
 
-Daryl's dream office: one huge cyberpunk warehouse, split into **zones** you fast-travel
-between (fixed camera stops, never free roaming). Each zone is a little diorama in the dark,
-lit by its own pool of light, with fog and darkness between them. Most of the space is just
-darkness, rain light and silhouettes, which is why it's buildable.
+Daryl's dream office: one huge cyberpunk warehouse you **walk around** in first person
+(WASD / drag to look / click the floor to walk; on phones drag and tap). It's split into
+**zones**, each a little diorama lit by its own pool of light, joined by the hall: a dark,
+dirty concrete floor, brick walls, roof trusses and a few dim lamps over the walkways. The
+plain pages are the accessible way in, so world mode doesn't need fast-travel buttons.
 
 | Zone | What's there | Page it could hold |
 |------|--------------|--------------------|
 | **Command deck** | Desk, the terminal, the curved wall of screens | `/` home |
-| **Garage** | A DeLorean-style gull-wing car under a single spotlight, doors up, tool chest, oil-slick floor | Projects / things I've built |
+| **Garage** | The Back to the Future DeLorean under a single spotlight, doors up, tool chest, oil-slick floor | Projects / things I've built |
 | **Gym** | Squat rack, barbell, a few plates, chalk dust in a light shaft, a whiteboard with PRs | A "now" page or training log, or just a joke hotspot |
 | **Lounge** | Old leather sofa, rug, record player, low warm lamps, maybe an F1 sim rig | Contact ("pull up a seat"), or the podcast archive |
 | **Library / reading room** | Floor-to-ceiling shelves, ladder, reading chair, warm light | `/reading/` |
 | **Evidence board** | Case file, photos, red string, VK machine | `/about/` |
 
 Notes for the build:
-- Buy or download hero props instead of modelling them (Sketchfab / Fab, Poly Haven, KitBash3D),
-  checking licences. Use a generic "gull-wing 80s sports car" rather than a branded DeLorean
-  model if the licence is unclear.
-- Each zone is a separately loaded GLB, streamed in when the camera heads toward it. Fog hides
-  zones that aren't loaded yet.
-- Detail goes where the camera stops. Everything else is silhouettes and emissive strips.
+- Props and materials come from Poly Haven (CC0, scanned) where they fit; anything bespoke
+  (the desk rig, the screen wall, the time machine) is modelled by script. The DeLorean is a
+  fan replica built from scratch: no badges or logos.
+- Each zone is a separately loaded GLB. The zone you start in (plus the hall) loads first; the
+  rest stream in nearest-first once you're in, each fading up out of the dark.
+- The floor is dark and dirty, nearly black: light lives in pools, neon and reflections.
 
 ### Zone detail
 
@@ -71,8 +72,9 @@ Notes for the build:
    data-saver users get the plain site. Nothing below may break that.
 2. **The world loads in the background** only after the page is usable, only on capable devices.
    The jack-out control doubles as the loading status.
-3. **Once in the world, you stay in it.** Links swap page content in place (pushState / fetch)
-   and the camera travels to the page's place, like fast travel. No full reloads.
+3. **Once in the world, you stay in it.** You walk up to things and click them; their page
+   opens on the datapad where you stand (pushState / fetch, no reloads). Links on the datapad
+   do the same.
 4. **Any page can be an entry point.** A post opened from Google shows the reader with a
    jack-out control; jacking out loads the world and flies to the blog's place.
 5. **The handoff is seamless.** The live DOM is moved into 3D (CSS3DRenderer) at the exact
@@ -80,7 +82,7 @@ Notes for the build:
 6. **Remember the choice.** Someone who was in world mode last time starts on the plain page,
    then flies in as soon as the world is ready.
 7. **Respect the reader:** pause rendering while reading, sound off by default, reduced motion
-   means cuts instead of flights, Esc / back button always lead out.
+   means cuts instead of flights (and no head bob), Esc / back button always lead out.
 
 ## Jacking in / out
 
@@ -108,8 +110,8 @@ the frame, as if from the back of your neck) and plugs into the computer.
 ## Handoff: the cloud build (Blender + three.js)
 
 Start here. The site is live at dhr.vn from this repo (`main` → Netlify runs `node build.mjs`,
-publishes `dist/`). Everything works today with a **procedural blockout**; the job is to
-replace the blockout with the real warehouse without breaking the plumbing.
+publishes `dist/`). The warehouse is built by scripts in `blender/` (see "The Blender
+pipeline" below) and loaded by `src/js/warehouse.js`; walking is `src/js/walker.js`.
 
 ### What exists and must keep working
 
@@ -120,34 +122,54 @@ replace the blockout with the real warehouse without breaking the plumbing.
 - `src/js/world.js` → `createWorld({ kind, place, surface, … })`, three kinds of origin:
   `terminal` (live DOM onto the desk monitor via CSS3D), `reader` (page becomes the datapad),
   `app` (the `/reading/` shelf fades; you stand at the bookshelf).
-- In the world: HUD, hotspots, datapad links and terminal `cd` visit places without reloads
+- In the world: walking, hotspots, datapad links and terminal `cd` open pages without reloads
   (`#world` in the URL); "Jack in" opens a page normally; Esc / back return to the origin page.
-- Places and camera poses: `PLACES` in world.js. Hotspot contract:
-  `object.userData.hotspot = { label, visit: '/url/' | action: 'monitor', highlight(on) }`.
+- Places and camera poses: `PLACES` in world.js (where each page's exit lands you and where
+  "jack back in" flies back to). Hotspot contract:
+  `object.userData.hotspot = { label, visit: '/url/' | action: 'monitor', highlight(on) }`;
+  in the GLBs a node's `hotspot` extra names a key of `HOTSPOTS` in warehouse.js.
 - `world.link` (desk socket + plug + sparks) and `world.shapeMonitor(w, h, center)` (the home
   monitor must match the viewport's aspect so the CSS3D handoff is seamless).
 
-### What is placeholder (replace)
+### Still to do
 
-- All of `buildWarehouse()`: boxes, canvas-texture neon, the 7×3 screen wall, desk, shelf,
-  evidence board, lounge. Swap for GLB zones (see "The warehouse" above), keep the contracts.
-- Not built at all yet: **garage + DeLorean-style car, gym**, the reading room as a real space.
 - The datapad is a floating panel. Target: pages land on real objects, e.g. a futuristic
   holo-table / console you lean over, a device on the desk, the evidence board itself.
 - The jack-in cable runs to the monitor; target is the first-person neural cable (above).
+- Hero props worth buying / swapping in later: a proper office chair, a real turntable and
+  speakers, a squat rack, a sim rig; and more love on the DeLorean (body curvature, interior).
+- Sound; easter eggs; a projects page for the garage and a now / training page for the gym.
+
+### The Blender pipeline
+
+- `blender/build.py <zone…> [--quick]`: model, bake and export zones to `blender/out/` (needs
+  the `bpy==5.2.3` module in a Python 3.13 venv outside the repo). Zones are in
+  `blender/zones/` (`hall`, `deck`, `board`, `library`, `lounge`, `garage` + `delorean`, `gym`),
+  written in three.js coordinates; helpers in `blender/lib.py`.
+- Look: scanned PBR materials (Poly Haven, fetched on demand into `blender/cache/` by
+  `assets.py`; needs `polyhaven.com`, `api.polyhaven.com`, `dl.polyhaven.org` reachable),
+  shaded live in three.js, lit by a Cycles-baked, OIDN-denoised lightmap per group (second UV
+  set), plus an environment map for reflections and bloom for neon.
+- `blender/preview_car.py out.png [yaw] [elevation]`: a quick studio render of the time machine
+  alone, for working on the model.
+- `cd blender && npm install && node pack.mjs`: resize textures, KTX2 (Basis ETC1S) + Meshopt
+  into `src/models/<zone>.glb`, lightmaps to `src/models/<zone>_<group>.ktx2`.
+- Extras on GLB nodes wire up the live bits: `role` (`screen`, `window`, `flicker`, `spin`,
+  `pulse`, `shaft`, `board`, `light`), `hotspot`, `lightmap` + `lm`.
 
 ### Constraints
 
 - Performance: first zone ≤ ~5 MB (Meshopt + KTX2 via gltf-transform), baked lighting,
-  emissive + bloom for neon, stream other zones as the camera heads there, fog hides the rest.
+  emissive + bloom for neon, other zones stream in after, fog hides the far end.
   World mode only loads after the page is usable and only on capable devices.
-- three.js: the site uses `0.170.0` via an import map; `/reading/` still pins `0.158.0`
-  (world.js runs on both today). Upgrade the shelf app deliberately if needed.
+- three.js: `0.170.0` via an import map everywhere, `/reading/` included (moved up from
+  `0.158.0` with the GLB warehouse: lightmaps / emissive props rendered dark on the old one).
 - Long text is never stylised (reader layout, ~68ch). Reduced motion = cuts, not flights.
 - Never break the plain pages: search engines, screen readers, slow phones.
 
 ### How to run / check
 
 `npm run dev` → http://127.0.0.1:4321 (restart after editing `build.mjs`). Check every page:
-✕ and edge exit, HUD visits, datapad links, Jack in, Esc twice, back button mid-flight, phone
-width (portrait poses step back), and `/reading/` round trip.
+✕ and edge exit, walking (keys, drag, click the floor), clicking things, datapad links, Jack in,
+Esc twice, back button mid-flight, phone width (portrait poses step back, drag + tap), and the
+`/reading/` round trip.

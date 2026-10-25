@@ -48,11 +48,11 @@ Create `content/posts/my-post.html`:
 
 Footnotes use the same markup as the old site (`<sup><a href="#fn1" id="ref1">1</a></sup>` + `<div class="footnotes">`).
 
-## World mode (`src/js/uplink.js`, `src/js/world.js`)
+## World mode (`src/js/uplink.js`, `world.js`, `warehouse.js`, `walker.js`)
 
 Every page has a place in a 3D warehouse (`data-place` on `<html>`, `PLACES` in world.js):
-home → desk monitor, blog/posts → centre screen of the wall, about → evidence board,
-contact → lounge, reading → bookshelf (hands off to the `/reading/` app).
+home → desk monitor, blog → the screen wall, about → evidence board, contact → lounge,
+reading → library (hands off to the `/reading/` app). There's also a garage and a gym.
 
 - **`uplink.js`** (every page): loads `world.js` in the background on capable devices
   (WebGL2, no Save-Data, `deviceMemory` >= 4 when reported) and wires every `[data-jack]`
@@ -61,13 +61,15 @@ contact → lounge, reading → bookshelf (hands off to the `/reading/` app).
   camera starts where it fills the window and pulls back; a plug yanks out of the desk socket.
 - **Jack out from any other page:** the live `<main>` becomes a floating **datapad** (starts
   full-screen, glides to a panel) while the room fades in and the camera settles on its place.
-- **In the world:** HUD buttons, hotspots, datapad links and terminal `cd` commands fly between
-  places and fetch pages into the datapad (no reloads; URL follows with `#world`).
-  "Jack in" on the datapad opens that page normally. Esc closes the datapad, then returns to
-  the page you started on (same as the back button / "Jack back in").
-- three.js `0.170.0` from jsDelivr via an import map. Everything in `buildWarehouse()` is
-  placeholder geometry: replace with GLTF loads, keep `shapeMonitor()`, `link` and the hotspot
-  contract (`userData.hotspot = { label, visit | action, highlight() }`).
+- **In the world** you walk (WASD / drag to look / click the floor; phones: drag + tap).
+  Clicking a thing walks you to it and opens its page in the datapad; datapad links and
+  terminal `cd` do the same (no reloads; URL follows with `#world`). "Jack in" on the datapad
+  opens that page normally. Esc closes the datapad, then returns to the page you started on.
+- **`warehouse.js`** loads the zones (GLB from `src/models/`, built by `blender/`, see
+  VISION.md) and owns the live props: monitor (`shapeMonitor`), link (socket/plug/sparks),
+  screen wall, window rain, neon flicker, light shafts, collisions for walking.
+- three.js `0.170.0` from jsDelivr via an import map (KTX2 transcoder and Meshopt decoder come
+  from the same place).
 
 ## Rules of thumb
 

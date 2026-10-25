@@ -7,26 +7,26 @@
 
 import math
 
-from lib import Zone, mat, emissive, join
+from lib import Zone, emissive, join, mat, pbr
 
 GROUPS = {
-    'hero': {'size': 2048, 'exposure': 1.5},
-    'env': {'size': 1024, 'exposure': 1.5},
+    'hero': {'size': 1024},
+    'env': {'size': 1024},
 }
 
 
 def build(quick=False):
     z = Zone('gym', origin=(0.0, 0, 14.5), yaw=math.pi)
 
-    rubber = mat('gy_rubber', '#1c1d1f', '#2a2b2d', noise=0.0, scale=1.0, pattern='tiles')
-    concrete = mat('gy_wall', '#3c3d3f', '#1a1b1c', noise=0.4, scale=1.5)
-    rack = mat('gy_rack', '#1f2124', '#121315', noise=0.25, scale=20)
-    bar = mat('gy_bar', '#b8bcc2', '#7a7e84', noise=0.3, scale=80)
-    plate_black = mat('gy_plate', '#161618', '#0c0c0d', noise=0.2, scale=30)
-    plate_red = mat('gy_plate_red', '#9a1c18', '#5a100c', noise=0.2, scale=30)
-    plate_blue = mat('gy_plate_blue', '#1a3a8a', '#0e1e4a', noise=0.2, scale=30)
-    vinyl = mat('gy_vinyl', '#1a1a1c', '#0e0e10', noise=0.4, scale=14)
-    chalk = mat('gy_chalk', '#e6e4de', '#b8b6b0', noise=0.4, scale=40)
+    rubber = pbr('gy_rubber', 'rubber_tiles', scale=1.0, tint='#6a6a6a', tex=1024)
+    concrete = pbr('gy_wall', 'concrete_wall_004', scale=2.5, tint='#8a8a8a', tex=512)
+    rack = pbr('gy_rack', 'metal_plate_02', scale=0.6, tint='#3a3c40', tex=256)
+    bar = mat('gy_bar', '#b8bcc2', rough=0.3, metal=1.0)
+    plate_black = mat('gy_plate', '#161618', rough=0.7)
+    plate_red = mat('gy_plate_red', '#9a1c18', rough=0.6)
+    plate_blue = mat('gy_plate_blue', '#1a3a8a', rough=0.6)
+    vinyl = pbr('gy_vinyl', 'fabric_leather_01', scale=0.5, tint='#3a3a3a', tex=256)
+    chalk = mat('gy_chalk', '#e6e4de', rough=0.95)
     frame = mat('gy_frame', '#8a8e94')
 
     # ------------------------------------------------------------ room (env)
@@ -71,10 +71,10 @@ def build(quick=False):
         z.tube(f'kb_handle_{k}', [(x - r * 0.6, r * 1.5, zz), (x - r * 0.5, r * 2.3, zz), (x + r * 0.5, r * 2.3, zz), (x + r * 0.6, r * 1.5, zz)], 0.016, material=plate_black, bake='hero')
     z.cyl('chalk_bucket', 0.17, 0.3, (0.95, 0.15, -0.6), material=mat('gy_bucket', '#2a2c30'), bake='hero', r2=0.19, segs=24)
     z.cyl('chalk', 0.165, 0.02, (0.95, 0.27, -0.6), material=chalk, bake='hero', segs=24)
-    z.box('chalk_dust', (0.9, 0.003, 0.7), (0.55, 0.0015, 0.1), rot=(0, 0.6, 0), material=mat('gy_dust', '#3a3a3a', '#5a5a58', noise=0.6, scale=6), bake='env')
+    z.box('chalk_dust', (0.9, 0.003, 0.7), (0.55, 0.0015, 0.1), rot=(0, 0.6, 0), material=mat('gy_dust', '#4a4a48', rough=0.95), bake='env')
 
     # heavy bag on a chain
-    z.cyl('bag', 0.18, 1.1, (2.2, 1.35, -0.9), material=mat('gy_bag', '#5a1c14', '#2a0c08', noise=0.4, scale=10), bake='hero', segs=24, bevel=0.05)
+    z.cyl('bag', 0.18, 1.1, (2.2, 1.35, -0.9), material=pbr('gy_bag', 'leather_red_02', scale=0.6, tex=256), bake='hero', segs=24, bevel=0.05)
     z.tube('bag_chain', [(2.2, 1.9, -0.9), (2.2, 6.2, -0.9)], 0.01, material=bar, bake='hero')
 
     # whiteboard on a stand (JS writes the PRs)
