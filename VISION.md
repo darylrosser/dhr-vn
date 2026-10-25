@@ -19,20 +19,21 @@ What exists today is the vibe check: the terminal, the reader, and a procedural 
 
 Daryl's dream workshop: one big dusty brick room, late sun pouring through a huge factory
 window into the haze, the time machine in the middle with cables snaking across a dark,
-dirty concrete floor. You **stand behind the desk** with the room in front of you and look
-around (drag, or the arrow keys): left as far as the tool wall, right round to the evidence
+dirty concrete floor. You **stand behind the desk**, straight on to its screens, and look
+around (drag, or the arrow keys): left round to the bookcase and the tool wall, right to the evidence
 board, never the bare wall behind you. No walking: everything does something from where you
 stand, and pages open in place. The room is analogue and lived-in; the tech in it stays
 cyberpunk (amber and teal screens, neon on the kit). The plain pages are the accessible way in.
 
 | Where | What's there | Does |
 |-------|--------------|------|
-| **In front: the desk** | A battered workbench: the monitor plus four more screens on poles, a mechanical keyboard on a desk mat, the books on the go (real covers), the phone, a notepad of to-dos, coffee, tools, a rubber duck, the robot arm holding the jack plug | The monitor is your browser (`/`, and every page) |
+| **In front: the desk** | A battered workbench: the monitor plus three more screens round it (none top right, so the car shows), a mechanical keyboard on a desk mat, the books on the go (real covers), the phone, a notepad of to-dos, coffee, tools, a rubber duck, the robot arm holding the jack plug | The monitor is your browser (`/`, and every page) |
 | **Left: the TV wall** | Floor-to-ceiling rack of mismatched old TVs, each a different colour of static; the big one on the bench is the blog (so is the top-left desk screen) | `/blog/` on the monitor |
-| **Left, nearer: the tool wall** | Pegboard of tools over a bench, a rack of boxes, XƯỞNG in teal neon | |
+| **Left, nearer: the bookcase** | Steel uprights, plank shelves, full of books | `/reading/` |
+| **Left, nearest: the tool wall** | Pegboard of tools over a bench, XƯỞNG in teal neon | |
 | **On the desk** | The stack of books | `/reading/` (its own app) |
 | **On the desk** | The phone | `/contact/`: you sit down and it lifts up with the page on it |
-| **Ahead** | The Back to the Future DeLorean, kit bolted on, valves glowing, the window behind | Projects (coming) |
+| **Ahead, right of the screens** | The Back to the Future DeLorean, kit bolted on, valves glowing, the window behind | Projects (coming) |
 | **Right: the east wall** | The evidence board (photos, red string), a payphone under pink neon | `/about/` on the monitor |
 
 Notes for the build:
@@ -131,7 +132,7 @@ the robot arm `src/js/arm.js`.
 
 - `blender/build.py [workshop] [--quick]`: model, bake and export to `blender/out/` (needs
   the `bpy==5.2.3` and `pillow` modules in a Python 3.13 venv outside the repo). The room is
-  `blender/zones/workshop.py` (with `delorean.py`), written in three.js
+  `blender/zones/workshop.py` (with `delorean.py` and `books.py`), written in three.js
   coordinates; helpers in `blender/lib.py`, drawn textures (keycaps, the desk mat,
   handwriting) in `blender/textures.py`.
 - Look: scanned PBR materials (Poly Haven, fetched on demand into `blender/cache/` by

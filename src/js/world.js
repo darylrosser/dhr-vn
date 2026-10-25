@@ -33,10 +33,10 @@ const READING_URL = '/reading/';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // Where you stand, and what you look at (blender/zones/workshop.py has them).
-const STAND = V(1.5, 1.75, 3.5);  // behind the desk, the room in front of you
+const STAND = V(0, 1.72, 2.5);    // behind the desk, straight on to the screens
 const CHAIR = V(0, 1.22, 1.15);   // sat at the desk (jacking in, the phone)
 const GAZE = {
-  desk: V(-0.3, 1.3, -1.2),      // the desk, the car and the window beyond
+  desk: V(0, 1.2, -1.5),         // the screens, the window beyond, the car off to the right
   monitor: V(0, 1.1, -0.12),
   books: V(-0.92, DESK_TOP + 0.08, 0.26),
   phone: V(0.5, DESK_TOP, 0.32),
@@ -364,8 +364,8 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2(0, 0);
   let hovered = null;
-  // left as far as the tool wall, right round to the evidence board; never the bare wall behind you
-  const seat = createSeat({ camera, dom: renderer.domElement, reducedMotion, at: STAND, facing: GAZE.desk, left: 0.62, right: 1.22 });
+  // left round to the bookcase and the tool wall, right to the evidence board; never the bare wall behind you
+  const seat = createSeat({ camera, dom: renderer.domElement, reducedMotion, at: STAND, facing: GAZE.desk, left: 1.05, right: 1.05 });
 
   const overUi = (target) => ui.contains(target) || (mode === 'leaned' && screenEl.contains(target)) || (mode === 'phone' && phoneEl.contains(target));
 

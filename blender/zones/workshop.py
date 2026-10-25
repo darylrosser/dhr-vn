@@ -1,9 +1,10 @@
 # The workshop: one dusty room, late light pouring through a big factory
-# window, the time machine in the middle with cables running off it across
-# the floor to the benches. You stand behind the desk and look around (no
+# window, the time machine with cables running off it across the floor. You
+# stand behind the desk, straight on to its screens, and look around (no
 # walking): the desk (home; the monitor is your browser, the books open the
 # reading list, the phone is contact; the robot arm that jacks you in is JS),
-# the TV wall (the blog), the evidence board (about), the car (projects).
+# the TV wall (the blog), the bookcase (reading), the tool wall, the evidence
+# board (about), the car right of the screens (projects).
 # Warm haze; the tech stays cyberpunk (amber and teal screens, neon on the kit).
 #
 # World frame. The room: x -7 … 7, z -10 (the window wall) … 5.5, 6.5 m to the
@@ -19,7 +20,7 @@ from PIL import Image
 
 import textures
 from lib import SITE, Zone, emissive, image_pbr, join, mat, noise_texture, pbr, photo
-from zones import delorean
+from zones import books, delorean
 
 GROUPS = {
     'desk': {'size': 1024},   # the desk and everything on it
@@ -32,7 +33,7 @@ GROUPS = {
 DESK_TOP = 0.775
 X0, X1, Z0, Z1, H = -7.0, 7.0, -10.0, 5.5, 6.5
 WIN_W, WIN_Y0, WIN_Y1 = 8.0, 1.5, 5.7
-CAR = ((0.3, 0, -5.4), 0.45)   # where the car stands (zone coords) and its yaw
+CAR = ((3.4, 0, -5.4), 0.45)   # where the car stands and its yaw (right of the screens, seen from your spot)
 
 
 def build(quick=False):
@@ -162,9 +163,9 @@ def build(quick=False):
         z.model(f'tyre_{i}', 'old_tyre', (x, 0, zz), rot=(math.pi / 2, 0, 0), bake='env', tex=128)
 
     # floor clutter round the car and in the corners
-    z.model('tool_cart', 'tool_cart', (3.9, 0, -4.4), rot=(0, -1.2, 0), bake='env', tex=128)
+    z.model('tool_cart', 'tool_cart', (-2.7, 0, -4.6), rot=(0, 0.6, 0), bake='env', tex=128)
     z.model('welder', 'portable_welding_cart', (-2.6, 0, -7.4), rot=(0, 0.7, 0), bake='env', tex=128)
-    z.model('hand_truck', 'hand_truck', (-6.3, 0, -0.6), rot=(0, 1.3, 0), bake='env', tex=128)
+    z.model('hand_truck', 'hand_truck', (5.9, 0, 3.6), rot=(0, -1.3, 0), bake='env', tex=128)
     for i, (x, zz, yaw) in enumerate(((-5.9, -9.2, 0.2), (-5.2, -9.4, 1.1), (-6.3, -8.4, 2.0))):
         z.model(f'drum_{i}', 'Barrel_01', (x, 0, zz), rot=(0, yaw, 0), bake='env', tex=128)
     for i, (x, y, zz, yaw, s_) in enumerate(((3.4, 0, -9.3, 0.1, 1.0), (3.5, 0.0, -8.4, -0.3, 0.9), (3.45, 0.35, -9.2, 0.4, 0.8))):
@@ -174,8 +175,8 @@ def build(quick=False):
     z.model('tv', 'Television_01', (6.25, 0.92, -7.3), rot=(0, -math.pi / 2 + 0.3, 0), bake='hero', tex=256)
 
     # ------------------------------------------------------------ the tool wall (west, near you): pegboard over a bench
-    bench(z, 'bench_tools', (X0 + 0.42, 0, 1.9), math.pi / 2, 2.6, bench_top, dark_steel)
-    peg = z.sub((X0 + 0.02, 1.85, 1.9), math.pi / 2)  # faces +x, into the room
+    bench(z, 'bench_tools', (X0 + 0.42, 0, 2.2), math.pi / 2, 2.6, bench_top, dark_steel)
+    peg = z.sub((X0 + 0.02, 1.85, 2.2), math.pi / 2)  # faces +x, into the room
     peg.plane('pegboard', 2.4, 1.3, (0, 0, 0), material=photo('w_pegboard', textures.pegboard(), rough=0.9, tex=512), bake='hero')
     hang = [  # (tool, x along the board, y, yaw spin in the board's plane)
         ('cross_pein_hammer', -0.95, -0.15, 0.0), ('adjustable_wrench', -0.65, -0.1, 0.0), ('combination_wrench', -0.45, 0.05, 1.0),
@@ -185,22 +186,16 @@ def build(quick=False):
     for i, (tool, x, y, flat) in enumerate(hang):
         # the flat-lying scans are stood up; all turned to face the room
         peg.model(f'peg_{i}', tool, (x, y - 0.12, 0.02), rot=(-math.pi / 2 * flat, 0, 0), bake='hero', max_tris=800, tex=128)
-    z.model('bench_toolbox', 'metal_toolbox', (X0 + 0.45, 0.92, 1.1), rot=(0, 1.3, 0), bake='hero', max_tris=1200, tex=256)
-    z.model('bench_cans', 'spray_paint_bottles', (X0 + 0.35, 0.92, 2.7), rot=(0, 2.0, 0), bake='hero', max_tris=800, tex=256)
-    z.model('bench_oil', 'small_oil_can_01', (X0 + 0.5, 0.92, 2.25), rot=(0, 0.6, 0), bake='hero', max_tris=800, tex=256)
-    z.model('bench_lamp_w', 'desk_lamp_arm_01', (X0 + 0.3, 0.92, 1.55), rot=(0, 1.6, 0), bake='hero', max_tris=2000, tex=256)
-    z.light('SPOT', (X0 + 0.6, 1.6, 1.8), '#ffd9a0', 90, size=0.06, aim=(X0 + 0.4, 0.9, 2.0), spot=math.radians(80), blend=0.5, name='tool_lamp')
-    # a rack of boxes beside it, and XƯỞNG ("workshop") in teal neon over it all
-    z.model('shelf_w', 'steel_frame_shelves_02', (X0 + 0.35, 0, -0.35), rot=(0, math.pi / 2, 0), bake='env', tex=128)
-    for level, y in enumerate((0.42, 0.98, 1.54, 2.1)):
-        for k in range(2):
-            zz = -0.53 + k * 0.34
-            if (level + k) % 3 == 2:
-                z.model(f'w_tin_{level}_{k}', 'oil_tin', (X0 + 0.4, y, zz), rot=(0, level + k, 0), bake='env', max_tris=400, tex=128)
-            else:
-                z.model(f'w_box_{level}_{k}', 'cardboard_box_01', (X0 + 0.4, y, zz), rot=(0, 0.2 * k, 0), scale=0.7, bake='env', max_tris=600, tex=128)
-    z.text('neon_xuong', 'XƯỞNG', 0.6, (X0 + 0.05, 3.3, 1.9), rot=(0, math.pi / 2, 0), material=emissive('w_neon_teal', '#2ad4c9', 6), tube=0.012, role='flicker')
-    z.light('AREA', (X0 + 0.4, 3.3, 1.9), '#2ad4c9', 40, size=(0.4, 1.8), aim=(X0 + 3, 2.5, 1.9), name='neon_spill')
+    z.model('bench_toolbox', 'metal_toolbox', (X0 + 0.45, 0.92, 1.4), rot=(0, 1.3, 0), bake='hero', max_tris=1200, tex=256)
+    z.model('bench_cans', 'spray_paint_bottles', (X0 + 0.35, 0.92, 3.0), rot=(0, 2.0, 0), bake='hero', max_tris=800, tex=256)
+    z.model('bench_oil', 'small_oil_can_01', (X0 + 0.5, 0.92, 2.55), rot=(0, 0.6, 0), bake='hero', max_tris=800, tex=256)
+    z.model('bench_lamp_w', 'desk_lamp_arm_01', (X0 + 0.3, 0.92, 1.85), rot=(0, 1.6, 0), bake='hero', max_tris=2000, tex=256)
+    z.light('SPOT', (X0 + 0.6, 1.6, 2.1), '#ffd9a0', 90, size=0.06, aim=(X0 + 0.4, 0.9, 2.3), spot=math.radians(80), blend=0.5, name='tool_lamp')
+    # the bookcase: steel uprights, plank shelves, full of books (the reading list too)
+    books.bookcase(z.sub((X0 + 0.21, 0, -0.4), math.pi / 2), rnd, dark_steel, bench_top, bays=2, bay_w=1.2, height=3.0, levels=7, hotspot='reading')
+    # XƯỞNG ("workshop") in teal neon over the tool wall
+    z.text('neon_xuong', 'XƯỞNG', 0.36, (X0 + 0.05, 2.95, 2.2), rot=(0, math.pi / 2, 0), material=emissive('w_neon_teal', '#2ad4c9', 2.6), tube=0.008, role='flicker')
+    z.light('AREA', (X0 + 0.4, 2.95, 2.2), '#2ad4c9', 20, size=(0.3, 1.1), aim=(X0 + 3, 2.5, 2.2), name='neon_spill')
 
     # ------------------------------------------------------------ the evidence board (about), east wall
     evidence_board(z.sub((6.55, 0, -1.6), -math.pi / 2), rnd)
@@ -258,7 +253,7 @@ def cover_book(z, name, path, pages, pos, yaw, **tags):
 def desk(z, rnd, wood, steel, dark_steel, black, cable):
     """The desk at the origin: a battered workbench, the terminal in the middle
     (world.js builds that monitor; the robot arm and the phone are JS too)
-    with four more screens round it, and a life's worth of stuff on it."""
+    with three more screens round it, and a life's worth of stuff on it."""
     top = pbr('w_desk_top', 'wood_table_worn', scale=1.1, tint='#7a6a58', rough=0.8, tex=1024)
     frame = pbr('w_desk_frame', 'rusty_metal_02', scale=1.2, tint='#6a625a', tex=512)
     keycap = mat('w_keycap', '#2b2a28', rough=0.55)
@@ -354,19 +349,22 @@ def desk(z, rnd, wood, steel, dark_steel, black, cable):
     z.plane('mon_proxy_glow', 0.9, 0.52, (0, 1.15, -0.115), material=emissive('proxy_amber', '#ffb000', 2.0), proxy=1)
     z.box('mon_proxy_neck', (0.05, 0.22, 0.04), (0, DESK_TOP + 0.11, -0.22), material=black, proxy=1)
     z.box('mon_proxy_base', (0.28, 0.02, 0.18), (0, DESK_TOP + 0.01, -0.2), material=black, proxy=1)
-    # four more screens round it: angled in at the sides, two more above those on poles
+    # three more screens round it: angled in at the sides, one more above on the left
+    # (none above on the right: from where you stand the car shows past them there)
     for side in (-1, 1):
         yaw = -side * 0.5
         ex, ez = side * 0.5, -0.12                      # the main screen's edge
         hw = 0.33
         cx, cz = ex + side * hw * math.cos(yaw), ez - side * hw * math.sin(yaw)
-        flat_screen(z, f'side_{side}', (cx, 1.12, cz), yaw, 0.62, 0.38, black, col=10 + side, row=0)
-        top_tags = {'hotspot': 'blog', 'painter': 'blog'} if side < 0 else {'painter': 'timing'}
-        flat_screen(z, f'top_{side}', (cx, 1.56, cz - 0.02), yaw, 0.62, 0.38, black, pitch=-0.18, col=10 + side, row=1, **top_tags)
+        side_tags = {'painter': 'timing'} if side > 0 else {}
+        flat_screen(z, f'side_{side}', (cx, 1.12, cz), yaw, 0.62, 0.38, black, col=10 + side, row=0, **side_tags)
+        if side < 0:
+            flat_screen(z, f'top_{side}', (cx, 1.56, cz - 0.02), yaw, 0.62, 0.38, black, pitch=-0.18, col=10 + side, row=1, hotspot='blog', painter='blog')
         px, pz = cx - math.sin(yaw) * 0.12, cz - math.cos(yaw) * 0.12
-        z.cyl(f'pole_{side}', 0.02, 1.05, (px, DESK_TOP + 0.525, pz), material=steel, bake='desk', segs=12)
+        pole_h = 1.05 if side < 0 else 0.6
+        z.cyl(f'pole_{side}', 0.02, pole_h, (px, DESK_TOP + pole_h / 2, pz), material=steel, bake='desk', segs=12)
         z.cyl(f'pole_clamp_{side}', 0.05, 0.03, (px, DESK_TOP + 0.015, pz), material=black, bake='desk', segs=16)
-        for y in (1.12, 1.56):  # arms from the pole to the screens' backs
+        for y in ((1.12, 1.56) if side < 0 else (1.12,)):  # arms from the pole to the screens' backs
             z.box(f'pole_arm_{side}_{y}', (0.04, 0.04, 0.05), (cx - math.sin(yaw) * 0.095, y, cz - math.cos(yaw) * 0.095), rot=(0, yaw, 0), material=black, bake='desk')
     # a mess of cables down the back to a power strip on the floor
     for i in range(7):
