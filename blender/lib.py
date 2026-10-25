@@ -372,7 +372,7 @@ class Zone:
                 obj[k] = v
         return obj
 
-    def model(self, name, asset, pos, rot=(0, 0, 0), scale=1.0, max_tris=1500, tex=256, **tags):
+    def model(self, name, asset, pos, rot=(0, 0, 0), scale=1.0, max_tris=1000, tex=256, **tags):
         """A Poly Haven prop (CC0), imported once, joined into one mesh,
         decimated to max_tris, placed like any other object. tex = shipped
         colour-map size for its textures."""
@@ -524,7 +524,8 @@ class Zone:
         if tube > 0:
             cu.fill_mode = 'NONE'
             cu.bevel_depth = tube
-            cu.bevel_resolution = 2
+            cu.bevel_resolution = 1
+            cu.resolution_u = 5  # tubes are thin: a coarse curve still reads as round
         else:
             cu.extrude = depth
         tmp = bpy.data.objects.new('tmp', cu)

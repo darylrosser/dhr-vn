@@ -15,6 +15,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { createArm } from './arm.js';
 
 export const DESK_TOP = 0.775;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -23,13 +25,13 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 export const ZONES = { workshop: {} };
 
 // What clicking a thing in the room does (hotspot contract labels + targets).
-// `prompt` is the action offered when you walk up to it ([E] …).
+// Pages open where you sit: on the monitor, or on the phone for contact.
 const HOTSPOTS = {
-  blog: { label: 'Blog: field reports →', prompt: 'Read the blog', reach: 4.3, visit: '/blog/' },
-  about: { label: 'Case file: about →', prompt: 'Open the case file', visit: '/about/' },
-  reading: { label: 'Bookshelf: reading list →', prompt: 'Browse the books', visit: '/reading/' },
-  contact: { label: 'Payphone: get in touch →', prompt: 'Make a call', visit: '/contact/' },
-  garage: { label: 'Time machine: projects (coming soon)', prompt: 'Projects: coming soon', action: 'place', place: 'garage' },
+  blog: { label: 'Blog: field reports →', visit: '/blog/' },
+  about: { label: 'Case file: about →', visit: '/about/' },
+  reading: { label: 'Reading list →', visit: '/reading/' },
+  contact: { label: 'Phone: get in touch →', visit: '/contact/' },
+  garage: { label: 'Time machine: projects (coming soon)', action: 'look' },
 };
 
 const AMBER = '#ffb000', TEAL = '#2ad4c9', HOT = '#ff6a1a', DIM = '#6b4c12';
@@ -88,15 +90,19 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
 
   const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.1, ...o });
 
-  // ---------------------------------------------------------------- the link: socket, plug, cable
-  // You're "jacked in" while reading the terminal: a heavy plug sits in a desk
-  // socket, cabled to the back of the monitor. Jacking out yanks it; jacking in
-  // slams it home. p = 0 plugged … 1 lying on the desk.
+  // ---------------------------------------------------------------- the link: arm, plug, cable
+  // You're "jacked in" while you're in the page: a heavy plug sits in the port
+  // at the back of your neck, cabled to the back of the monitor, held by the
+  // robot arm bolted to the desk. Jacking out, the arm yanks it free and drops
+  // it in its cradle; jacking in, it swings it round and slams it home.
+  // (ARM_BASE and the cradle match the gaps left for them in workshop.py.)
 
-  const SOCKET = new THREE.Vector3(0.36, DESK_TOP, 0.3);
+  const ARM_BASE = new THREE.Vector3(1.02, DESK_TOP, 0.12);
+  const SOCKET = new THREE.Vector3(0.78, DESK_TOP, 0.17);   // the cradle
   const SOCKET_TOP = SOCKET.clone().setY(DESK_TOP + 0.026);
   const metal = mat('#2c2e33', { roughness: 0.3, metalness: 0.9, envMapIntensity: 0.6 });
   const rubber = mat('#121214', { roughness: 0.55, metalness: 0.15 });
+  const armPaint = mat('#6e6a60', { roughness: 0.4, metalness: 0.5, envMapIntensity: 0.9 }); // worn gunmetal
 
   const socketBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.026, 32), metal);
   socketBase.position.set(SOCKET.x, DESK_TOP + 0.013, SOCKET.z);
@@ -123,48 +129,64 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const boot = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.027, 0.045, 16), rubber);
   boot.position.y = 0.128;
   plug.add(pin, plugBody, collar, grip, boot);
-  scene.add(plug);
 
-  const PLUGGED = SOCKET_TOP.clone().add(new THREE.Vector3(0, -0.03, 0)); // pin buried in the socket
-  const LIFTED = SOCKET_TOP.clone().add(new THREE.Vector3(0, 0.14, 0));
-  const RESTING = new THREE.Vector3(0.53, DESK_TOP + 0.031, 0.43);
+  const arm = createArm(ARM_BASE, plug, { metal, paint: armPaint, rubber, glow: collarMat });
+  scene.add(arm.group);
+
+  // Where the plug goes: points and directions for the pin. The neck port and
+  // the swing past your ear are in the camera's frame (x right, y up, z back),
+  // so the plug follows your head while you're plugged in.
+  const NECK = new THREE.Vector3(0.085, -0.13, 0.07);
+  const NECK_DIR = new THREE.Vector3(-0.75, 0, 0.66).normalize();
+  const EAR = new THREE.Vector3(0.24, -0.04, -0.34); // in view, front right, before it goes round
+  const DOWN = new THREE.Vector3(0, -1, 0);
+  const LIFT = SOCKET_TOP.clone().add(new THREE.Vector3(0, 0.26, 0));
+  const PIN_IN = SOCKET_TOP.clone().add(new THREE.Vector3(0, -0.028, 0));
+  const camQ = new THREE.Quaternion();
+  const fromCam = (local, out) => out.copy(local).applyMatrix4(camera.matrixWorld);
+  const dirFromCam = (local, out) => out.copy(local).applyQuaternion(camera.getWorldQuaternion(camQ));
+  // the path from cradle (0) to neck (1): lift straight up, swing up in front of
+  // you on the right (where you can see it coming), round past your cheek, in
+  const KEYS = [
+    { k: 0, at: () => PIN_IN, dir: () => DOWN },
+    { k: 0.28, at: () => LIFT, dir: () => DOWN },
+    { k: 0.78, at: (o) => fromCam(EAR, o), dir: (o) => dirFromCam(NECK_DIR, o) },
+    { k: 1, at: (o) => fromCam(NECK, o), dir: (o) => dirFromCam(NECK_DIR, o) },
+  ];
+  const pa = new THREE.Vector3(), pb = new THREE.Vector3(), da = new THREE.Vector3(), db = new THREE.Vector3();
+  const pinAt = new THREE.Vector3(), pinDir = new THREE.Vector3();
   let plugP = 0;
-
   function placePlug(p) {
     plugP = p;
-    if (p <= 0.35) {
-      plug.position.lerpVectors(PLUGGED, LIFTED, p / 0.35);
-      plug.rotation.set(0, 0, 0);
-    } else {
-      const k = (p - 0.35) / 0.65;
-      plug.position.lerpVectors(LIFTED, RESTING, k);
-      plug.position.y += Math.sin(k * Math.PI) * 0.05;
-      plug.rotation.set(0, k * 0.7, k * 1.52); // tips over and lies on its side
-    }
+    let i = 0;
+    while (i < KEYS.length - 2 && p > KEYS[i + 1].k) i++;
+    const A = KEYS[i], B = KEYS[i + 1];
+    const t = THREE.MathUtils.smoothstep(p, A.k, B.k);
+    pinAt.lerpVectors(A.at(pa), B.at(pb), t);
+    pinDir.lerpVectors(A.dir(da), B.dir(db), t).normalize();
+    arm.solve(pinAt, pinDir);
     cableDirty = true;
   }
 
-  // cable: monitor back → along the desk → up into the plug
+  // cable: monitor back → along the desk → up to the plug in the arm's grip
   const monitorPort = new THREE.Vector3(0.06, DESK_TOP + 0.13, -0.3);
   let cable = null;
   let cableDirty = true;
-  const up = new THREE.Vector3();
   function rebuildCable() {
-    plug.updateMatrixWorld();
-    const top = new THREE.Vector3(0, 0.148, 0).applyMatrix4(plug.matrixWorld);
-    up.set(0, 1, 0).applyQuaternion(plug.quaternion);
-    const out = top.clone().addScaledVector(up, 0.07);
-    const lay = new THREE.Vector3(monitorPort.x + 0.07, DESK_TOP + 0.012, monitorPort.z + 0.1);
-    const slack = new THREE.Vector3(Math.max(lay.x, out.x) + 0.1, DESK_TOP + 0.012, (lay.z + out.z) / 2 + 0.06);
-    const near = new THREE.Vector3(out.x + 0.02, Math.max(DESK_TOP + 0.015, out.y - 0.05), out.z + 0.04);
-    const curve = new THREE.CatmullRomCurve3([monitorPort, lay, slack, near, out, top], false, 'centripetal');
+    const { point: top, dir } = arm.tail();
+    const out = top.clone().addScaledVector(dir, 0.04);
+    out.y -= 0.05;
+    const lay = new THREE.Vector3(monitorPort.x + 0.18, DESK_TOP + 0.012, monitorPort.z + 0.16);
+    const mid = lay.clone().lerp(out, 0.5);
+    mid.y = Math.max(DESK_TOP + 0.015, Math.min(lay.y, out.y) - 0.08);
+    const curve = new THREE.CatmullRomCurve3([monitorPort, lay, mid, out, top], false, 'centripetal');
     if (cable) cable.geometry.dispose();
     else { cable = new THREE.Mesh(undefined, rubber); scene.add(cable); }
     cable.geometry = new THREE.TubeGeometry(curve, 80, 0.011, 8, false);
     cableDirty = false;
   }
 
-  // sparks + a flash at the socket
+  // sparks + a flash where the pin goes in or comes out
   const SPARKS = 80;
   const sparkPos = new Float32Array(SPARKS * 3).fill(-50);
   const sparkVel = new Float32Array(SPARKS * 3);
@@ -172,24 +194,24 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const sparkGeo = new THREE.BufferGeometry();
   sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
   const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
-    color: new THREE.Color('#ffd27a').multiplyScalar(3), size: 0.009, transparent: true,
+    color: new THREE.Color('#ffd27a').multiplyScalar(3), size: 0.004, map: dotTexture(), transparent: true,
     depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
   }));
   sparks.frustumCulled = false;
   scene.add(sparks);
   const flash = new THREE.PointLight('#bff7ff', 0, 0.9, 2);
-  flash.position.copy(SOCKET_TOP).add(new THREE.Vector3(0, 0.06, 0));
   scene.add(flash);
 
-  function burst(n, speed, color) {
+  function burst(n, speed, color, at) {
     flash.color.set(color);
+    flash.position.copy(at);
     for (let i = 0, made = 0; i < SPARKS && made < n; i++) {
       if (sparkLife[i] > 0) continue;
       made++;
       const a = rand() * Math.PI * 2;
       const lift = 0.35 + rand() * 0.65;
       const v = speed * (0.4 + rand() * 0.9);
-      sparkPos.set([SOCKET_TOP.x, SOCKET_TOP.y + 0.01, SOCKET_TOP.z], i * 3);
+      sparkPos.set([at.x, at.y, at.z], i * 3);
       sparkVel.set([Math.cos(a) * v * (1 - lift), v * lift, Math.sin(a) * v * (1 - lift)], i * 3);
       sparkLife[i] = 0.25 + rand() * 0.4;
     }
@@ -207,42 +229,43 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     unplug(instant) {
       if (link.state !== 'plugged') return;
       setRing(false);
-      if (instant) { placePlug(1); link.state = 'unplugged'; return; }
+      if (instant) { placePlug(0); link.state = 'unplugged'; return; }
       link.state = 'moving';
-      burst(22, 1.1, '#ffb000');
+      burst(22, 1.1, '#ffb000', pinAt);
       flash.intensity = 0.8;
       link.onJolt(0.006);
-      anim = { from: plugP, to: 1, ms: 650, t: 0, easeFn: (k) => 1 - Math.pow(1 - k, 3), done: () => { link.state = 'unplugged'; } };
+      // yanked out fast, then carried back to the cradle
+      anim = { from: plugP, to: 0, ms: 1500, t: 0, easeFn: (k) => 1 - Math.pow(1 - k, 2.4), done: () => { link.state = 'unplugged'; } };
     },
     plugIn() {
       return new Promise((resolve) => {
         if (link.state === 'plugged') { resolve(); return; }
         link.state = 'moving';
-        // slow approach, then it accelerates into the socket
+        // lifts, swings round slowly, then accelerates into the port
         anim = {
-          from: plugP, to: 0, ms: 700, t: 0, easeFn: (k) => k * k * k,
+          from: plugP, to: 1, ms: 2300, t: 0, easeFn: (k) => (k < 0.75 ? 0.82 * THREE.MathUtils.smootherstep(k / 0.75, 0, 1) : 0.82 + 0.18 * Math.pow((k - 0.75) / 0.25, 2.2)),
           done: () => {
             link.state = 'plugged';
             setRing(true);
-            burst(60, 1.6, '#bff7ff');
+            burst(40, 1.4, '#bff7ff', pinAt);
             flash.intensity = 1.6;
+            link.onJolt(0.03);
             resolve();
           },
         };
       });
     },
-    setPlugged() { anim = null; placePlug(0); link.state = 'plugged'; setRing(true); },
-    setUnplugged() { anim = null; placePlug(1); link.state = 'unplugged'; setRing(false); },
+    setPlugged() { anim = null; placePlug(1); link.state = 'plugged'; setRing(true); },
+    setUnplugged() { anim = null; placePlug(0); link.state = 'unplugged'; setRing(false); },
   };
   setRing(true);
-  placePlug(0);
 
   updaters.push((t, dt) => {
     if (anim) {
       anim.t = Math.min(1, anim.t + (dt * 1000) / anim.ms);
       placePlug(anim.from + (anim.to - anim.from) * anim.easeFn(anim.t));
       if (anim.t >= 1) { const { done } = anim; anim = null; done(); }
-    }
+    } else if (link.state === 'plugged') placePlug(1); // follows your head
     if (cableDirty) rebuildCable();
     let alive = false;
     for (let i = 0; i < SPARKS; i++) {
@@ -259,8 +282,36 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     }
     if (alive) sparkGeo.attributes.position.needsUpdate = true;
     flash.intensity *= Math.pow(0.002, dt);
-    // unplugged: the socket ring blinks like it wants you back
+    // unplugged: the cradle ring blinks like it wants you back
     if (link.state === 'unplugged') ringMat.color.set('#ff6a1a').multiplyScalar(Math.sin(t * 6) > 0 ? 2.2 : 0.5);
+  });
+
+  // ---------------------------------------------------------------- the phone (contact)
+  // Lying by the keyboard, lock screen lit. Raised, it's held up in front of
+  // you and world.js puts the contact page on its screen (CSS3D).
+  const PHONE_W = 0.074, PHONE_H = 0.156, PHONE_T = 0.009;
+  const phone = new THREE.Group();
+  phone.position.set(0.5, DESK_TOP + PHONE_T / 2, 0.32);
+  phone.rotation.set(-Math.PI / 2, 0, -0.25); // face up, top away from you
+  phone.userData.rest = { position: phone.position.clone(), quaternion: phone.quaternion.clone() };
+  const phoneCase = new THREE.Mesh(new RoundedBoxGeometry(PHONE_W, PHONE_H, PHONE_T, 3, 0.008), mat('#1b1d21', { roughness: 0.35, metalness: 0.6, envMapIntensity: 0.8 }));
+  const phoneEdge = new THREE.Mesh(new RoundedBoxGeometry(PHONE_W + 0.0016, PHONE_H + 0.0016, PHONE_T * 0.35, 2, 0.008), new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAL).multiplyScalar(1.4), toneMapped: false }));
+  const lockCanvas = document.createElement('canvas');
+  lockCanvas.width = 240;
+  lockCanvas.height = 500;
+  const lockTex = new THREE.CanvasTexture(lockCanvas);
+  lockTex.colorSpace = THREE.SRGBColorSpace;
+  const phoneScreen = new THREE.Mesh(new THREE.PlaneGeometry(PHONE_W - 0.006, PHONE_H - 0.012), new THREE.MeshBasicMaterial({ map: lockTex, toneMapped: false }));
+  phoneScreen.position.z = PHONE_T / 2 + 0.0004;
+  phone.add(phoneCase, phoneEdge, phoneScreen);
+  scene.add(phone);
+  makeHotspot(phone, HOTSPOTS.contact, [phoneCase], TEAL);
+  let lockNext = 0;
+  updaters.push((t) => {
+    if (t < lockNext) return;
+    lockNext = t + 1;
+    paintLockScreen(lockCanvas.getContext('2d'), t);
+    lockTex.needsUpdate = true;
   });
 
   // ---------------------------------------------------------------- monitor (hotspot)
@@ -279,7 +330,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const led = new THREE.Mesh(new THREE.SphereGeometry(0.006, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAL).multiplyScalar(4), toneMapped: false }));
   const vents = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ventTexture(), transparent: true, depthWrite: false }));
   monitor.add(bezel, housing, glassBack, neck, base, led, vents);
-  makeHotspot(monitor, { label: 'Terminal', prompt: 'Use the terminal', reach: 1.9, action: 'monitor' }, [bezel, housing, neck], '#ffb000');
+  makeHotspot(monitor, { label: 'Terminal', action: 'monitor' }, [bezel, housing, neck], '#ffb000');
 
   function roundedRect(w, h, r) {
     const s = new THREE.Shape();
@@ -344,55 +395,6 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     cableDirty = true;
   }
 
-  // ---------------------------------------------------------------- collisions
-  // A 10 cm grid over the floor: a cell is blocked when any surface passes
-  // through it between ankle and head height. Filled in when the room loads
-  // (sampling its triangles), read by the walker.
-
-  const CELL = 0.1, GX0 = -7.6, GZ0 = -10.6, GW = 152, GH = 168;
-  const grid = new Uint8Array(GW * GH);
-  const tri = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
-  const p = new THREE.Vector3(), ab = new THREE.Vector3(), ac = new THREE.Vector3();
-
-  function rasterize(root) {
-    root.traverse((o) => {
-      if (!o.isMesh || o.userData.role === 'screen') return;
-      const pos = o.geometry.attributes.position;
-      const index = o.geometry.index;
-      const count = index ? index.count : pos.count;
-      for (let t = 0; t < count; t += 3) {
-        for (let k = 0; k < 3; k++) tri[k].fromBufferAttribute(pos, index ? index.getX(t + k) : t + k).applyMatrix4(o.matrixWorld);
-        const [a, b, c] = tri;
-        if (Math.max(a.y, b.y, c.y) < 0.15 || Math.min(a.y, b.y, c.y) > 1.9) continue;
-        ab.subVectors(b, a);
-        ac.subVectors(c, a);
-        const n = Math.min(400, Math.ceil(Math.max(a.distanceTo(b), a.distanceTo(c), b.distanceTo(c)) / 0.07));
-        for (let i = 0; i <= n; i++) {
-          for (let j = 0; j <= n - i; j++) {
-            p.copy(a).addScaledVector(ab, i / n).addScaledVector(ac, j / n);
-            if (p.y < 0.15 || p.y > 1.9) continue;
-            const gx = Math.floor((p.x - GX0) / CELL), gz = Math.floor((p.z - GZ0) / CELL);
-            if (gx >= 0 && gz >= 0 && gx < GW && gz < GH) grid[gz * GW + gx] = 1;
-          }
-        }
-      }
-    });
-  }
-
-  function blocked(x, z, r = 0.28) {
-    const x0 = Math.floor((x - r - GX0) / CELL), x1 = Math.floor((x + r - GX0) / CELL);
-    const z0 = Math.floor((z - r - GZ0) / CELL), z1 = Math.floor((z + r - GZ0) / CELL);
-    if (x0 < 0 || z0 < 0 || x1 >= GW || z1 >= GH) return true; // outside the room
-    for (let gz = z0; gz <= z1; gz++) {
-      for (let gx = x0; gx <= x1; gx++) {
-        if (!grid[gz * GW + gx]) continue;
-        const cx = GX0 + (gx + 0.5) * CELL - x, cz = GZ0 + (gz + 0.5) * CELL - z;
-        if (cx * cx + cz * cz <= r * r) return true;
-      }
-    }
-    return false;
-  }
-
   // ---------------------------------------------------------------- zones
 
   const zones = new Map();      // name → Promise<root>
@@ -452,7 +454,6 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     if (screens.length) buildScreenWall(screens);
     await Promise.all(lit);
     root.updateMatrixWorld(true);
-    rasterize(root);
     for (const a of lights) {
       const d = a.userData;
       a.getWorldPosition(spareSpot.position);
@@ -715,10 +716,10 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   return {
     hotspots,
     link,
+    phone: { object: phone, screen: phoneScreen, width: PHONE_W - 0.006, height: PHONE_H - 0.012 },
     shapeMonitor,
     setMonitorIdle,
     load,
-    blocked,
     isLoaded: (name) => zones.has(name),
     set onProgress(fn) { onProgress = fn; },
     update(t, dt) { for (const u of updaters) u(t, dt); },
@@ -796,6 +797,20 @@ function grimeTexture() {
   return tex;
 }
 
+// a soft round dot (sparks)
+function dotTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.6)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(canvas);
+}
+
 function gradientTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 4;
@@ -847,6 +862,41 @@ function scanlines(ctx) {
 }
 
 const F1_CODES = ['VER', 'NOR', 'LEC', 'PIA', 'HAM', 'RUS', 'SAI', 'ALO'];
+
+// the phone's lock screen: a dusky Saigon wallpaper, the time, a notification
+function paintLockScreen(ctx, t) {
+  const W = 240, H = 500;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0b1a22');
+  g.addColorStop(0.55, '#3a2030');
+  g.addColorStop(1, '#c8642a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  for (let i = 0; i < 9; i++) {
+    const bw = 18 + ((i * 37) % 30), bh = 60 + ((i * 53) % 140);
+    ctx.fillRect(i * 28 - 6, H - bh, bw, bh);
+  }
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0'), mm = String(now.getMinutes()).padStart(2, '0');
+  ctx.fillStyle = '#e8fffd';
+  ctx.textAlign = 'center';
+  ctx.font = '600 64px "Share Tech Mono", monospace';
+  ctx.fillText(`${hh}:${mm}`, W / 2, 120);
+  ctx.font = '15px "Share Tech Mono", monospace';
+  ctx.fillText('SAIGON · 31°C · HAZE', W / 2, 148);
+  ctx.fillStyle = 'rgba(10, 22, 24, 0.82)';
+  ctx.fillRect(16, 200, W - 32, 64);
+  ctx.strokeStyle = TEAL;
+  ctx.strokeRect(16.5, 200.5, W - 33, 63);
+  ctx.fillStyle = TEAL;
+  ctx.textAlign = 'left';
+  ctx.font = '13px "Share Tech Mono", monospace';
+  ctx.fillText('MESSAGES', 28, 222);
+  ctx.fillStyle = '#e8fffd';
+  ctx.fillText(Math.sin(t * 0.5) > 0 ? 'New message: say hello →' : 'Tap to get in touch', 28, 246);
+  ctx.textAlign = 'start';
+}
 
 // one big frame of TV snow, shared: each TV shows a random window of it
 let snow = null;

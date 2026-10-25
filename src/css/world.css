@@ -1,5 +1,5 @@
-/* World mode, shared by every page: the 3D layers, the heads-up display, the
-   datapad that shows pages in the warehouse, and the CRT / signal-tear effects.
+/* World mode, shared by every page: the 3D layers, the pages on the desk
+   monitor and the phone, the heads-up display, and the CRT / signal-tear effects.
    Colours are fixed here (not page tokens) because the HUD looks the same on the
    amber terminal and the paper reader. */
 
@@ -17,46 +17,46 @@ html.in-world .skip-link { display: none; }
 @media (pointer: coarse) { .world-hint-keys { display: none; } }
 @media (pointer: fine) { .world-hint-touch { display: none; } }
 
-/* the action on offer when you walk up to something: [E] Open the case file */
-.world-prompt {
-  position: fixed;
-  left: 50%;
-  bottom: calc(6.2rem + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  display: none;
-  align-items: center;
-  gap: .6em;
-  font: .82rem var(--font-crt);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #e8fffd;
-  background: rgba(4, 18, 18, .78);
-  border: 1px solid rgba(42, 212, 201, .6);
-  border-radius: 4px;
-  padding: .55rem .9rem;
-  box-shadow: 0 0 22px rgba(42, 212, 201, .18);
-  cursor: pointer;
-}
-.world-prompt.is-on { display: inline-flex; }
-.world-prompt kbd {
-  font: inherit;
-  color: #031210;
-  background: #2ad4c9;
-  border-radius: 3px;
-  padding: .05em .45em;
-}
-.world-prompt[aria-disabled="true"] { color: #8aa; border-color: rgba(42, 212, 201, .25); cursor: default; }
-@media (pointer: coarse) { .world-prompt kbd { display: none; } }
 .world-css { z-index: 1; pointer-events: none; }
 
-/* the terminal, re-parented onto the monitor */
+/* Pages on the monitor and the phone: the reader's own palette and type,
+   whatever page you jacked out of (the terminal's styles don't leak in). */
+.world-screen:not(.is-terminal), .world-phone {
+  --bg: #0d0f14;
+  --bg-raised: #141821;
+  --ink: #e6e1d6;
+  --ink-soft: #b3ada2;
+  --ink-dim: #7d8590;
+  --rule: #262c38;
+  --link: #ffb54a;
+  --link-hover: #2ad4c9;
+  --mark: #ffb000;
+  color: var(--ink);
+  font-family: var(--font-serif);
+}
+:root[data-theme="paper"] .world-screen:not(.is-terminal), :root[data-theme="paper"] .world-phone {
+  --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
+  --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="night"]) .world-screen:not(.is-terminal), :root:not([data-theme="night"]) .world-phone {
+    --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
+    --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
+  }
+}
+
+/* the monitor: the terminal, or a page, at the window's own size (CSS3D);
+   you lean in to use it (world.js turns its pointer events on then) */
 .world-screen {
-  pointer-events: auto;
+  pointer-events: none;
   background: var(--bg);
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
 }
-.world-screen::after {
+.world-screen .reader { min-height: 100%; }
+/* the terminal gets its CRT; pages are never effected */
+.world-screen.is-terminal::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -139,7 +139,7 @@ html.in-world .skip-link { display: none; }
 .world-hud button[aria-current="true"] { color: #120c00; background: #ffb000; }
 .world-leave { display: inline-flex; align-items: center; gap: .5em; border-color: #b37a00; }
 .world-leave:hover { color: #031210; background: #2ad4c9; border-color: #2ad4c9; }
-.world-leave .jack-icon, .datapad .jack-icon {
+.world-leave .jack-icon {
   width: 1.2em; height: 1.2em;
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
@@ -157,146 +157,46 @@ html.in-world .skip-link { display: none; }
   .world-ui { gap: .4rem; padding-left: 8px; padding-right: 8px; }
 }
 
-/* ---------------------------------------------------------------- datapad (the AR visor) */
-/* A page shown inside the world, projected by your visor: same reader styles,
-   a barely see-through panel with HUD corners, the room dimmed but visible
-   around it. Opening it, the visor's lens slides down over your eyes, then
-   the page projects in from a thin line and flickers as it catches; closing
-   folds it back to a line and the lens lifts. Starts full-screen (is-full)
-   when you step out of a flat page, so the handoff is seamless. The text
-   itself is never effected. */
+/* ---------------------------------------------------------------- the phone */
+/* The contact page on the phone's screen (CSS3D), at phone width. */
+.world-phone {
+  pointer-events: none;
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  border-radius: 14px;
+}
+.world-phone .reader { padding: 2.6rem 1.1rem 2.4rem; }
+.world-phone .prose figure, .world-phone .prose figcaption { margin-left: 0; margin-right: 0; }
 
-.visor-lens {
+/* "Lean back" only while you're leaning in or holding the phone */
+.world-ui .world-back { display: none; }
+.world-ui[data-mode="leaned"] .world-back, .world-ui[data-mode="phone"] .world-back { display: inline-flex; }
+.world-ui[data-mode="leaned"] .world-hint, .world-ui[data-mode="phone"] .world-hint { display: none; }
+
+/* the plug goes in: the picture tears for a moment */
+.world-glitch {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 6;
   pointer-events: none;
-  /* dark tinted glass (the room dims behind the page), faint scan lines, a
-     bright rim along its lower edge */
-  background:
-    repeating-linear-gradient(to bottom, rgba(42, 212, 201, .035) 0 1px, transparent 1px 3px),
-    linear-gradient(to bottom, rgba(3, 12, 16, .42), rgba(8, 30, 34, .34) 92%, rgba(42, 212, 201, .4) 99.6%, rgba(160, 255, 248, .9));
-  transform: translateY(-101%);
-  transition: transform .42s cubic-bezier(.5, 0, .75, 0) .22s;
-}
-.visor-lens.is-down { transform: translateY(0); transition: transform .38s cubic-bezier(.2, .8, .3, 1); }
-
-.datapad {
-  /* reader night palette, independent of the page it's opened on */
-  --bg: #0d0f14;
-  --bg-raised: #141821;
-  --ink: #e6e1d6;
-  --ink-soft: #b3ada2;
-  --ink-dim: #7d8590;
-  --rule: #262c38;
-  --link: #ffb54a;
-  --link-hover: #2ad4c9;
-  --mark: #ffb000;
-
-  --visor: rgba(42, 212, 201, .55);
-
-  position: fixed;
-  z-index: 3;
-  top: 5vh;
-  bottom: calc(5.6rem + env(safe-area-inset-bottom));
-  left: 50%;
-  width: min(48rem, calc(100vw - 6rem));
-  display: flex;
-  flex-direction: column;
-  color: var(--ink);
-  /* projected: the room shows through, just barely */
-  background: color-mix(in srgb, var(--bg) 91%, transparent);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-  font-family: var(--font-serif);
-  border: 1px solid rgba(42, 212, 201, .3);
-  border-radius: 6px;
-  overflow: hidden;
   opacity: 0;
-  transform: translateX(-50%);
-  /* folded to a line across its middle until it's projected */
-  clip-path: inset(50% 0 50% 0);
-  filter: blur(6px) brightness(1.8);
-  pointer-events: none;
-  transition: opacity .2s .1s, clip-path .22s cubic-bezier(.6, 0, .9, .4), filter .22s,
-    top .6s cubic-bezier(.2, .7, .2, 1), bottom .6s cubic-bezier(.2, .7, .2, 1),
-    width .6s cubic-bezier(.2, .7, .2, 1), border-radius .6s, border-color .6s;
+  background:
+    repeating-linear-gradient(to bottom, rgba(42, 212, 201, .35) 0 2px, transparent 2px 7px),
+    linear-gradient(90deg, rgba(255, 63, 164, .25), transparent 30%, transparent 70%, rgba(42, 212, 201, .3));
+  mix-blend-mode: screen;
 }
-:root[data-theme="paper"] .datapad {
-  --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
-  --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
+.world-glitch.is-on { animation: world-glitch .42s steps(1, end) 1; }
+@keyframes world-glitch {
+  0% { opacity: 1; transform: translateX(-12px) scaleY(1.02); }
+  20% { opacity: .2; transform: translateX(9px); }
+  35% { opacity: .9; transform: translateX(-4px) skewX(-6deg); }
+  55% { opacity: .35; transform: none; }
+  75% { opacity: .7; transform: translateX(3px); }
+  100% { opacity: 0; transform: none; }
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="night"]) .datapad {
-    --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
-    --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
-  }
-}
-.datapad.is-open {
-  opacity: 1;
-  clip-path: inset(0 0 0 0);
-  filter: none;
-  pointer-events: auto;
-  /* after the lens is down: open out from the line, sharpen, flicker */
-  transition: opacity .05s .3s, clip-path .34s cubic-bezier(.2, .9, .3, 1) .32s, filter .5s .4s,
-    top .6s cubic-bezier(.2, .7, .2, 1), bottom .6s cubic-bezier(.2, .7, .2, 1),
-    width .6s cubic-bezier(.2, .7, .2, 1), border-radius .6s, border-color .6s;
-  animation: visor-on .45s steps(1, end) .62s 1 backwards;
-}
-.datapad.is-full { top: 0; bottom: 0; width: 100vw; border-radius: 0; border-color: transparent; background: var(--bg); box-shadow: none; }
-/* HUD corner brackets */
-.datapad::before, .datapad::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  width: 22px; height: 22px;
-  pointer-events: none;
-  border: 2px solid var(--visor);
-  transition: opacity .3s;
-}
-.datapad::before { left: 5px; bottom: 5px; border-right: 0; border-top: 0; }
-.datapad::after { right: 5px; bottom: 5px; border-left: 0; border-top: 0; }
-.datapad.is-full::before, .datapad.is-full::after { opacity: 0; }
-/* the projection catching: a quick flicker as it comes on */
-@keyframes visor-on { 0% { opacity: .35; } 25% { opacity: .9; } 40% { opacity: .55; } 60% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .datapad, .datapad.is-open { clip-path: none; filter: none; transition: opacity .2s; animation: none; }
-  .visor-lens, .visor-lens.is-down { transform: none; opacity: 0; transition: opacity .2s; }
-  .visor-lens.is-down { opacity: 1; }
-}
-
-.datapad-bar {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .5rem .6rem .5rem .9rem;
-  font: .74rem var(--font-mono);
-  color: var(--ink-dim);
-  background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
-  border-bottom: 1px solid var(--rule);
-}
-.datapad-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.datapad-bar button {
-  display: inline-flex;
-  align-items: center;
-  gap: .4em;
-  font: inherit;
-  color: var(--ink-soft);
-  background: none;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: .25rem .55rem;
-  cursor: pointer;
-}
-.datapad-bar button:hover { color: var(--link-hover); border-color: var(--link-hover); }
-.datapad-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
-.datapad-body .reader { padding: 2.4rem 1.2rem 3rem; }
-.datapad-body .prose figure { margin-left: 0; margin-right: 0; }
-.datapad-body .prose figcaption { margin-left: 0; margin-right: 0; }
-
-@media (max-width: 640px) {
-  .datapad { top: 10px; width: calc(100vw - 28px); bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
-}
+@media (prefers-reduced-motion: reduce) { .world-glitch.is-on { animation: none; } }
 
 /* ---------------------------------------------------------------- CRT power-on / signal tear */
 
