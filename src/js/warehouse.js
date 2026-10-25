@@ -77,11 +77,16 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const ktx2 = new KTX2Loader().setTranscoderPath(`${addonsBase()}libs/basis/`).detectSupport(renderer);
   const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
 
-  // the floor of the whole hall, under the zones' own baked floors
+  // the floor of the whole hall, under the zones' own baked floors, and its
+  // roof (so the city outside only shows through the window)
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: '#06070a' }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
   scene.add(ground);
+  const roof = new THREE.Mesh(new THREE.PlaneGeometry(23, 26.4), new THREE.MeshBasicMaterial({ color: '#040507' }));
+  roof.rotation.x = Math.PI / 2;
+  roof.position.set(0, 9.0, 5.7);
+  scene.add(roof);
 
   // The zones' diffuse light is baked (lightmaps). Live light is only what the
   // bake can't do: the desk lamp's highlights on wet and shiny things, the
@@ -613,14 +618,15 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   // Local frame: the window's centre, +z into the room, outside is -z.
   function buildWindow(anchor, { w = 10, h = 5 }) {
     const STREET = -6.5; // street level, below the window centre
-    const layer = (tex, width, height, z, bottom = STREET, opts = {}) => {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: tex, fog: false, transparent: true, depthWrite: false, ...opts }));
-      m.position.set(opts.x || 0, bottom + height / 2, z);
-      m.renderOrder = -1;
+    // solid cut-outs (alpha test, depth written): each layer hides what's behind
+    // it by depth, so nothing flickers as the camera moves
+    const layer = (tex, width, height, z, bottom = STREET) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: tex, fog: false, alphaTest: 0.5 }));
+      m.position.set(0, bottom + height / 2, z);
       anchor.add(m);
       return m;
     };
-    layer(skyTexture(), 300, 140, -95, STREET - 20, { transparent: false });
+    layer(skyTexture(), 300, 140, -95, STREET - 20);
     layer(towersTexture(rand, { far: true }), 200, 70, -80);
     layer(towersTexture(rand, { far: false }), 90, 42, -38);
     layer(facadeTexture(rand), 44, 23, -22, STREET - 1);
@@ -645,18 +651,21 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
 
     // rain, outside: a slab of falling streaks between the glass and the street
-    const count = 1100;
+    const count = 420;
     const pos = new Float32Array(count * 6);
     const speed = new Float32Array(count);
-    const top = 5, bottom = STREET, len = 0.32;
+    const len = new Float32Array(count);
+    const top = 5, bottom = STREET;
     for (let i = 0; i < count; i++) {
-      const x = (rand() - 0.5) * (w + 6), y = bottom + rand() * (top - bottom), z = -0.4 - rand() * 7;
-      pos.set([x, y, z, x - 0.03, y - len, z], i * 6);
+      // kept back from the glass, so up close it reads as rain, not stripes
+      const x = (rand() - 0.5) * (w + 6), y = bottom + rand() * (top - bottom), z = -1.5 - rand() * 9;
+      len[i] = 0.25 + rand() * 0.35;
+      pos.set([x, y, z, x - 0.03, y - len[i], z], i * 6);
       speed[i] = 8 + rand() * 4;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#8fbcd6', transparent: true, opacity: 0.28, fog: false }));
+    const rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#8fbcd6', transparent: true, opacity: 0.16, fog: false }));
     rain.frustumCulled = false;
     anchor.add(rain);
     updaters.push((t, dt) => {
@@ -665,7 +674,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
         let y = pos[o + 1] - speed[i] * dt;
         if (y < bottom) y += top - bottom;
         pos[o + 1] = y;
-        pos[o + 4] = y - len;
+        pos[o + 4] = y - len[i];
       }
       geo.attributes.position.needsUpdate = true;
     });

@@ -7,7 +7,7 @@
 // - Every other page: the live page becomes a floating datapad over its place.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
 //   standing at the warehouse bookshelf; going back to the library fades it in.
-// - In the world you walk around (walker.js, game controls). Clicking a thing walks you up to
+// - In the world you walk around (walker.js, point and click). Clicking a thing walks you up to
 //   it and opens its page in the datapad, without reloads; "jack in" drops you
 //   into a page as a normal page again. Places are where each page's exit and
 //   return land the camera.
@@ -130,8 +130,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   ui.innerHTML = `
     <button type="button" class="world-prompt" data-act="prompt"></button>
     <button type="button" class="world-leave" data-act="leave">${EXIT_SVG}<span>${kind === 'terminal' ? 'Back to the terminal' : 'Leave the warehouse'}</span></button>
-    <div class="world-crosshair" aria-hidden="true"></div>
-    <p class="world-hint"><span class="world-hint-keys">Click to look around · WASD / arrows to move · click things to open them · Esc frees the mouse, again goes back</span><span class="world-hint-touch">Drag to look · tap the floor to walk · tap things to open them</span></p>`;
+    <p class="world-hint"><span class="world-hint-keys">Click the floor to walk · drag to look · click things to use them · Esc goes back</span><span class="world-hint-touch">Tap the floor to walk · drag to look · tap things to use them</span></p>`;
   ui.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b && b.dataset.act === 'leave') leave();
@@ -171,7 +170,6 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   });
 
   function showDatapad(node, title, url, { full = false } = {}) {
-    walker.unlock(); // the mouse is for reading and links now
     dpBody.replaceChildren(node);
     dpTitle.textContent = title.replace(/ \| dhr\.vn$/, '');
     dpUrl = url;
@@ -297,28 +295,40 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const pointer = new THREE.Vector2(0, 0);
   let hovered = null;
   let settled = false; // no flight running: you're walking (hover, clicks)
-  const walker = createWalker({ camera, dom: renderer.domElement, blocked: world.blocked, reducedMotion });
+  // moving off (keys) puts the visor away
+  const walker = createWalker({ camera, dom: renderer.domElement, blocked: world.blocked, reducedMotion, onMoveKey: () => { if (dpOpen && !entering) closeDatapad(); } });
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const floorHit = new THREE.Vector3();
 
   const overUi = (target) => screenEl.contains(target) || ui.contains(target) || datapad.contains(target);
 
-  // where the pointer aims: the crosshair (screen centre) while the mouse is captured
   function aim(e) {
-    if (walker.locked) pointer.set(0, 0);
-    else pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-    tip.style.left = `${walker.locked ? innerWidth / 2 : e.clientX}px`;
-    tip.style.top = `${walker.locked ? innerHeight / 2 : e.clientY}px`;
+    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    tip.style.left = `${e.clientX}px`;
+    tip.style.top = `${e.clientY}px`;
   }
+
+  // a ring on the floor where a click would take you
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.2, 40), new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#2ad4c9').multiplyScalar(1.6), transparent: true, opacity: 0.7, depthWrite: false, toneMapped: false,
+  }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.visible = false;
+  scene.add(ring);
 
   function onPointerMove(e) {
     aim(e);
-    if (!settled || entering || overUi(e.target)) return setHover(null);
+    ring.visible = false;
+    if (!settled || entering || overUi(e.target) || dpOpen) return setHover(null);
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(world.hotspots, true)[0];
     let node = hit && hit.object;
     while (node && !node.userData.hotspot) node = node.parent;
     setHover(node || null);
+    if (!node && e.pointerType !== 'touch' && raycaster.ray.intersectPlane(floor, floorHit) && floorHit.distanceTo(camera.position) < 30) {
+      ring.position.set(floorHit.x, 0.015, floorHit.z);
+      ring.visible = true;
+    }
   }
 
   function setHover(node) {
@@ -342,8 +352,6 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   function onClick(e) {
     if (!settled || entering || overUi(e.target) || walker.dragged) return;
     if (dpOpen) { closeDatapad(); return; }
-    // desktop: the first click takes the mouse (look by moving it, like a game)
-    if (walker.canLock && !walker.locked) { walker.lock(); return; }
     aim(e);
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(world.hotspots, true)[0];
@@ -408,8 +416,6 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     }
     if (e.key !== 'Escape') return;
     e.preventDefault();
-    // the browser spends the first Esc on giving the mouse back
-    if (walker.locked || walker.justUnlocked()) return;
     if (dpOpen && !entering) closeDatapad();
     else leave();
   }

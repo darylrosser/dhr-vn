@@ -18,8 +18,8 @@ What exists today is the vibe check: the terminal, the reader, and a procedural 
 ## The warehouse
 
 Daryl's dream office: one huge cyberpunk warehouse you **walk around** in first person,
-with normal PC game controls (click to capture the mouse, mouse to look, WASD / arrows to move,
-Esc frees the mouse; on phones drag to look and tap to walk). It's split into
+point and click like a virtual tour, the same on desktop and phone: click / tap the floor to
+walk there, drag to look, click things to use them (WASD / arrows work too, quietly). It's split into
 **zones**, each a little diorama lit by its own pool of light, joined by the hall: a dark,
 dirty concrete floor, brick walls, roof trusses and a few dim lamps over the walkways. The
 plain pages are the accessible way in, so world mode doesn't need fast-travel buttons.

@@ -16,18 +16,6 @@ html.in-world .skip-link { display: none; }
 .world-gl { touch-action: none; }
 @media (pointer: coarse) { .world-hint-keys { display: none; } }
 @media (pointer: fine) { .world-hint-touch { display: none; } }
-/* aim point while the mouse is captured */
-.world-crosshair {
-  position: fixed; left: 50%; top: 50%;
-  width: 6px; height: 6px; margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: rgba(255, 176, 0, .85);
-  box-shadow: 0 0 6px rgba(255, 176, 0, .6), 0 0 0 1px rgba(0, 0, 0, .5);
-  pointer-events: none;
-  opacity: 0;
-}
-html.is-locked .world-crosshair { opacity: 1; }
-.world-ui.is-on > .world-crosshair { pointer-events: none; }
 
 /* the action on offer when you walk up to something: [E] Open the case file */
 .world-prompt {
