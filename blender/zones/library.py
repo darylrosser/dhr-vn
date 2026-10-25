@@ -97,7 +97,7 @@ def build(quick=False):
     tx, tz = 2.0, 0.0
     z.model('side_table', 'side_table_tall_01', (tx, 0, tz), bake='env', tex=256)
     for i in range(3):
-        z.box(f'table_book_{i}', (0.17, 0.035, 0.12), (tx - 0.05, 0.778 + i * 0.036, tz + 0.04), rot=(0, rnd.random() * 0.5, 0), material=covers[i * 4], bake='env', bevel=0.003)
+        z.book(f'table_book_{i}', (0.17, 0.035, 0.12), (tx - 0.05, 0.778 + 0.0175 + i * 0.036, tz + 0.04), rot=(0, rnd.random() * 0.5, 0), cover=covers[i * 4], bake='env')
     z.model('oil_lamp', 'vintage_oil_lamp', (tx + 0.08, 0.76, tz - 0.06), bake='env', tex=256)
     z.light('POINT', (tx + 0.08, 1.0, tz - 0.06), '#ffbf78', 55, size=0.05, name='reading_lamp')
 

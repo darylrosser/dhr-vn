@@ -5,7 +5,7 @@
 //
 // JS still owns the live parts: the home monitor (sized to the viewport), the
 // link (desk socket, plug, cable, sparks), the screen-wall content, the city
-// and rain in the window, neon flicker, dust and light shafts. The GLBs say
+// and rain in the window, neon flicker and light shafts. The GLBs say
 // where those go through glTF extras (three userData):
 //   role: 'screen' (col, row) | 'window' (w, h) | 'flicker' | 'spin' (speed)
 //         | 'pulse' | 'shaft' (r, h, color) | 'board' (canvas, w, h)
@@ -364,17 +364,6 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     monitorPort.set(c.x + 0.06, DESK_TOP + 0.13, c.z - 0.2);
     cableDirty = true;
   }
-
-  // ---------------------------------------------------------------- dust in the lamp light
-
-  const dustCount = 260;
-  const dustPos = new Float32Array(dustCount * 3);
-  for (let i = 0; i < dustCount; i++) dustPos.set([(rand() - 0.5) * 2.4, DESK_TOP + rand() * 2.4, (rand() - 0.5) * 2], i * 3);
-  const dustGeo = new THREE.BufferGeometry();
-  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-  const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: '#ffd9a0', size: 0.008, transparent: true, opacity: 0.55, depthWrite: false }));
-  scene.add(dust);
-  updaters.push((t) => { dust.rotation.y = t * 0.02; dust.position.y = Math.sin(t * 0.3) * 0.03; });
 
   // ---------------------------------------------------------------- collisions
   // A 10 cm grid over the hall floor: a cell is blocked when any surface of a
@@ -736,7 +725,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     }));
     anchor.add(cone);
-    const n = 140;
+    const n = 60;
     const p = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
       const y = -rand() * h, rr = r * (0.25 + 0.75 * (-y / h)) * Math.sqrt(rand()), a = rand() * Math.PI * 2;
@@ -744,7 +733,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    const motes = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.012, transparent: true, opacity: 0.6, depthWrite: false }));
+    const motes = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.006, transparent: true, opacity: 0.22, depthWrite: false }));
     anchor.add(motes);
     updaters.push((t) => { motes.rotation.y = t * 0.03; motes.position.y = Math.sin(t * 0.25) * 0.05; });
   }

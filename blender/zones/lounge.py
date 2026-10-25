@@ -25,7 +25,8 @@ def build(quick=False):
     rug = pbr('lo_rug', 'fabric_pattern_05', scale=1.5, tex=512)
     walnut = pbr('lo_walnut', 'dark_wood', scale=1.0, tex=512)
     black = mat('lo_black', '#151517', rough=0.5)
-    alu = pbr('lo_alu', 'metal_plate', scale=0.5, tint='#b0b4ba', tex=256)
+    alu = mat('lo_alu', '#b9bdc4', rough=0.35, metal=1.0)
+    racing = pbr('lo_racing', 'leather_red_02', scale=0.5, tex=256)
     brass = mat('lo_brass', '#9a7a32', rough=0.35, metal=1.0)
     linen = mat('lo_linen', '#e6d2aa', rough=0.9)
     sleeves = [mat(f'lo_sleeve_{i}', c, rough=0.6) for i, c in enumerate(('#c2452d', '#e2c044', '#2d6a8a', '#1b1b1b', '#e8e2d4', '#7a3a8a'))]
@@ -95,8 +96,8 @@ def build(quick=False):
         rig(f'rig_rail_{sx}', (0.045, 0.045, 1.5), sx, 0.05, 0, alu)
     for dz in (-0.7, 0.0, 0.7):
         rig(f'rig_cross_{dz}', (0.6, 0.045, 0.045), 0, 0.05, dz, alu)
-    rig('rig_seat', (0.5, 0.12, 0.5), 0, 0.3, 0.35, black, bevel=0.04)
-    rig('rig_seatback', (0.5, 0.75, 0.12), 0, 0.62, 0.62, black, rot=(0.5, 0, 0), bevel=0.05)
+    rig('rig_seat', (0.5, 0.12, 0.5), 0, 0.3, 0.35, racing, bevel=0.04)
+    rig('rig_seatback', (0.5, 0.75, 0.12), 0, 0.62, 0.62, racing, rot=(0.5, 0, 0), bevel=0.05)
     rig('rig_wheel_post', (0.045, 0.75, 0.045), 0, 0.4, -0.5, alu)
     rig('rig_wheel_arm', (0.045, 0.045, 0.3), 0, 0.77, -0.38, alu)
     c2, s2 = math.cos(ryaw), math.sin(ryaw)
@@ -108,7 +109,11 @@ def build(quick=False):
     sx_, sz_ = rx - 0.93 * s2, rz - 0.93 * c2
     # the screen shows live timing (painted by JS); a lamp over the rig so you can see it
     z.plane('rig_screen', 0.84, 0.46, (sx_ + s2 * 0.025, 1.05, sz_ + c2 * 0.025), rot=(0, ryaw, 0), material=emissive('lo_f1', '#ffb000', 1.4, textured=True), role='display', painter='timing')
-    z.light('SPOT', (rx + 0.3, 3.2, rz + 0.4), '#ffd9a0', 220, size=0.2, aim=(rx, 0.4, rz), spot=math.radians(60), blend=0.6, name='rig_lamp')
+    z.light('SPOT', (rx + 0.3, 3.0, rz + 0.4), '#ffd9a0', 700, size=0.2, aim=(rx, 0.4, rz), spot=math.radians(70), blend=0.6, name='rig_lamp')
+    # teal LED strip along the rails (and its light on the floor)
+    for sx in (-0.27, 0.27):
+        rig(f'rig_led_{sx}', (0.012, 0.012, 1.4), sx, 0.09, 0, emissive('lo_led', '#2ad4c9', 5), live=1)
+    z.light('AREA', (rx, 0.25, rz), '#2ad4c9', 30, size=(0.8, 1.6), aim=(rx, 0, rz), name='rig_led_glow')
     z.model('rig_lamp', 'hanging_industrial_lamp', (rx + 0.3, 3.1, rz + 0.4), bake='hero', max_tris=3000, tex=256)
     z.cyl('rig_lamp_bulb', 0.04, 0.06, (rx + 0.3, 3.25, rz + 0.4), material=emissive('lo_rig_bulb', '#ffcf96', 6), live=1, segs=12)
     rig('rig_monitor_stand', (0.06, 0.8, 0.06), 0, 0.4, -1.0, alu)

@@ -25,7 +25,7 @@ export function createWalker({ camera, dom, blocked, reducedMotion, onMoveKey = 
   const held = new Set();
   let yaw = 0, pitch = 0, eye = EYE;
   let enabled = false;
-  let target = null;      // { point, arrive, onArrive } while auto-walking
+  let target = null;      // { point, arrive, onArrive, best, stall, left } while auto-walking
   let drag = null;        // a look-drag in progress
   let dragged = false;    // the last press was a drag (not a click)
   let bob = 0;
@@ -68,6 +68,7 @@ export function createWalker({ camera, dom, blocked, reducedMotion, onMoveKey = 
     drag.moved += Math.abs(dx) + Math.abs(dy);
     if (drag.moved < 8) return;
     dragged = true;
+    target = null; // looking around stops a walk
     // you grab the scene and pull it round (Street View)
     turnBy(dx * DRAG_SPEED, dy * DRAG_SPEED);
   }
@@ -109,25 +110,22 @@ export function createWalker({ camera, dom, blocked, reducedMotion, onMoveKey = 
       const dz = ((-c) * mz - s * mx) / len * speed;
       moving = step(dx, dz);
     } else if (target) {
+      // glide there; the view stays where you're looking
       fwd.set(target.point.x - pos.x, target.point.z - pos.z);
       const dist = fwd.length();
-      // turn towards where we're going while walking there
-      const want = Math.atan2(-fwd.x, -fwd.y);
-      let dy = want - yaw;
-      dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      yaw += dy * Math.min(1, dt * 5);
-      if (dist <= target.arrive + 0.02) {
+      target.left -= dt;
+      // closer by at least a few cm every half second, or something's in the way
+      if (dist < target.best - 0.03) { target.best = dist; target.stall = 0; } else target.stall += dt;
+      const arrived = dist <= target.arrive + 0.02;
+      if (!arrived) {
+        const k = Math.min(speed, dist - target.arrive) / dist;
+        moving = step(fwd.x * k, fwd.y * k);
+      }
+      if (arrived || !moving || target.stall > 0.5 || target.left <= 0) {
+        // there, or as close as it gets
         const done = target.onArrive;
         target = null;
         if (done) done();
-      } else {
-        const k = Math.min(speed, dist - target.arrive) / dist;
-        moving = step(fwd.x * k, fwd.y * k);
-        if (!moving) { // something in the way: this is as close as it gets
-          const done = target.onArrive;
-          target = null;
-          if (done) done();
-        }
       }
     }
     eye += (EYE - eye) * Math.min(1, dt * 3);
@@ -163,7 +161,8 @@ export function createWalker({ camera, dom, blocked, reducedMotion, onMoveKey = 
     },
     /** walk to a floor point, stopping `arrive` metres short; then onArrive */
     walkTo(point, { arrive = 0, onArrive } = {}) {
-      target = { point: point.clone(), arrive, onArrive };
+      const dist = Math.hypot(point.x - pos.x, point.z - pos.z);
+      target = { point: point.clone(), arrive, onArrive, best: dist, stall: 0, left: dist / WALK + 1.5 };
     },
     stop() { target = null; },
     /** whether the last pointer press turned into a look-drag (not a click) */

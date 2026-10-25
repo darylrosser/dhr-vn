@@ -423,6 +423,23 @@ class Zone:
                 obj[k] = v
         return obj
 
+    def book(self, name, size, pos, rot=(0, 0, 0), cover=None, pages=None, **tags):
+        """A book lying flat: a cream page block between two thin covers, the
+        spine on its -x side. size = (w, thickness, d), pos = its centre."""
+        w, t, d = size
+        board = min(0.003, t * 0.12)
+        c, s = math.cos(rot[1]), math.sin(rot[1])
+        def at(dx, dy, dz):  # book frame → zone frame
+            return (pos[0] + dx * c + dz * s, pos[1] + dy, pos[2] - dx * s + dz * c)
+        pages = pages or mat('book_pages', '#e6dcc4', rough=0.9)
+        parts = [
+            self.box(f'{name}_pages', (w - 0.006, t - 2 * board, d - 0.006), at(0.002, 0, 0), rot, pages, **tags),
+            self.box(f'{name}_top', (w, board, d), at(0, (t - board) / 2, 0), rot, cover, bevel=board * 0.4, **tags),
+            self.box(f'{name}_bottom', (w, board, d), at(0, -(t - board) / 2, 0), rot, cover, bevel=board * 0.4, **tags),
+            self.box(f'{name}_spine', (board * 1.5, t, d), at(-w / 2 + board * 0.75, 0, 0), rot, cover, **tags),
+        ]
+        return join(parts, name)
+
     def empty(self, name, pos, rot=(0, 0, 0), **tags):
         obj = bpy.data.objects.new(name, None)
         self.col.objects.link(obj)

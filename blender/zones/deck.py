@@ -119,9 +119,8 @@ def build(quick=False):
     for i in range(6):
         h = 0.03 + rnd.random() * 0.025
         w, d = 0.22 + rnd.random() * 0.05, 0.15 + rnd.random() * 0.03
-        z.box(f'book_{i}', (w, h, d), (-0.92 + (rnd.random() - 0.5) * 0.03, y + h / 2, 0.05), rot=(0, (rnd.random() - 0.5) * 0.35, 0),
-              material=mat(f'cover_{i}', palette[(i * 3) % len(palette)], rough=0.7),
-              bake='hero', bevel=0.003)
+        z.book(f'book_{i}', (w, h, d), (-0.92 + (rnd.random() - 0.5) * 0.03, y + h / 2, 0.05), rot=(0, (rnd.random() - 0.5) * 0.35, 0),
+               cover=mat(f'cover_{i}', palette[(i * 3) % len(palette)], rough=0.6), bake='hero')
         y += h
     z.box('notepad', (0.15, 0.008, 0.21), (-0.5, DESK_TOP + 0.004, 0.27), rot=(0, 0.25, 0), material=paper, bake='hero')
     z.cyl('pen', 0.004, 0.14, (-0.47, DESK_TOP + 0.012, 0.28), rot=(math.pi / 2, 0.9, 0), material=black, bake='hero', segs=8)
