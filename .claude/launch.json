@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "dhr-terminal", "runtimeExecutable": "node", "runtimeArgs": ["build.mjs", "--serve"], "port": 4321 }
+  ]
+}
