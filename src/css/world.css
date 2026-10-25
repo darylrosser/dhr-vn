@@ -15,6 +15,50 @@ html.in-world .skip-link { display: none; }
 /* you look around by dragging: no page scroll or pinch on the 3D view */
 .world-gl { touch-action: none; }
 @media (pointer: coarse) { .world-hint-keys { display: none; } }
+@media (pointer: fine) { .world-hint-touch { display: none; } }
+/* aim point while the mouse is captured */
+.world-crosshair {
+  position: fixed; left: 50%; top: 50%;
+  width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: rgba(255, 176, 0, .85);
+  box-shadow: 0 0 6px rgba(255, 176, 0, .6), 0 0 0 1px rgba(0, 0, 0, .5);
+  pointer-events: none;
+  opacity: 0;
+}
+html.is-locked .world-crosshair { opacity: 1; }
+.world-ui.is-on > .world-crosshair { pointer-events: none; }
+
+/* the action on offer when you walk up to something: [E] Open the case file */
+.world-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6.2rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: .6em;
+  font: .82rem var(--font-crt);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #e8fffd;
+  background: rgba(4, 18, 18, .78);
+  border: 1px solid rgba(42, 212, 201, .6);
+  border-radius: 4px;
+  padding: .55rem .9rem;
+  box-shadow: 0 0 22px rgba(42, 212, 201, .18);
+  cursor: pointer;
+}
+.world-prompt.is-on { display: inline-flex; }
+.world-prompt kbd {
+  font: inherit;
+  color: #031210;
+  background: #2ad4c9;
+  border-radius: 3px;
+  padding: .05em .45em;
+}
+.world-prompt[aria-disabled="true"] { color: #8aa; border-color: rgba(42, 212, 201, .25); cursor: default; }
+@media (pointer: coarse) { .world-prompt kbd { display: none; } }
 .world-css { z-index: 1; pointer-events: none; }
 
 /* the terminal, re-parented onto the monitor */
@@ -121,13 +165,15 @@ html.in-world .skip-link { display: none; }
   text-shadow: 0 1px 4px #000;
 }
 @media (max-width: 640px) {
-  .world-hint { display: none; }
+  .world-hint { font-size: .58rem; letter-spacing: .08em; }
   .world-ui { gap: .4rem; padding-left: 8px; padding-right: 8px; }
 }
 
-/* ---------------------------------------------------------------- datapad */
-/* A page shown inside the world: same reader styles, in a floating panel.
-   Starts full-screen (is-full) when a flat page jacks out, so the handoff is seamless. */
+/* ---------------------------------------------------------------- datapad (the AR visor) */
+/* A page shown inside the world, projected by your visor: same reader styles,
+   a barely see-through panel with HUD corners, the room dimmed but visible
+   around it. Starts full-screen (is-full) when you step out of a flat page,
+   so the handoff is seamless. The text itself is never effected. */
 
 .datapad {
   /* reader night palette, independent of the page it's opened on */
@@ -141,20 +187,26 @@ html.in-world .skip-link { display: none; }
   --link-hover: #2ad4c9;
   --mark: #ffb000;
 
+  --visor: rgba(42, 212, 201, .55);
+
   position: fixed;
   z-index: 3;
-  top: 4vh;
-  bottom: calc(5.4rem + env(safe-area-inset-bottom));
+  top: 5vh;
+  bottom: calc(5.6rem + env(safe-area-inset-bottom));
   left: 50%;
-  width: min(46rem, calc(100vw - 2rem));
+  width: min(48rem, calc(100vw - 6rem));
   display: flex;
   flex-direction: column;
   color: var(--ink);
-  background: var(--bg);
+  /* projected: the room shows through, just barely */
+  background: color-mix(in srgb, var(--bg) 91%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   font-family: var(--font-serif);
-  border: 1px solid #b37a00;
-  border-radius: 8px;
-  box-shadow: 0 0 0 4px rgba(10, 8, 5, .55), 0 30px 80px rgba(0, 0, 0, .65), 0 0 34px rgba(255, 176, 0, .16);
+  border: 1px solid rgba(42, 212, 201, .3);
+  border-radius: 6px;
+  /* the room dims around the projection, still there at the edges */
+  box-shadow: 0 0 0 100vmax rgba(2, 4, 8, .38), 0 0 40px rgba(42, 212, 201, .14);
   overflow: hidden;
   opacity: 0;
   transform: translateX(-50%) scale(.96);
@@ -173,8 +225,24 @@ html.in-world .skip-link { display: none; }
     --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
   }
 }
-.datapad.is-open { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
-.datapad.is-full { top: 0; bottom: 0; width: 100vw; border-radius: 0; border-color: transparent; }
+.datapad.is-open { opacity: 1; transform: translateX(-50%); pointer-events: auto; animation: visor-on .45s steps(1, end) 1; }
+.datapad.is-full { top: 0; bottom: 0; width: 100vw; border-radius: 0; border-color: transparent; background: var(--bg); box-shadow: none; }
+/* HUD corner brackets */
+.datapad::before, .datapad::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  width: 22px; height: 22px;
+  pointer-events: none;
+  border: 2px solid var(--visor);
+  transition: opacity .3s;
+}
+.datapad::before { left: 5px; bottom: 5px; border-right: 0; border-top: 0; }
+.datapad::after { right: 5px; bottom: 5px; border-left: 0; border-top: 0; }
+.datapad.is-full::before, .datapad.is-full::after { opacity: 0; }
+/* the projection catching: a quick flicker as it comes on */
+@keyframes visor-on { 0% { opacity: .35; } 25% { opacity: .9; } 40% { opacity: .55; } 60% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .datapad.is-open { animation: none; } }
 
 .datapad-bar {
   display: flex;
@@ -183,11 +251,11 @@ html.in-world .skip-link { display: none; }
   padding: .5rem .6rem .5rem .9rem;
   font: .74rem var(--font-mono);
   color: var(--ink-dim);
-  background: var(--bg-raised);
+  background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
   border-bottom: 1px solid var(--rule);
 }
 .datapad-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.datapad-title::before { content: '▤ '; color: #ffb000; }
+.datapad-title::before { content: '◉ AR  '; color: #2ad4c9; }
 .datapad-bar button {
   display: inline-flex;
   align-items: center;
@@ -207,7 +275,7 @@ html.in-world .skip-link { display: none; }
 .datapad-body .prose figcaption { margin-left: 0; margin-right: 0; }
 
 @media (max-width: 640px) {
-  .datapad { top: 8px; width: calc(100vw - 16px); bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
+  .datapad { top: 10px; width: calc(100vw - 28px); bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
 }
 
 /* ---------------------------------------------------------------- CRT power-on / signal tear */

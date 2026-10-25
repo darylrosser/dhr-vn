@@ -1,5 +1,6 @@
 # Lounge: an old leather sofa on a big rug, a low table, a record player on a
-# credenza (the record spins), an arc lamp, and an F1 sim rig in the corner.
+# credenza (the record spins), an arc lamp, a CRT, a payphone on the wall and
+# an F1 sim rig in the corner, its screen showing live timing.
 # "Pull up a seat": /contact/ lives here.
 #
 # Zone frame: origin (-6.5, 0, 8), yaw 90° + 20°. The sofa faces local +z.
@@ -105,7 +106,11 @@ def build(quick=False):
     rig('rig_pedals', (0.3, 0.12, 0.12), 0, 0.12, -0.65, alu)
     rig('rig_monitor', (0.9, 0.52, 0.04), 0, 1.05, -0.95, black, bevel=0.01)
     sx_, sz_ = rx - 0.93 * s2, rz - 0.93 * c2
-    z.plane('rig_screen', 0.84, 0.46, (sx_, 1.05, sz_), rot=(0, ryaw, 0), material=emissive('lo_f1', '#2ad4c9', 1.4), live=1)
+    # the screen shows live timing (painted by JS); a lamp over the rig so you can see it
+    z.plane('rig_screen', 0.84, 0.46, (sx_ + s2 * 0.025, 1.05, sz_ + c2 * 0.025), rot=(0, ryaw, 0), material=emissive('lo_f1', '#ffb000', 1.4, textured=True), role='display', painter='timing')
+    z.light('SPOT', (rx + 0.3, 3.2, rz + 0.4), '#ffd9a0', 220, size=0.2, aim=(rx, 0.4, rz), spot=math.radians(60), blend=0.6, name='rig_lamp')
+    z.model('rig_lamp', 'hanging_industrial_lamp', (rx + 0.3, 3.1, rz + 0.4), bake='hero', max_tris=3000, tex=256)
+    z.cyl('rig_lamp_bulb', 0.04, 0.06, (rx + 0.3, 3.25, rz + 0.4), material=emissive('lo_rig_bulb', '#ffcf96', 6), live=1, segs=12)
     rig('rig_monitor_stand', (0.06, 0.8, 0.06), 0, 0.4, -1.0, alu)
 
     # neon: "hello" in Vietnamese, warm pink, over the sofa

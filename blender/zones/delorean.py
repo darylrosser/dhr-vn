@@ -1,8 +1,7 @@
 # The time machine: a DMC-12 in brushed stainless with the Back to the Future
 # kit (Mr. Fusion, the rear reactor and vents, flux bands along the sills, the
-# flux capacitor glowing behind the seats, time circuits on the console, the
-# OUTATIME plate), gull-wing doors up. Modelled from scratch by script; no
-# badges or logos.
+# OUTATIME plate), gull-wing doors shut (dark glass; no interior to build or
+# ship). Modelled from scratch by script; no badges or logos.
 #
 # Car frame (three coords): nose towards -x, centred on the origin, wheels on
 # the floor. Overall ≈ 4.2 m × 1.86 m × 1.14 m.
@@ -21,8 +20,8 @@ ROOF = 1.13
 WHEELS = ((-1.28, 0.31), (1.30, 0.33))  # (x, radius): 14" front, 15" rear
 TRACK = 0.80       # wheel centre offset from the middle
 
-# lower body side profile (x, y), clockwise from the nose bottom; the cabin
-# (x -0.8 … 0.5) is open above the beltline, under the doors
+# lower body side profile (x, y), clockwise from the nose bottom; above the
+# beltline the cabin (x -0.8 … 0.5) is closed by the doors and windscreen
 LOWER = [(-2.06, 0.27), (-2.16, 0.42), (-2.1, 0.6), (-1.6, 0.66), (-0.8, BELT), (0.5, BELT), (0.52, ROOF - 0.02),
          (0.6, ROOF - 0.01), (1.55, 0.93), (2.06, 0.91), (2.12, 0.86), (2.13, 0.42), (2.05, 0.27), (1.6, 0.2), (-1.6, 0.2)]
 
@@ -74,7 +73,7 @@ def cut_arches(body):
         bpy.data.objects.remove(c)
 
 
-DOOR_X = (-0.72, 0.42)   # door opening, front and rear edge
+DOOR_X = (-0.72, 0.42)   # door front and rear edge
 SILL = 0.42
 
 
@@ -97,22 +96,6 @@ def door_mesh(name, side):
     return finish(bm, name)
 
 
-def cut_doors(body):
-    """Open the body sides where the doors were (the floor tub stays)."""
-    for sd in (-1, 1):
-        x0, x1 = DOOR_X
-        bpy.ops.mesh.primitive_cube_add(size=1, location=B((x0 + x1) / 2, (SILL + ROOF) / 2 + 0.05, sd * HALF_W))
-        c = bpy.context.object
-        c.scale = ((x1 - x0), 0.36, (ROOF - SILL) + 0.1)  # Blender axes: x, y (across), z (up)
-        mod = body.modifiers.new('door', 'BOOLEAN')
-        mod.operation = 'DIFFERENCE'
-        mod.solver = 'EXACT'
-        mod.object = c
-        with bpy.context.temp_override(object=body, active_object=body):
-            bpy.ops.object.modifier_apply(modifier=mod.name)
-        bpy.data.objects.remove(c)
-
-
 def build(z, origin=(0, 0, 0), yaw=0.0):
     """Add the car to zone z at origin (zone coords). Returns the clickable body."""
     ox, oy, oz = origin
@@ -129,7 +112,6 @@ def build(z, origin=(0, 0, 0), yaw=0.0):
     grey = mat('dmc_grey', '#55585e', rough=0.5, metal=0.6)
     copper = mat('dmc_copper', '#b8733a', rough=0.35, metal=1.0)
     white = mat('dmc_white', '#e8e6e0', rough=0.35)
-    seat = mat('dmc_seat', '#2a2a2c', rough=0.55)
 
     parts = []
 
@@ -153,7 +135,6 @@ def build(z, origin=(0, 0, 0), yaw=0.0):
     body = bpy.data.objects.new('dmc_body', body_mesh('dmc_body'))
     bpy.context.scene.collection.objects.link(body)
     cut_arches(body)
-    cut_doors(body)
     bpy.context.scene.collection.objects.unlink(body)
     body.data.materials.clear()  # the cut faces came with the cutters' empty slots
     body.data.materials.append(stainless)
@@ -198,39 +179,14 @@ def build(z, origin=(0, 0, 0), yaw=0.0):
         x = 0.68 + k * 0.13
         box(f'louvre_{k}', (0.07, 0.015, 1.36), (x, 1.12 - (x - 0.6) * 0.21 + 0.03, 0), rot=(0, 0, -0.21), m=black)
 
-    # gull-wing doors, up
+    # gull-wing doors, shut
     for sd in (-1, 1):
         d = bpy.data.objects.new(f'door_{sd}', door_mesh(f'door_{sd}', sd))
         d.data.materials.append(stainless)
         d.data.materials.append(glass)
-        hinge = B(0, ROOF, sd * 0.12)
-        # rotate about the hinge line (along x), then place with the car
-        d.data.transform(Matrix.Translation(hinge) @ Matrix.Rotation(sd * math.radians(-72), 4, 'X') @ Matrix.Translation(-hinge))
         place(d)
         d['bake'] = 'car'
         box_uv(d.data, 2.0, d.matrix_world)
-        # the door glass (dark) on the raised door
-        # door inner panel: dark trim
-    # the cockpit: dash, seats, wheel, console with the time circuits
-    box('dash', (0.45, 0.22, 1.6), (-0.62, 0.72, 0), m=black, bevel=0.02)
-    box('tub_floor', (1.4, 0.04, 1.7), (-0.1, 0.42, 0), m=black)
-    for sd in (-1, 1):
-        box(f'seat_base_{sd}', (0.5, 0.14, 0.5), (0.05, 0.5, sd * 0.38), m=seat, bevel=0.04)
-        box(f'seat_back_{sd}', (0.14, 0.62, 0.48), (0.32, 0.83, sd * 0.38), rot=(0, 0, 0.25), m=seat, bevel=0.05)
-    cyl('steer_col', 0.025, 0.3, (-0.42, 0.78, -0.38), rot=(0, 0, 1.1), m=black)
-    wheel = z.tube('steering_wheel', [P(-0.32 + 0.01 * math.cos(a), 0.88 + 0.17 * math.sin(a), -0.38 + 0.17 * math.cos(a)) for a in [i * math.pi / 8 for i in range(17)]], 0.016, material=black, bake='car')
-    parts.append(wheel)
-    box('console', (0.7, 0.3, 0.22), (-0.2, 0.58, 0), m=black)
-    # time circuits: destination (red), present (green), last departed (amber)
-    for k, col in enumerate(('#ff2a1a', '#2aff6a', '#ffb000')):
-        z.box(f'time_circuit_{k}', (0.24, 0.025, 0.004), P(-0.35, 0.75 - k * 0.04, 0.0), rot=(0, yaw + math.pi / 2, 0), material=emissive(f'dmc_tc_{k}', col, 3), live=1)
-    # the flux capacitor behind the seats: a glowing Y in a box
-    box('flux_box', (0.06, 0.34, 0.3), (0.47, 0.92, 0), m=grey)
-    flux = emissive('dmc_flux', '#d8f2ff', 9)
-    for a in (0, 2 * math.pi / 3, 4 * math.pi / 3):
-        y0, z0 = 0.93, 0.0
-        z.tube(f'flux_{a:.1f}', [P(0.44, y0, z0), P(0.44, y0 + 0.11 * math.cos(a), z0 + 0.11 * math.sin(a))], 0.008, material=flux, live=1)
-
     # wheels: black tyres, five-slot "turbine" alloys
     for x, r in WHEELS:
         for sd in (-1, 1):

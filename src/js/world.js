@@ -7,7 +7,7 @@
 // - Every other page: the live page becomes a floating datapad over its place.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
 //   standing at the warehouse bookshelf; going back to the library fades it in.
-// - In the world you walk around (walker.js). Clicking a thing walks you up to
+// - In the world you walk around (walker.js, game controls). Clicking a thing walks you up to
 //   it and opens its page in the datapad, without reloads; "jack in" drops you
 //   into a page as a normal page again. Places are where each page's exit and
 //   return land the camera.
@@ -54,7 +54,9 @@ function placeForPath(path) {
   return null;
 }
 
-const PLUG_SVG = '<svg class="jack-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 2.5v4.5M14.5 2.5v4.5"/><rect x="6.5" y="7" width="11" height="7.5" rx="1.5"/><path d="M12 14.5v2.5a4 4 0 0 1-4 4H4"/></svg>';
+// leave: an arrow out of a door; full page: an expand mark
+const EXIT_SVG = '<svg class="jack-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>';
+const EXPAND_SVG = '<svg class="jack-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
 
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 // Yield between build steps (setTimeout, not rAF, so it also progresses in a background tab).
@@ -73,7 +75,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   scene.background = new THREE.Color('#04050a');
   scene.fog = new THREE.FogExp2('#05060b', 0.07);
 
-  const camera = new THREE.PerspectiveCamera(START_FOV, innerWidth / innerHeight, 0.02, 80);
+  const camera = new THREE.PerspectiveCamera(START_FOV, innerWidth / innerHeight, 0.02, 220); // far: the skyline outside
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   // phones: fewer pixels (the bloom pass and the lit materials cost per pixel)
@@ -126,11 +128,14 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const ui = document.createElement('div');
   ui.className = 'world-ui';
   ui.innerHTML = `
-    <button type="button" class="world-leave" data-act="leave">${PLUG_SVG}<span>Jack back in</span></button>
-    <p class="world-hint"><span class="world-hint-keys">WASD to walk · drag to look · </span>click the floor to walk there · click things to open them · Esc goes back</p>`;
+    <button type="button" class="world-prompt" data-act="prompt"></button>
+    <button type="button" class="world-leave" data-act="leave">${EXIT_SVG}<span>${kind === 'terminal' ? 'Back to the terminal' : 'Leave the warehouse'}</span></button>
+    <div class="world-crosshair" aria-hidden="true"></div>
+    <p class="world-hint"><span class="world-hint-keys">Click to look around · WASD / arrows to move · click things to open them · Esc frees the mouse, again goes back</span><span class="world-hint-touch">Drag to look · tap the floor to walk · tap things to open them</span></p>`;
   ui.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b && b.dataset.act === 'leave') leave();
+    else if (b && b.dataset.act === 'prompt' && promptNode) useSpot(promptNode.userData.hotspot);
   });
 
   const tip = document.createElement('div');
@@ -144,7 +149,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   datapad.innerHTML = `
     <header class="datapad-bar">
       <span class="datapad-title"></span>
-      <button type="button" data-act="jackin" title="Open this page normally">${PLUG_SVG}<span>Jack in</span></button>
+      <button type="button" data-act="jackin" title="Open this page on its own">${EXPAND_SVG}<span>Full page</span></button>
       <button type="button" data-act="close" aria-label="Close datapad">✕</button>
     </header>
     <div class="datapad-body"></div>`;
@@ -166,6 +171,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   });
 
   function showDatapad(node, title, url, { full = false } = {}) {
+    walker.unlock(); // the mouse is for reading and links now
     dpBody.replaceChildren(node);
     dpTitle.textContent = title.replace(/ \| dhr\.vn$/, '');
     dpUrl = url;
@@ -297,10 +303,16 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   const overUi = (target) => screenEl.contains(target) || ui.contains(target) || datapad.contains(target);
 
+  // where the pointer aims: the crosshair (screen centre) while the mouse is captured
+  function aim(e) {
+    if (walker.locked) pointer.set(0, 0);
+    else pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    tip.style.left = `${walker.locked ? innerWidth / 2 : e.clientX}px`;
+    tip.style.top = `${walker.locked ? innerHeight / 2 : e.clientY}px`;
+  }
+
   function onPointerMove(e) {
-    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-    tip.style.left = `${e.clientX}px`;
-    tip.style.top = `${e.clientY}px`;
+    aim(e);
     if (!settled || entering || overUi(e.target)) return setHover(null);
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(world.hotspots, true)[0];
@@ -321,8 +333,8 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   function hotspotLabel(spot) {
     if (spot.action !== 'monitor') return spot.label;
-    if (kind === 'terminal') return current === 'home' ? 'Jack back in' : 'Terminal →';
-    return 'Terminal: jack in →';
+    if (kind === 'terminal') return current === 'home' ? 'Back to the terminal' : 'Terminal →';
+    return 'Terminal →';
   }
 
   // Click / tap: a thing in the room → walk up to it and use it; the floor →
@@ -330,7 +342,9 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   function onClick(e) {
     if (!settled || entering || overUi(e.target) || walker.dragged) return;
     if (dpOpen) { closeDatapad(); return; }
-    pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    // desktop: the first click takes the mouse (look by moving it, like a game)
+    if (walker.canLock && !walker.locked) { walker.lock(); return; }
+    aim(e);
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(world.hotspots, true)[0];
     let node = hit && hit.object;
@@ -339,22 +353,63 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (raycaster.ray.intersectPlane(floor, floorHit) && floorHit.distanceTo(camera.position) < 30) walker.walkTo(floorHit);
   }
 
+  function useSpot(spot) {
+    if (spot.action === 'monitor') {
+      if (kind === 'terminal') { if (current === 'home') leave(); else visit('/'); }
+      else jackInto('/');
+    } else if (spot.visit) visit(spot.visit);
+  }
+
   function approach(node, point) {
     const spot = node.userData.hotspot;
-    const use = () => {
-      if (spot.action === 'monitor') {
-        if (kind === 'terminal') { if (current === 'home') leave(); else visit('/'); }
-        else jackInto('/');
-      } else if (spot.visit) visit(spot.visit);
-    };
     const d = Math.hypot(point.x - camera.position.x, point.z - camera.position.z);
-    if (d > 3.2 && spot.action !== 'monitor') walker.walkTo(point.clone().setY(0), { arrive: 2.2, onArrive: use });
-    else use();
+    if (d > 3.2 && spot.action !== 'monitor') walker.walkTo(point.clone().setY(0), { arrive: 2.2, onArrive: () => useSpot(spot) });
+    else useSpot(spot);
+  }
+
+  // Walk up to something you can use and the action shows up, like in a game:
+  // [E] Open the case file (a button you can tap, too).
+  const prompt = ui.querySelector('.world-prompt');
+  const facing = new THREE.Vector3();
+  let promptNode = null;
+  function updatePrompt() {
+    let best = null, bestD = Infinity;
+    if (settled && !dpOpen && !entering) {
+      camera.getWorldDirection(facing);
+      const flat = Math.hypot(facing.x, facing.z) || 1;
+      for (const node of world.hotspots) {
+        const spot = node.userData.hotspot;
+        if (!spot.prompt) continue;
+        const c = node.userData.center || (node.userData.center = new THREE.Box3().setFromObject(node).getCenter(new THREE.Vector3()));
+        const dx = c.x - camera.position.x, dz = c.z - camera.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > (spot.reach || 3) || d >= bestD) continue;
+        if (d > 0.6 && (dx * facing.x + dz * facing.z) / (d * flat) < 0.45) continue; // in front of you
+        best = node;
+        bestD = d;
+      }
+    }
+    if (best === promptNode) return;
+    promptNode = best;
+    if (!best) { prompt.classList.remove('is-on'); return; }
+    const spot = best.userData.hotspot;
+    const soon = spot.action === 'place';
+    prompt.innerHTML = `${soon ? '' : '<kbd>E</kbd>'}<span></span>`;
+    prompt.querySelector('span').textContent = spot.action === 'monitor' ? hotspotLabel(spot).replace(' →', '') : spot.prompt;
+    prompt.setAttribute('aria-disabled', String(soon));
+    prompt.classList.add('is-on');
   }
 
   function onKey(e) {
+    if (e.code === 'KeyE' && promptNode && !dpOpen && !entering && !e.metaKey && !e.ctrlKey) {
+      const spot = promptNode.userData.hotspot;
+      if (spot.action !== 'place') { e.preventDefault(); useSpot(spot); }
+      return;
+    }
     if (e.key !== 'Escape') return;
     e.preventDefault();
+    // the browser spends the first Esc on giving the mouse back
+    if (walker.locked || walker.justUnlocked()) return;
     if (dpOpen && !entering) closeDatapad();
     else leave();
   }
@@ -380,6 +435,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     else if (settled) {
       if (!dpOpen) walker.update(dt);
       look.copy(walker.look);
+      if (frameNo % 6 === 0) updatePrompt();
     } else if (hold) setPose(hold.pos, hold.look, hold.fov);
     if (shake > 0.0004) {
       camera.position.add(V((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, 0));

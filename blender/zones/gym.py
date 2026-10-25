@@ -33,7 +33,6 @@ def build(quick=False):
     z.box('floor', (6.0, 0.1, 5.0), (0, -0.05, 0.6), material=rubber, bake='env', texel=0.6)
     z.box('wall', (6.6, 6.0, 0.3), (0, 3.0, -2.7), material=concrete, bake='env', texel=0.5)
     z.text('sector', '04', 1.6, (-1.9, 2.6, -2.54), material=mat('gy_paint', '#8a6a1a'), bake='env')
-    z.text('motto', 'KHÔNG ĐAU KHÔNG TIẾN', 0.18, (1.3, 3.3, -2.54), material=mat('gy_paint2', '#a8a090'), bake='env')
 
     # ------------------------------------------------------------ squat rack + loaded bar (hero)
     parts = []

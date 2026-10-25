@@ -85,17 +85,17 @@ def build(quick=False):
 
     # ------------------------------------------------------------ desk (hero)
 
-    z.box('desk_top', (1.8, 0.06, 0.85), (0, DESK_TOP - 0.03, 0), material=wood, bake='hero', bevel=0.012, hotspot=None)
-    for sx in (-0.8, 0.8):
-        for sz in (-0.36, 0.36):
+    z.box('desk_top', (2.4, 0.06, 1.0), (0, DESK_TOP - 0.03, 0), material=wood, bake='hero', bevel=0.012)
+    for sx in (-1.1, 1.1):
+        for sz in (-0.43, 0.43):
             z.box(f'desk_leg_{sx}_{sz}', (0.05, DESK_TOP - 0.06, 0.05), (sx, (DESK_TOP - 0.06) / 2, sz), material=steel, bake='hero', bevel=0.004)
-        z.box(f'desk_foot_{sx}', (0.07, 0.04, 0.85), (sx, 0.02, 0), material=steel, bake='hero', bevel=0.005)
-        z.box(f'desk_rail_{sx}', (0.04, 0.04, 0.72), (sx, DESK_TOP - 0.08, 0), material=steel, bake='hero')
-    z.box('desk_brace', (1.6, 0.04, 0.04), (0, 0.25, -0.36), material=steel, bake='hero')
-    z.box('desk_tray', (1.2, 0.08, 0.2), (0, DESK_TOP - 0.13, -0.28), material=dark_steel, bake='hero')
-    z.box('drawers', (0.42, 0.56, 0.62), (-0.55, 0.32, -0.05), material=dark_steel, bake='hero', bevel=0.008)
+        z.box(f'desk_foot_{sx}', (0.07, 0.04, 1.0), (sx, 0.02, 0), material=steel, bake='hero', bevel=0.005)
+        z.box(f'desk_rail_{sx}', (0.04, 0.04, 0.86), (sx, DESK_TOP - 0.08, 0), material=steel, bake='hero')
+    z.box('desk_brace', (2.2, 0.04, 0.04), (0, 0.25, -0.43), material=steel, bake='hero')
+    z.box('desk_tray', (1.6, 0.08, 0.2), (0, DESK_TOP - 0.13, -0.33), material=dark_steel, bake='hero')
+    z.box('drawers', (0.45, 0.56, 0.75), (-0.82, 0.32, -0.05), material=dark_steel, bake='hero', bevel=0.008)
     for i in range(3):
-        z.box(f'drawer_pull_{i}', (0.14, 0.015, 0.02), (-0.55, 0.5 - i * 0.17, 0.27), material=steel, bake='hero')
+        z.box(f'drawer_pull_{i}', (0.14, 0.015, 0.02), (-0.82, 0.5 - i * 0.17, 0.335), material=steel, bake='hero')
 
     # keyboard: a heavy mechanical board, amber backlight bleeding between keys
     kb_y = DESK_TOP + 0.012
@@ -111,21 +111,21 @@ def build(quick=False):
             z.box(f'key_{r}_{c}', (w, 0.014, 0.0255), (x + w / 2 - 0.0128, kb_y + 0.018 + r * 0.0016, 0.27 - r * 0.031), rot=(0.05, 0, 0), material=keycap, bake='hero')
 
     # coffee, the to-read pile, a notepad, a little radio
-    z.cyl('mug', 0.045, 0.1, (0.52, DESK_TOP + 0.05, 0.12), material=mug_mat, bake='hero', r2=0.047)
-    z.tube('mug_handle', [(0.565, DESK_TOP + 0.08, 0.12), (0.6, DESK_TOP + 0.075, 0.12), (0.6, DESK_TOP + 0.03, 0.12), (0.565, DESK_TOP + 0.025, 0.12)], 0.007, material=mug_mat, bake='hero')
+    z.cyl('mug', 0.045, 0.1, (0.8, DESK_TOP + 0.05, 0.12), material=mug_mat, bake='hero', r2=0.047)
+    z.tube('mug_handle', [(0.845, DESK_TOP + 0.08, 0.12), (0.88, DESK_TOP + 0.075, 0.12), (0.88, DESK_TOP + 0.03, 0.12), (0.845, DESK_TOP + 0.025, 0.12)], 0.007, material=mug_mat, bake='hero')
     z.cyl('coffee', 0.041, 0.002, (0.52, DESK_TOP + 0.088, 0.12), material=mat('coffee', '#140a05'), bake='hero')
     palette = ['#5a1f1b', '#1f3a4a', '#2f4a2a', '#6b4a1f', '#3a2a4a', '#7a6a55', '#8a3a1a', '#24504f', '#b08a4a']
     y = DESK_TOP
     for i in range(6):
         h = 0.03 + rnd.random() * 0.025
         w, d = 0.22 + rnd.random() * 0.05, 0.15 + rnd.random() * 0.03
-        z.box(f'book_{i}', (w, h, d), (-0.62 + (rnd.random() - 0.5) * 0.03, y + h / 2, 0.05), rot=(0, (rnd.random() - 0.5) * 0.35, 0),
+        z.box(f'book_{i}', (w, h, d), (-0.92 + (rnd.random() - 0.5) * 0.03, y + h / 2, 0.05), rot=(0, (rnd.random() - 0.5) * 0.35, 0),
               material=mat(f'cover_{i}', palette[(i * 3) % len(palette)], rough=0.7),
               bake='hero', bevel=0.003)
         y += h
-    z.box('notepad', (0.15, 0.008, 0.21), (-0.36, DESK_TOP + 0.004, 0.27), rot=(0, 0.25, 0), material=paper, bake='hero')
-    z.cyl('pen', 0.004, 0.14, (-0.33, DESK_TOP + 0.012, 0.28), rot=(math.pi / 2, 0.9, 0), material=black, bake='hero', segs=8)
-    z.model('tape_deck', 'cassette_player', (0.68, DESK_TOP, -0.22), rot=(0, -0.3, 0), bake='hero')
+    z.box('notepad', (0.15, 0.008, 0.21), (-0.5, DESK_TOP + 0.004, 0.27), rot=(0, 0.25, 0), material=paper, bake='hero')
+    z.cyl('pen', 0.004, 0.14, (-0.47, DESK_TOP + 0.012, 0.28), rot=(math.pi / 2, 0.9, 0), material=black, bake='hero', segs=8)
+    z.model('tape_deck', 'cassette_player', (0.98, DESK_TOP, -0.25), rot=(0, -0.3, 0), bake='hero')
 
     # bake proxies for the JS monitor (typical 16:10 size): its shadow and glow
     z.box('mon_proxy', (0.62, 0.42, 0.06), (0, 1.12, -0.15), material=black, bake=None, proxy=1)
@@ -133,8 +133,8 @@ def build(quick=False):
     z.box('mon_proxy_neck', (0.05, 0.22, 0.04), (0, DESK_TOP + 0.11, -0.22), material=black, proxy=1)
     z.box('mon_proxy_base', (0.28, 0.02, 0.18), (0, DESK_TOP + 0.01, -0.2), material=black, proxy=1)
 
-    # the chair, pushed back and swung out
-    cx, cz, yaw = 1.2, 0.55, -1.25
+    # the chair, at the desk (left of the camera's pull-back from the monitor)
+    cx, cz, yaw = -0.3, 0.88, 0.2
     for i in range(5):
         a = i * 2 * math.pi / 5
         z.box(f'chair_leg_{i}', (0.04, 0.035, 0.32), (cx + math.sin(a) * 0.15, 0.06, cz + math.cos(a) * 0.15), rot=(0, a, 0), material=dark_steel, bake='hero')
@@ -215,11 +215,10 @@ def build(quick=False):
 
     teal = emissive('neon_teal', '#2ad4c9', 7)
     orange = emissive('neon_orange', '#ff7a1a', 7)
-    z.text('neon_sach', 'SÁCH', 0.95, (-2.4, 4.75, -6.8), material=teal, tube=0.016, role='flicker')
-    for x in (-3.2, -1.6):
-        z.cyl(f'neon_sach_rod_{x}', 0.006, 1.2, (x, 5.75, -6.82), material=dark_steel, bake='rig', segs=6)
-    z.text('neon_dhr', 'DHR.VN', 0.5, (4.2, 2.8, -2.6), rot=(0, -0.85, 0), material=orange, tube=0.012)
-    z.box('neon_dhr_back', (1.7, 0.42, 0.03), _off((4.2, 2.8, -2.6), -0.85, 0, -0.04), rot=(0, -0.85, 0), material=dark_steel, bake='rig')
+    # DHR.VN on the brick beside the window (SÁCH, "books", hangs in the library)
+    z.text('neon_dhr', 'DHR.VN', 0.62, (6.6, 4.4, -6.92), material=orange, tube=0.014, role='flicker')
+    for x in (5.6, 7.6):
+        z.cyl(f'neon_dhr_stand_{x}', 0.008, 0.06, (x, 4.4, -6.95), rot=(math.pi / 2, 0, 0), material=dark_steel, bake='rig', segs=6)
     for x, m in ((-4.3, teal), (4.3, orange)):
         z.cyl(f'neon_tube_{x}', 0.02, 3.0, (x, 2.2, -3.2), material=m, segs=12)
         z.box(f'neon_tube_bracket_{x}', (0.06, 3.1, 0.05), (x + (0.05 if x < 0 else -0.05), 2.2, -3.25), material=dark_steel, bake='rig')

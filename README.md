@@ -61,10 +61,11 @@ reading → library (hands off to the `/reading/` app). There's also a garage an
   camera starts where it fills the window and pulls back; a plug yanks out of the desk socket.
 - **Jack out from any other page:** the live `<main>` becomes a floating **datapad** (starts
   full-screen, glides to a panel) while the room fades in and the camera settles on its place.
-- **In the world** you walk (WASD / drag to look / click the floor; phones: drag + tap).
-  Clicking a thing walks you to it and opens its page in the datapad; datapad links and
-  terminal `cd` do the same (no reloads; URL follows with `#world`). "Jack in" on the datapad
-  opens that page normally. Esc closes the datapad, then returns to the page you started on.
+- **In the world** you walk: click to capture the mouse, mouse to look, WASD / arrows to move,
+  Esc frees the mouse (phones: drag to look, tap to walk). Near something usable a prompt
+  offers its action (**[E] …**); it opens the page on the AR visor (the datapad), as do its
+  links and terminal `cd` (no reloads; URL follows with `#world`). "Full page" opens it on its
+  own. Esc closes the visor, then returns to the page you started on.
 - **`warehouse.js`** loads the zones (GLB from `src/models/`, built by `blender/`, see
   VISION.md) and owns the live props: monitor (`shapeMonitor`), link (socket/plug/sparks),
   screen wall, window rain, neon flicker, light shafts, collisions for walking.

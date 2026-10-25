@@ -38,13 +38,14 @@ export function zonePoint(zone, x, y, z) {
 }
 
 // What clicking a thing in the room does (hotspot contract labels + targets).
+// `prompt` is the action offered when you walk up to it ([E] …).
 const HOTSPOTS = {
-  blog: { label: 'Blog: field reports →', visit: '/blog/' },
-  about: { label: 'Case file: about →', visit: '/about/' },
-  reading: { label: 'Library: reading room →', visit: '/reading/' },
-  contact: { label: 'Lounge: get in touch →', visit: '/contact/' },
-  garage: { label: 'Garage: projects (coming soon)', action: 'place', place: 'garage' },
-  gym: { label: 'Gym: training log (coming soon)', action: 'place', place: 'gym' },
+  blog: { label: 'Blog: field reports →', prompt: 'Read the blog', reach: 4.3, visit: '/blog/' },
+  about: { label: 'Case file: about →', prompt: 'Open the case file', visit: '/about/' },
+  reading: { label: 'Library: reading room →', prompt: 'Browse the library', visit: '/reading/' },
+  contact: { label: 'Lounge: get in touch →', prompt: 'Get in touch', visit: '/contact/' },
+  garage: { label: 'Garage: projects (coming soon)', prompt: 'Projects: coming soon', action: 'place', place: 'garage' },
+  gym: { label: 'Gym: training log (coming soon)', prompt: 'Training log: coming soon', action: 'place', place: 'gym' },
 };
 
 const AMBER = '#ffb000', TEAL = '#2ad4c9', HOT = '#ff6a1a', DIM = '#6b4c12';
@@ -294,7 +295,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   const led = new THREE.Mesh(new THREE.SphereGeometry(0.006, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAL).multiplyScalar(4), toneMapped: false }));
   const vents = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ventTexture(), transparent: true, depthWrite: false }));
   monitor.add(bezel, housing, glassBack, neck, base, led, vents);
-  makeHotspot(monitor, { label: 'Terminal', action: 'monitor' }, [bezel, housing, neck], '#ffb000');
+  makeHotspot(monitor, { label: 'Terminal', prompt: 'Use the terminal', reach: 1.9, action: 'monitor' }, [bezel, housing, neck], '#ffb000');
 
   function roundedRect(w, h, r) {
     const s = new THREE.Shape();
@@ -468,6 +469,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       else if (d.role === 'shaft') lightShaft(o, d);
       else if (d.role === 'board') whiteboard(o, d);
       else if (d.role === 'light') lights.push(o);
+      else if (d.role === 'display') display(o, d.painter);
       if (d.hotspot && HOTSPOTS[d.hotspot]) makeHotspot(o, HOTSPOTS[d.hotspot]);
     });
     if (screens.length) buildScreenWall(screens);
@@ -582,44 +584,98 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
   }
 
+  // a single screen showing one of the screen-wall painters (the F1 rig's timing)
+  function display(face, painter) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 160;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.flipY = false; // glTF UVs
+    face.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.3, 1.3, 1.3) });
+    const paint = SCREEN_PAINTERS[painter] || SCREEN_PAINTERS.timing;
+    const ctx = canvas.getContext('2d');
+    const state = { seed: rand() * 1000 };
+    let next = 0;
+    updaters.push((t) => {
+      if (t < next) return;
+      next = t + 0.25;
+      paint(ctx, t, state);
+      tex.needsUpdate = true;
+    });
+  }
+
   // ---------------------------------------------------------------- the window: city, rain
 
+  // The view out: the street a floor below, a hotel across it, towers, the
+  // skyline and sky, each a layer at its real distance so it holds up when
+  // you walk close; rain falls outside, behind a faint pane of glass.
+  // Local frame: the window's centre, +z into the room, outside is -z.
   function buildWindow(anchor, { w = 10, h = 5 }) {
-    const city = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: skylineTexture(rand), fog: false }));
-    city.position.z = -0.05;
-    anchor.add(city);
-    // lit windows that twinkle
-    const pts = [];
-    for (let i = 0; i < 260; i++) pts.push((rand() - 0.5) * w * 0.96, (rand() - 0.62) * h * 0.85, -0.04);
-    const cityGeo = new THREE.BufferGeometry();
-    cityGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    const twinkle = new THREE.PointsMaterial({ color: '#ffb86b', size: 0.035, fog: false, transparent: true, opacity: 0.8 });
-    anchor.add(new THREE.Points(cityGeo, twinkle));
-    updaters.push((t) => { twinkle.opacity = 0.65 + 0.15 * Math.sin(t * 0.9); });
-    // rain streaking past the glass
-    const count = 420;
+    const STREET = -6.5; // street level, below the window centre
+    const layer = (tex, width, height, z, bottom = STREET, opts = {}) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: tex, fog: false, transparent: true, depthWrite: false, ...opts }));
+      m.position.set(opts.x || 0, bottom + height / 2, z);
+      m.renderOrder = -1;
+      anchor.add(m);
+      return m;
+    };
+    layer(skyTexture(), 300, 140, -95, STREET - 20, { transparent: false });
+    layer(towersTexture(rand, { far: true }), 200, 70, -80);
+    layer(towersTexture(rand, { far: false }), 90, 42, -38);
+    layer(facadeTexture(rand), 44, 23, -22, STREET - 1);
+    // the wet street between, catching the city's glow
+    const street = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshBasicMaterial({ map: streetTexture(), fog: false }));
+    street.rotation.x = -Math.PI / 2;
+    street.position.set(0, STREET, -15);
+    anchor.add(street);
+
+    // now and then a spinner crosses the sky, lights blinking
+    const spinnerMat = new THREE.PointsMaterial({ color: '#ffffff', size: 0.5, sizeAttenuation: true, fog: false, transparent: true });
+    const spinnerGeo = new THREE.BufferGeometry();
+    spinnerGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1.2, 0, 0], 3));
+    const spinner = new THREE.Points(spinnerGeo, spinnerMat);
+    spinner.frustumCulled = false;
+    anchor.add(spinner);
+    updaters.push((t) => {
+      const k = (t % 26) / 26;
+      spinner.position.set(-70 + k * 140, 14 + Math.sin(k * 6) * 2, -55);
+      spinnerMat.color.set(Math.sin(t * 9) > 0 ? '#ff3b3b' : '#ffffff');
+      spinnerMat.opacity = k < 0.02 || k > 0.98 ? 0 : 1;
+    });
+
+    // rain, outside: a slab of falling streaks between the glass and the street
+    const count = 1100;
     const pos = new Float32Array(count * 6);
     const speed = new Float32Array(count);
+    const top = 5, bottom = STREET, len = 0.32;
     for (let i = 0; i < count; i++) {
-      const x = (rand() - 0.5) * w, y = (rand() - 0.5) * h, z = 0.05 + rand() * 0.25;
-      pos.set([x, y, z, x - 0.02, y - 0.18, z], i * 6);
-      speed[i] = 5 + rand() * 4;
+      const x = (rand() - 0.5) * (w + 6), y = bottom + rand() * (top - bottom), z = -0.4 - rand() * 7;
+      pos.set([x, y, z, x - 0.03, y - len, z], i * 6);
+      speed[i] = 8 + rand() * 4;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#6ea8c9', transparent: true, opacity: 0.35 }));
+    const rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#8fbcd6', transparent: true, opacity: 0.28, fog: false }));
     rain.frustumCulled = false;
     anchor.add(rain);
     updaters.push((t, dt) => {
       for (let i = 0; i < count; i++) {
         const o = i * 6;
         let y = pos[o + 1] - speed[i] * dt;
-        if (y < -h / 2) y += h;
+        if (y < bottom) y += top - bottom;
         pos[o + 1] = y;
-        pos[o + 4] = y - 0.18;
+        pos[o + 4] = y - len;
       }
       geo.attributes.position.needsUpdate = true;
     });
+
+    // the glass: barely there, but it catches reflections
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({
+      color: '#0b1418', roughness: 0.08, metalness: 0, transparent: true, opacity: 0.18, depthWrite: false, envMapIntensity: 1.2,
+    }));
+    glass.position.z = -0.03;
+    anchor.add(glass);
   }
 
   // ---------------------------------------------------------------- neon, shafts, boards
@@ -748,48 +804,125 @@ function neonRoom() {
 
 // ---------------------------------------------------------------- canvas textures
 
-function skylineTexture(rand) {
-  const W = 1024, H = 512;
+function canvasTexture(w, h, draw) {
   const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#05101c');
-  sky.addColorStop(0.55, '#0d2236');
-  sky.addColorStop(0.85, '#3a2a2a');
-  sky.addColorStop(1, '#5a3420');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-  // a holo ad smeared by the rain
-  const ad = ctx.createRadialGradient(W * 0.68, H * 0.42, 10, W * 0.68, H * 0.42, 160);
-  ad.addColorStop(0, 'rgba(255, 70, 140, .45)');
-  ad.addColorStop(1, 'rgba(255, 70, 140, 0)');
-  ctx.fillStyle = ad;
-  ctx.fillRect(0, 0, W, H);
-  // three layers of towers, far to near
-  [['#0b1826', 0.45, 0.5], ['#08111b', 0.6, 0.75], ['#04080d', 0.78, 1]].forEach(([fill, base, lit]) => {
-    let x = -20;
+  canvas.width = w;
+  canvas.height = h;
+  draw(canvas.getContext('2d'), w, h);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+// night sky over the city: dark above, the city's sodium-and-neon glow below
+function skyTexture() {
+  return canvasTexture(8, 512, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#020408');
+    g.addColorStop(0.55, '#08121e');
+    g.addColorStop(0.8, '#2a1c26');
+    g.addColorStop(1, '#4a2a22');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
+}
+
+// a row of towers on a transparent sky: lit windows, rooftop beacons, the odd
+// holo billboard. far = smaller, hazier, denser.
+function towersTexture(rand, { far }) {
+  return canvasTexture(2048, 1024, (ctx, W, H) => {
+    let x = -30;
+    const haze = far ? '#0b1522' : '#060b12';
     while (x < W) {
-      const bw = 30 + rand() * 90, bh = H * (0.15 + rand() * 0.45) * (1.2 - base);
-      const top = H * base + 40 - bh;
-      ctx.fillStyle = fill;
-      ctx.fillRect(x, top, bw, H - top);
-      for (let wy = top + 6; wy < H; wy += 9) {
-        for (let wx = x + 4; wx < x + bw - 4; wx += 7) {
-          if (rand() < 0.16 * lit) {
-            ctx.fillStyle = rand() < 0.8 ? `rgba(255, 184, 107, ${0.25 + rand() * 0.5 * lit})` : `rgba(42, 212, 201, ${0.3 + rand() * 0.4})`;
-            ctx.fillRect(wx, wy, 3, 4);
+      const bw = far ? 25 + rand() * 70 : 60 + rand() * 160;
+      const bh = H * (far ? 0.2 + rand() * 0.55 : 0.25 + rand() * 0.7);
+      const top = H - bh;
+      ctx.fillStyle = haze;
+      ctx.fillRect(x, top, bw, bh);
+      if (!far && rand() < 0.4) { ctx.fillRect(x + bw * 0.3, top - 30, bw * 0.4, 30); }
+      const cw = far ? 4 : 7, ch = far ? 5 : 9;
+      for (let wy = top + 8; wy < H - 4; wy += ch + (far ? 3 : 5)) {
+        for (let wx = x + 5; wx < x + bw - cw - 3; wx += cw + (far ? 3 : 5)) {
+          if (rand() < (far ? 0.22 : 0.16)) {
+            const warm = rand() < 0.82;
+            ctx.fillStyle = warm ? `rgba(255, ${170 + rand() * 40 | 0}, ${90 + rand() * 40 | 0}, ${0.35 + rand() * 0.5})` : `rgba(90, 210, 220, ${0.3 + rand() * 0.4})`;
+            ctx.fillRect(wx, wy, cw, ch);
           }
         }
       }
-      if (rand() < 0.3) { ctx.fillStyle = '#ff3030'; ctx.fillRect(x + bw / 2, top - 4, 3, 3); }
-      x += bw + rand() * 14;
+      if (rand() < 0.35) { ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x + bw / 2 - 2, top - (far ? 3 : 6), far ? 3 : 5, far ? 3 : 5); }
+      if (!far && rand() < 0.1) { // a holo billboard, small and faint at this distance
+        const bwid = Math.min(bw - 16, 50), bht = 18 + rand() * 22;
+        const bx = x + (bw - bwid) / 2, by = top + 20 + rand() * bh * 0.25;
+        const g = ctx.createLinearGradient(bx, by, bx + bwid, by + bht);
+        const hue = rand() < 0.5 ? ['rgba(255,60,150,.45)', 'rgba(120,40,255,.3)'] : ['rgba(40,220,220,.42)', 'rgba(255,170,40,.3)'];
+        g.addColorStop(0, hue[0]);
+        g.addColorStop(1, hue[1]);
+        ctx.fillStyle = g;
+        ctx.fillRect(bx, by, bwid, bht);
+      }
+      x += bw + rand() * (far ? 6 : 30);
     }
   });
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+}
+
+// the hotel across the street: wet concrete, a grid of windows (some lit, some
+// with a TV's blue), air-con units, a vertical neon sign
+function facadeTexture(rand) {
+  return canvasTexture(2048, 1088, (ctx, W, H) => {
+    ctx.scale(2, 2);
+    W /= 2;
+    H /= 2;
+    ctx.fillStyle = '#121418';
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 1400; i++) { // grime
+      ctx.fillStyle = `rgba(0,0,0,${rand() * 0.25})`;
+      ctx.fillRect(rand() * W, rand() * H, 2 + rand() * 30, 2 + rand() * 60);
+    }
+    for (let fy = 30; fy < H - 60; fy += 64) {
+      ctx.fillStyle = '#0c0d10';
+      ctx.fillRect(0, fy + 44, W, 6); // floor slab
+      for (let fx = 24; fx < W - 50; fx += 58) {
+        if (fx > 470 && fx < 560) continue; // the sign's column
+        const r = rand();
+        ctx.fillStyle = r < 0.38 ? `rgba(255, ${170 + rand() * 50 | 0}, ${90 + rand() * 40 | 0}, 0.9)` : r < 0.48 ? 'rgba(90, 140, 255, 0.75)' : r < 0.52 ? 'rgba(255, 60, 140, 0.7)' : '#0a0b0e';
+        ctx.fillRect(fx, fy, 34, 36);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(fx + 16, fy, 2, 36); // mullion
+        if (rand() < 0.3) { ctx.fillStyle = '#2a2c30'; ctx.fillRect(fx + 6, fy + 38, 22, 10); } // air-con
+      }
+    }
+    // KHÁCH SẠN (hotel), stacked, neon pink
+    ctx.font = '700 46px "Arial Black", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#ff3d8a';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#ffd1e3';
+    [...'KHÁCH', ' ', ...'SẠN'].forEach((ch, k) => ctx.fillText(ch, 515, 70 + k * 46));
+    ctx.shadowBlur = 0;
+    // shopfronts at street level
+    const g = ctx.createLinearGradient(0, H - 50, 0, H);
+    g.addColorStop(0, 'rgba(255,150,60,0.55)');
+    g.addColorStop(1, 'rgba(255,120,40,0.15)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, H - 50, W, 50);
+  });
+}
+
+// wet asphalt: dark, with smeared reflections of the lights above
+function streetTexture() {
+  return canvasTexture(512, 256, (ctx, W, H) => {
+    ctx.fillStyle = '#07080b';
+    ctx.fillRect(0, 0, W, H);
+    for (const [x, c] of [[110, 'rgba(255,140,60,.35)'], [260, 'rgba(255,60,150,.3)'], [400, 'rgba(255,170,90,.3)']]) {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, c);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 14, 0, 28, H);
+    }
+  });
 }
 
 function gradientTexture() {

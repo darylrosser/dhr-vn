@@ -17,8 +17,9 @@ What exists today is the vibe check: the terminal, the reader, and a procedural 
 
 ## The warehouse
 
-Daryl's dream office: one huge cyberpunk warehouse you **walk around** in first person
-(WASD / drag to look / click the floor to walk; on phones drag and tap). It's split into
+Daryl's dream office: one huge cyberpunk warehouse you **walk around** in first person,
+with normal PC game controls (click to capture the mouse, mouse to look, WASD / arrows to move,
+Esc frees the mouse; on phones drag to look and tap to walk). It's split into
 **zones**, each a little diorama lit by its own pool of light, joined by the hall: a dark,
 dirty concrete floor, brick walls, roof trusses and a few dim lamps over the walkways. The
 plain pages are the accessible way in, so world mode doesn't need fast-travel buttons.
@@ -72,9 +73,11 @@ Notes for the build:
    data-saver users get the plain site. Nothing below may break that.
 2. **The world loads in the background** only after the page is usable, only on capable devices.
    The jack-out control doubles as the loading status.
-3. **Once in the world, you stay in it.** You walk up to things and click them; their page
-   opens on the datapad where you stand (pushState / fetch, no reloads). Links on the datapad
-   do the same.
+3. **Once in the world, you stay in it.** Walk up to something and its action shows up like
+   in a game (**[E] Open the case file**, a button you can tap too); clicking it works as well.
+   The page then appears on your **AR visor**: projected in front of you, barely see-through,
+   the room dimmed but visible around the edges (pushState / fetch, no reloads). Links on it
+   do the same; "Full page" opens the page on its own.
 4. **Any page can be an entry point.** A post opened from Google shows the reader with a
    jack-out control; jacking out loads the world and flies to the blog's place.
 5. **The handoff is seamless.** The live DOM is moved into 3D (CSS3DRenderer) at the exact
@@ -151,7 +154,8 @@ pipeline" below) and loaded by `src/js/warehouse.js`; walking is `src/js/walker.
   shaded live in three.js, lit by a Cycles-baked, OIDN-denoised lightmap per group (second UV
   set), plus an environment map for reflections and bloom for neon.
 - `blender/preview_car.py out.png [yaw] [elevation]`: a quick studio render of the time machine
-  alone, for working on the model.
+  alone; `blender/preview_zone.py <zone> out.png cam… look…`: a quick render of one zone from a
+  camera (three.js coordinates), for checking a layout without baking.
 - `cd blender && npm install && node pack.mjs`: resize textures, KTX2 (Basis ETC1S) + Meshopt
   into `src/models/<zone>.glb`, lightmaps to `src/models/<zone>_<group>.ktx2`.
 - Extras on GLB nodes wire up the live bits: `role` (`screen`, `window`, `flicker`, `spin`,

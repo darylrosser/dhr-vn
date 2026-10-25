@@ -93,13 +93,18 @@ def build(quick=False):
     z.cyl('ladder_hook', 0.02, 0.5, (lx, 3.3, zc + 0.32), rot=(0, 0, math.pi / 2), material=brass, bake='env', segs=8)
 
     # ------------------------------------------------------------ wingback chair, side table, lamp
-    z.model('reading_chair', 'ArmChair_01', (1.25, 0, 0.65), rot=(0, -0.65 + math.pi, 0), bake='env', max_tris=6000, tex=512)
+    z.model('reading_chair', 'ArmChair_01', (1.25, 0, 0.65), rot=(0, -0.65, 0), bake='env', max_tris=6000, tex=512)
     tx, tz = 2.0, 0.0
     z.model('side_table', 'side_table_tall_01', (tx, 0, tz), bake='env', tex=256)
     for i in range(3):
         z.box(f'table_book_{i}', (0.17, 0.035, 0.12), (tx - 0.05, 0.778 + i * 0.036, tz + 0.04), rot=(0, rnd.random() * 0.5, 0), material=covers[i * 4], bake='env', bevel=0.003)
     z.model('oil_lamp', 'vintage_oil_lamp', (tx + 0.08, 0.76, tz - 0.06), bake='env', tex=256)
     z.light('POINT', (tx + 0.08, 1.0, tz - 0.06), '#ffbf78', 55, size=0.05, name='reading_lamp')
+
+    # SÁCH ("books") in teal neon over the shelves
+    z.text('neon_sach', 'SÁCH', 0.8, (0, 4.85, -1.95), material=emissive('l_neon', '#2ad4c9', 7), tube=0.014, role='flicker')
+    for x in (-0.9, 0.9):
+        z.cyl(f'neon_sach_rod_{x}', 0.006, 3.5, (x, 6.6, -1.95), material=brass, bake='env', segs=6)
 
     # Edison bulbs hanging over the shelves
     bulb = emissive('edison', '#ffb15a', 10)
