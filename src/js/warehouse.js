@@ -447,15 +447,19 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     const screens = [];
     const lit = [];
     const lights = [];
+    // the zone's own meshes never move: freeze their matrices (first, so the
+    // live things built below, like the view out of the window, keep theirs)
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      o.updateMatrix();
+      o.matrixAutoUpdate = false;
+      for (const m of [].concat(o.material)) {
+        for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) t.anisotropy = 4;
+        if (m.isMeshStandardMaterial) m.envMapIntensity = 0.5;
+      }
+    });
     root.traverse((o) => {
       const d = o.userData;
-      if (o.isMesh) {
-        o.matrixAutoUpdate = false;
-        for (const m of [].concat(o.material)) {
-          for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) t.anisotropy = 4;
-          if (m.isMeshStandardMaterial) m.envMapIntensity = 0.5;
-        }
-      }
       if (d.lightmap) lit.push(lightmap(o, d.lightmap, d.lm || 4));
       if (d.role === 'screen') screens.push(o);
       else if (d.role === 'window') buildWindow(o, d);
@@ -612,42 +616,65 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
 
   // ---------------------------------------------------------------- the window: city, rain
 
-  // The view out: the street a floor below, a hotel across it, towers, the
-  // skyline and sky, each a layer at its real distance so it holds up when
-  // you walk close; rain falls outside, behind a faint pane of glass.
-  // Local frame: the window's centre, +z into the room, outside is -z.
+  // The view out, Blade Runner 2049 style: mostly haze. An amber glow low over
+  // the city, huge tower silhouettes fading into it in three layers, a few long
+  // neon strips, one giant hologram ad, a spinner drifting across. All big,
+  // flat, opaque shapes built here (no downloads, nothing fine enough to
+  // shimmer as you move). Local frame: the window's centre, +z into the room,
+  // outside is -z.
   function buildWindow(anchor, { w = 10, h = 5 }) {
     const STREET = -6.5; // street level, below the window centre
-    // solid cut-outs (alpha test, depth written): each layer hides what's behind
-    // it by depth, so nothing flickers as the camera moves
-    const layer = (tex, width, height, z, bottom = STREET) => {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: tex, fog: false, alphaTest: 0.5 }));
-      m.position.set(0, bottom + height / 2, z);
-      anchor.add(m);
-      return m;
-    };
-    layer(skyTexture(), 300, 140, -95, STREET - 20);
-    layer(towersTexture(rand, { far: true }), 200, 70, -80);
-    layer(towersTexture(rand, { far: false }), 90, 42, -38);
-    layer(facadeTexture(rand), 44, 23, -22, STREET - 1);
-    // the wet street between, catching the city's glow
-    const street = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshBasicMaterial({ map: streetTexture(), fog: false }));
-    street.rotation.x = -Math.PI / 2;
-    street.position.set(0, STREET, -15);
-    anchor.add(street);
+    const HAZE = new THREE.Color('#c8642a');   // sodium glow at the horizon
+    const flat = (color, opts = {}) => new THREE.MeshBasicMaterial({ color, fog: false, ...opts });
 
-    // now and then a spinner crosses the sky, lights blinking
-    const spinnerMat = new THREE.PointsMaterial({ color: '#ffffff', size: 0.5, sizeAttenuation: true, fog: false, transparent: true });
-    const spinnerGeo = new THREE.BufferGeometry();
-    spinnerGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1.2, 0, 0], 3));
-    const spinner = new THREE.Points(spinnerGeo, spinnerMat);
-    spinner.frustumCulled = false;
+    // the sky: amber haze at the bottom, through rust, up into dark teal
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(400, 160), flat('#ffffff', { map: hazeTexture() }));
+    sky.position.set(0, STREET + 60, -150);
+    anchor.add(sky);
+
+    // towers: three rows, the further the hazier (blended towards the glow)
+    const rows = [
+      { z: -110, n: 16, spread: 260, hmin: 40, hmax: 110, wmin: 10, wmax: 26, haze: 0.62 },
+      { z: -70, n: 12, spread: 170, hmin: 30, hmax: 90, wmin: 8, wmax: 20, haze: 0.38 },
+      { z: -38, n: 8, spread: 100, hmin: 22, hmax: 60, wmin: 6, wmax: 14, haze: 0.16 },
+    ];
+    for (const row of rows) {
+      const col = new THREE.Color('#06080c').lerp(HAZE, row.haze * 0.55);
+      const mat = flat(col);
+      for (let i = 0; i < row.n; i++) {
+        const bw = row.wmin + rand() * (row.wmax - row.wmin);
+        const bh = row.hmin + rand() * (row.hmax - row.hmin);
+        const x = (i / (row.n - 1) - 0.5) * row.spread + (rand() - 0.5) * 8;
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), mat);
+        tower.position.set(x, STREET + bh / 2, row.z + (rand() - 0.5) * 6);
+        anchor.add(tower);
+        // a few long neon strips down the edges of the nearer towers
+        if (row.haze < 0.5 && rand() < 0.55) {
+          const neon = ['#2ad4c9', '#ff3d8a', '#ffb000'][Math.floor(rand() * 3)];
+          const k = 1 - row.haze; // dimmer in the haze
+          const strip = new THREE.Mesh(new THREE.PlaneGeometry(0.6, bh * (0.4 + rand() * 0.5)),
+            flat(new THREE.Color(neon).multiplyScalar(1.4 * k), { toneMapped: false }));
+          strip.position.set(x + (rand() < 0.5 ? -1 : 1) * (bw / 2 - 0.4), STREET + bh * (0.35 + rand() * 0.3), tower.position.z + bw / 2 + 0.05);
+          anchor.add(strip);
+        }
+      }
+    }
+
+    // the hologram ad: a giant soft figure of light on the nearer skyline, breathing
+    const holo = new THREE.Mesh(new THREE.PlaneGeometry(16, 28), flat('#ffffff', {
+      map: holoTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    }));
+    holo.position.set(-14, STREET + 26, -44);
+    anchor.add(holo);
+    updaters.push((t) => { holo.material.opacity = 0.55 + 0.25 * Math.sin(t * 0.7) + (Math.sin(t * 23) > 0.97 ? -0.3 : 0); });
+
+    // a spinner drifting across, red and white
+    const spinner = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), flat('#ffffff', { toneMapped: false }));
     anchor.add(spinner);
     updaters.push((t) => {
-      const k = (t % 26) / 26;
-      spinner.position.set(-70 + k * 140, 14 + Math.sin(k * 6) * 2, -55);
-      spinnerMat.color.set(Math.sin(t * 9) > 0 ? '#ff3b3b' : '#ffffff');
-      spinnerMat.opacity = k < 0.02 || k > 0.98 ? 0 : 1;
+      const k = (t % 30) / 30;
+      spinner.position.set(-90 + k * 180, STREET + 34 + Math.sin(k * 5) * 3, -60);
+      spinner.material.color.set(Math.sin(t * 8) > 0 ? '#ff4a4a' : '#ffffff').multiplyScalar(3);
     });
 
     // rain, outside: a slab of falling streaks between the glass and the street
@@ -813,125 +840,52 @@ function neonRoom() {
 
 // ---------------------------------------------------------------- canvas textures
 
-function canvasTexture(w, h, draw) {
+// sky gradient for the view out: amber at the horizon, rust, then dark teal
+function hazeTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  draw(canvas.getContext('2d'), w, h);
+  canvas.width = 4;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#03070b');
+  g.addColorStop(0.45, '#0b1a22');
+  g.addColorStop(0.72, '#4a2a1c');
+  g.addColorStop(0.88, '#b05a26');
+  g.addColorStop(1, '#d9813a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 256);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
   return tex;
 }
 
-// night sky over the city: dark above, the city's sodium-and-neon glow below
-function skyTexture() {
-  return canvasTexture(8, 512, (ctx, w, h) => {
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#020408');
-    g.addColorStop(0.55, '#08121e');
-    g.addColorStop(0.8, '#2a1c26');
-    g.addColorStop(1, '#4a2a22');
+// the hologram: a tall soft-edged figure of pink and teal light (abstract, a
+// head and shoulders, glowing), additive, so the haze shows through it
+function holoTexture() {
+  const W = 128, H = 224;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const glow = (x, y, rx, ry, color) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
+    g.addColorStop(0, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry));
+    ctx.translate(-x, -y);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-  });
-}
-
-// a row of towers on a transparent sky: lit windows, rooftop beacons, the odd
-// holo billboard. far = smaller, hazier, denser.
-function towersTexture(rand, { far }) {
-  return canvasTexture(2048, 1024, (ctx, W, H) => {
-    let x = -30;
-    const haze = far ? '#0b1522' : '#060b12';
-    while (x < W) {
-      const bw = far ? 25 + rand() * 70 : 60 + rand() * 160;
-      const bh = H * (far ? 0.2 + rand() * 0.55 : 0.25 + rand() * 0.7);
-      const top = H - bh;
-      ctx.fillStyle = haze;
-      ctx.fillRect(x, top, bw, bh);
-      if (!far && rand() < 0.4) { ctx.fillRect(x + bw * 0.3, top - 30, bw * 0.4, 30); }
-      const cw = far ? 4 : 7, ch = far ? 5 : 9;
-      for (let wy = top + 8; wy < H - 4; wy += ch + (far ? 3 : 5)) {
-        for (let wx = x + 5; wx < x + bw - cw - 3; wx += cw + (far ? 3 : 5)) {
-          if (rand() < (far ? 0.22 : 0.16)) {
-            const warm = rand() < 0.82;
-            ctx.fillStyle = warm ? `rgba(255, ${170 + rand() * 40 | 0}, ${90 + rand() * 40 | 0}, ${0.35 + rand() * 0.5})` : `rgba(90, 210, 220, ${0.3 + rand() * 0.4})`;
-            ctx.fillRect(wx, wy, cw, ch);
-          }
-        }
-      }
-      if (rand() < 0.35) { ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x + bw / 2 - 2, top - (far ? 3 : 6), far ? 3 : 5, far ? 3 : 5); }
-      if (!far && rand() < 0.1) { // a holo billboard, small and faint at this distance
-        const bwid = Math.min(bw - 16, 50), bht = 18 + rand() * 22;
-        const bx = x + (bw - bwid) / 2, by = top + 20 + rand() * bh * 0.25;
-        const g = ctx.createLinearGradient(bx, by, bx + bwid, by + bht);
-        const hue = rand() < 0.5 ? ['rgba(255,60,150,.45)', 'rgba(120,40,255,.3)'] : ['rgba(40,220,220,.42)', 'rgba(255,170,40,.3)'];
-        g.addColorStop(0, hue[0]);
-        g.addColorStop(1, hue[1]);
-        ctx.fillStyle = g;
-        ctx.fillRect(bx, by, bwid, bht);
-      }
-      x += bw + rand() * (far ? 6 : 30);
-    }
-  });
-}
-
-// the hotel across the street: wet concrete, a grid of windows (some lit, some
-// with a TV's blue), air-con units, a vertical neon sign
-function facadeTexture(rand) {
-  return canvasTexture(2048, 1088, (ctx, W, H) => {
-    ctx.scale(2, 2);
-    W /= 2;
-    H /= 2;
-    ctx.fillStyle = '#121418';
     ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 1400; i++) { // grime
-      ctx.fillStyle = `rgba(0,0,0,${rand() * 0.25})`;
-      ctx.fillRect(rand() * W, rand() * H, 2 + rand() * 30, 2 + rand() * 60);
-    }
-    for (let fy = 30; fy < H - 60; fy += 64) {
-      ctx.fillStyle = '#0c0d10';
-      ctx.fillRect(0, fy + 44, W, 6); // floor slab
-      for (let fx = 24; fx < W - 50; fx += 58) {
-        if (fx > 470 && fx < 560) continue; // the sign's column
-        const r = rand();
-        ctx.fillStyle = r < 0.38 ? `rgba(255, ${170 + rand() * 50 | 0}, ${90 + rand() * 40 | 0}, 0.9)` : r < 0.48 ? 'rgba(90, 140, 255, 0.75)' : r < 0.52 ? 'rgba(255, 60, 140, 0.7)' : '#0a0b0e';
-        ctx.fillRect(fx, fy, 34, 36);
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(fx + 16, fy, 2, 36); // mullion
-        if (rand() < 0.3) { ctx.fillStyle = '#2a2c30'; ctx.fillRect(fx + 6, fy + 38, 22, 10); } // air-con
-      }
-    }
-    // KHÁCH SẠN (hotel), stacked, neon pink
-    ctx.font = '700 46px "Arial Black", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#ff3d8a';
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = '#ffd1e3';
-    [...'KHÁCH', ' ', ...'SẠN'].forEach((ch, k) => ctx.fillText(ch, 515, 70 + k * 46));
-    ctx.shadowBlur = 0;
-    // shopfronts at street level
-    const g = ctx.createLinearGradient(0, H - 50, 0, H);
-    g.addColorStop(0, 'rgba(255,150,60,0.55)');
-    g.addColorStop(1, 'rgba(255,120,40,0.15)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, H - 50, W, 50);
-  });
-}
-
-// wet asphalt: dark, with smeared reflections of the lights above
-function streetTexture() {
-  return canvasTexture(512, 256, (ctx, W, H) => {
-    ctx.fillStyle = '#07080b';
-    ctx.fillRect(0, 0, W, H);
-    for (const [x, c] of [[110, 'rgba(255,140,60,.35)'], [260, 'rgba(255,60,150,.3)'], [400, 'rgba(255,170,90,.3)']]) {
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, c);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(x - 14, 0, 28, H);
-    }
-  });
+    ctx.restore();
+  };
+  glow(64, 150, 58, 80, 'rgba(255, 70, 160, 0.75)');  // shoulders
+  glow(64, 70, 28, 36, 'rgba(255, 120, 200, 0.9)');   // head
+  glow(64, 70, 14, 18, 'rgba(120, 255, 240, 0.6)');   // face glow
+  glow(64, 120, 64, 110, 'rgba(60, 220, 230, 0.25)'); // aura
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 function gradientTexture() {
