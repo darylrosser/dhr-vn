@@ -25,6 +25,11 @@ body {
   gap: 1rem;
 }
 
+.page-header-end {
+  display: flex;
+  align-items: center;
+}
+
 .book-counter {
   text-align: right;
   color: #000;

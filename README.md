@@ -48,22 +48,26 @@ Create `content/posts/my-post.html`:
 
 Footnotes use the same markup as the old site (`<sup><a href="#fn1" id="ref1">1</a></sup>` + `<div class="footnotes">`).
 
-## World mode (`src/js/world.js`)
+## World mode (`src/js/uplink.js`, `src/js/world.js`)
 
-The home terminal is a monitor in a 3D warehouse. **Jack out** (button, `exit`, or `/#world`)
-pulls the camera back from the screen; Esc, the back button, "Jack back in" or clicking the
-monitor returns.
+Every page has a place in a 3D warehouse (`data-place` on `<html>`, `PLACES` in world.js):
+home → desk monitor, blog/posts → centre screen of the wall, about → evidence board,
+contact → lounge, reading → bookshelf (hands off to the `/reading/` app).
 
-- three.js `0.170.0` from jsDelivr via an import map (home page only). `world.js` is imported
-  in the background ~1 s after the boot finishes, only on capable devices (WebGL2, no
-  Save-Data, `deviceMemory` >= 4 when reported). The button shows `syncing… / ready`.
-- The live terminal DOM is moved onto the monitor with `CSS3DRenderer` (still clickable and
-  typeable in 3D). The monitor is sized to the viewport's aspect and the camera starts exactly
-  where the screen fills the window, so the handoff is seamless at any size (portrait monitor
-  on phones).
-- Everything in `buildWarehouse()` is placeholder geometry. Replace it with a GLTF load of the
-  Blender scene; keep `shapeMonitor()` (or put a named screen plane in the GLB and size the
-  CSS object to it) and the hotspot contract (`userData.hotspot = { label, href | action, highlight() }`).
+- **`uplink.js`** (every page): loads `world.js` in the background on capable devices
+  (WebGL2, no Save-Data, `deviceMemory` >= 4 when reported) and wires every `[data-jack]`
+  button. The terminal narrates it via `DHRUplink.on()`; reader pages just show the button.
+- **Jack out from home:** the live terminal DOM moves onto the monitor (`CSS3DRenderer`), the
+  camera starts where it fills the window and pulls back; a plug yanks out of the desk socket.
+- **Jack out from any other page:** the live `<main>` becomes a floating **datapad** (starts
+  full-screen, glides to a panel) while the room fades in and the camera settles on its place.
+- **In the world:** HUD buttons, hotspots, datapad links and terminal `cd` commands fly between
+  places and fetch pages into the datapad (no reloads; URL follows with `#world`).
+  "Jack in" on the datapad opens that page normally. Esc closes the datapad, then returns to
+  the page you started on (same as the back button / "Jack back in").
+- three.js `0.170.0` from jsDelivr via an import map. Everything in `buildWarehouse()` is
+  placeholder geometry: replace with GLTF loads, keep `shapeMonitor()`, `link` and the hotspot
+  contract (`userData.hotspot = { label, visit | action, highlight() }`).
 
 ## Rules of thumb
 

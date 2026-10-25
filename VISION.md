@@ -82,11 +82,72 @@ Notes for the build:
 7. **Respect the reader:** pause rendering while reading, sound off by default, reduced motion
    means cuts instead of flights, Esc / back button always lead out.
 
+## Jacking in / out
+
+You are the one who's wired in, man-machine. The cable comes *from you* (off the bottom of
+the frame, as if from the back of your neck) and plugs into the computer.
+
+- **Jack out:** the plug yanks out of the computer's port and whips back toward the camera,
+  off screen, as the view pulls back into the warehouse.
+- **Jack in:** the cable snakes in from the bottom of the frame and slams into the port
+  (sparks, flash, jolt), the screen powers on CRT-style, the camera dives into it.
+- Today's blockout has the right plug, socket, sparks and slam, but the cable runs to the back
+  of the monitor. Re-route its far end to a point just below the camera (and animate it with
+  the camera) to get the first-person version.
+
 ## Build order
 
 1. ✅ Terminal home, reader pages, About dossier.
 2. ✅ Jack out / in from the home terminal into a blockout scene (desk, screen wall, shelf).
-3. Every page gets a place + jack-out; in-place navigation; datapad reader overlay.
+3. ✅ Every page gets a place + jack-out; in-place navigation; datapad reader overlay.
+   Next: first-person neural cable; remember world mode between visits.
 4. Blender: model and bake the warehouse (baked lighting, KTX2 textures, Meshopt), stream it in
    zones; keep the hotspot contract from `world.js`.
 5. Reading room; sound; HUD; easter eggs.
+
+## Handoff: the cloud build (Blender + three.js)
+
+Start here. The site is live at dhr.vn from this repo (`main` → Netlify runs `node build.mjs`,
+publishes `dist/`). Everything works today with a **procedural blockout**; the job is to
+replace the blockout with the real warehouse without breaking the plumbing.
+
+### What exists and must keep working
+
+- Every page is plain HTML first (terminal home, reader pages, `/reading/` shelf app, `/mac`).
+- `src/js/uplink.js` (every page): capability check, background load of `world.js`, the ways
+  out of a page: corner **✕** (`[data-jack]`, with an uplink LED) and the **bezel edge**
+  (`[data-jack-edge]`, hover peeks at a render of the page's place via `--world-peek`).
+- `src/js/world.js` → `createWorld({ kind, place, surface, … })`, three kinds of origin:
+  `terminal` (live DOM onto the desk monitor via CSS3D), `reader` (page becomes the datapad),
+  `app` (the `/reading/` shelf fades; you stand at the bookshelf).
+- In the world: HUD, hotspots, datapad links and terminal `cd` visit places without reloads
+  (`#world` in the URL); "Jack in" opens a page normally; Esc / back return to the origin page.
+- Places and camera poses: `PLACES` in world.js. Hotspot contract:
+  `object.userData.hotspot = { label, visit: '/url/' | action: 'monitor', highlight(on) }`.
+- `world.link` (desk socket + plug + sparks) and `world.shapeMonitor(w, h, center)` (the home
+  monitor must match the viewport's aspect so the CSS3D handoff is seamless).
+
+### What is placeholder (replace)
+
+- All of `buildWarehouse()`: boxes, canvas-texture neon, the 7×3 screen wall, desk, shelf,
+  evidence board, lounge. Swap for GLB zones (see "The warehouse" above), keep the contracts.
+- Not built at all yet: **garage + DeLorean-style car, gym**, the reading room as a real space.
+- The datapad is a floating panel. Target: pages land on real objects, e.g. a futuristic
+  holo-table / console you lean over, a device on the desk, the evidence board itself.
+- The jack-in cable runs to the monitor; target is the first-person neural cable (above).
+
+### Constraints
+
+- Performance: first zone ≤ ~5 MB (Meshopt + KTX2 via gltf-transform), baked lighting,
+  emissive + bloom for neon, stream other zones as the camera heads there, fog hides the rest.
+  World mode only loads after the page is usable and only on capable devices.
+- three.js: the site uses `0.170.0` via an import map; `/reading/` still pins `0.158.0`
+  (world.js runs on both today). Upgrade the shelf app deliberately if needed.
+- Long text is never stylised (reader layout, ~68ch). Reduced motion = cuts, not flights.
+- Never break the plain pages: search engines, screen readers, slow phones.
+
+### How to run / check
+
+`npm run dev` → http://127.0.0.1:4321 (restart after editing `build.mjs`). Check every page:
+✕ and edge exit, HUD visits, datapad links, Jack in, Esc twice, back button mid-flight, phone
+width (portrait poses step back), and `/reading/` round trip.

@@ -1,21 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-kind="app" data-place="reading">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Books I've Read In 2026 | dhr.vn</title>
 <meta name="description" content="A 3D reading shelf of my reads in 2026, with detailed information about each book.">
+<!-- world mode (see /assets/js/uplink.js): the shelf is a place in the warehouse.
+     Only the tokens the HUD + datapad need, so the shelf's own styles are untouched. -->
+<style>:root { --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace; --font-crt: 'Share Tech Mono', var(--font-mono); --font-display: 'Orbitron', sans-serif; --font-serif: 'Lora', Georgia, serif; --amber: #ffb000; --teal: #2ad4c9; --hot: #ff6a1a; }</style>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&family=Orbitron:wght@900&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/reader.css">
+<link rel="stylesheet" href="/assets/css/world.css">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
 </head>
 <body>
+<div class="bezel" aria-hidden="true">
+  <div class="bezel-edge" data-edge="top" data-jack-edge></div>
+  <div class="bezel-edge" data-edge="right" data-jack-edge></div>
+  <div class="bezel-edge" data-edge="bottom" data-jack-edge><span class="bezel-hint">▸ exit to warehouse</span></div>
+  <div class="bezel-edge" data-edge="left" data-jack-edge></div>
+</div>
 
 <header class="page-header">
   <span class="page-header-nav">
     <a href="/">← Back to home</a>
     <a href="/reading/stats">Stats</a>
   </span>
-  <p class="book-counter" id="book-counter">0 books read so far in 2026 (0 print, 0 audio)</p>
+  <span class="page-header-end">
+    <p class="book-counter" id="book-counter">0 books read so far in 2026 (0 print, 0 audio)</p>
+    <button type="button" class="screen-x screen-x--app" data-jack hidden aria-label="Close this screen and step into the warehouse" title="Exit to the warehouse"><span class="screen-x-led" aria-hidden="true"></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg><span class="jack-state visually-hidden">Uplink: offline</span></button>
+  </span>
 </header>
 
 <nav class="shelf-genre-filter" id="shelf-genre-filter" aria-label="Filter books by genre">
@@ -78,5 +93,8 @@
 </script>
 
 <script type="module" src="main.js"></script>
+<script>window.__dhrAssets = { world: '/assets/js/world.js' };</script>
+<script src="/assets/js/eye.js" defer></script>
+<script src="/assets/js/uplink.js" defer></script>
 </body>
 </html>

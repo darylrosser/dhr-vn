@@ -2,25 +2,33 @@
 // Voight-Kampff close-ups). Follows the pointer, blinks, pupil breathes.
 // Purely decorative: the panel is aria-hidden.
 (function () {
-  const pre = document.getElementById('eye');
-  if (!pre) return;
-  const status = document.getElementById('eye-status');
+  // Mounts on every .eye at load; world mode calls DHRmountEye() for eyes in
+  // pages it loads into the datapad.
+  window.DHRmountEye = function (pre, status) {
+  if (!pre || pre.dataset.mounted) return;
+  pre.dataset.mounted = '1';
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const COLS = 46;
   const ROWS = 22;
   const RAMP = ' .,:;-=+*#%@';
 
-  // Character cells are taller than wide; measure once so the eye stays round.
-  const probe = document.createElement('span');
-  probe.textContent = 'MMMMMMMMMM';
-  pre.append(probe);
-  const box = probe.getBoundingClientRect();
-  const cellAspect = box.width / 10 / (box.height || 1) || 0.55;
-  probe.remove();
-
-  const W = COLS * cellAspect; // eye width in "row heights"
-  const half = W / 2;
+  // Character cells are taller than wide; measure the glyph so the eye stays
+  // round. Canvas metrics, so page transforms (the CRT power-on) can't skew it,
+  // and again once the webfont has loaded.
+  let W = COLS * 0.55; // eye width in "row heights"
+  let half = W / 2;
+  function measureCells() {
+    const cs = getComputedStyle(pre);
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const lineH = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize);
+    const aspect = ctx.measureText('M').width / lineH;
+    W = COLS * (aspect > 0.2 && aspect < 1.2 ? aspect : 0.55);
+    half = W / 2;
+  }
+  measureCells();
+  if (document.fonts) document.fonts.ready.then(measureCells);
 
   let gazeX = 0, gazeY = 0;       // current (smoothed)
   let targetX = 0, targetY = 0;   // where it wants to look
@@ -77,7 +85,7 @@
         run = '';
       };
       for (let c = 0; c < COLS; c++) {
-        const u = ((c + .5) * cellAspect - half) / half;          // -1..1 across
+        const u = ((c + .5) * (W / COLS) - half) / half;          // -1..1 across
         const v = ((r + .5) - ROWS / 2) / half;                    // same scale down
         const edge = Math.max(0, 1 - u * u);
         const top = -.58 * Math.pow(edge, .85) * open;
@@ -127,15 +135,21 @@
   const STATUS = ['Pupil response: nominal', 'Iris dilation: 0.6 mm', 'Empathy response: human. Mostly.', 'Capillary flush: detected', 'Subject: probably not a replicant'];
   let statusIndex = 0;
   setInterval(() => {
-    if (document.hidden || !status) return;
+    if (document.hidden || !status || !pre.isConnected) return;
     statusIndex = (statusIndex + 1) % STATUS.length;
     status.textContent = STATUS[statusIndex];
   }, 5000);
 
   let last = 0;
   function loop(now) {
+    if (!pre.isConnected) { requestAnimationFrame(loop); return; } // parked in a closed datapad
     if (now - last > 66) { last = now; frame(now); } // ~15 fps is plenty for a CRT
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+  };
+
+  for (const pre of document.querySelectorAll('.eye')) {
+    window.DHRmountEye(pre, pre.parentElement.querySelector('#eye-status, figcaption, .panel-label--foot span'));
+  }
 })();

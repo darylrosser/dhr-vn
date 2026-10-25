@@ -91,12 +91,11 @@
   function showPrompt() {
     form.hidden = false;
     chips.hidden = false;
-    jack.hidden = false;
     syslog('Baseline complete.');
     syslog('Waiting for input…', 't-dim');
     // Load the 3D world quietly once the terminal is usable.
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1));
-    setTimeout(() => idle(startUplink, { timeout: 3000 }), location.hash === '#world' ? 0 : 1200);
+    setTimeout(() => idle(uplink.start, { timeout: 3000 }), location.hash === '#world' ? 0 : 1200);
     if (finePointer) input.focus({ preventScroll: true });
   }
 
@@ -149,53 +148,10 @@
   }
 
   // ------------------------------------------------------------ world mode (uplink)
-  // The terminal is a monitor in a 3D warehouse. world.js (three.js) loads in
-  // the background on capable devices; "jack out" pulls the camera back.
+  // The terminal is a monitor in a 3D warehouse; uplink.js loads the world and
+  // handles every "jack out" control. Here we just narrate it.
 
-  const jack = document.getElementById('jack');
-  const uplinkEl = document.getElementById('uplink');
-  const uplink = { state: 'offline', world: null, pending: false };
-
-  function worldCapable() {
-    try {
-      if (!document.createElement('canvas').getContext('webgl2')) return false;
-    } catch (e) { return false; }
-    if (navigator.connection && navigator.connection.saveData) return false;
-    if (navigator.deviceMemory && navigator.deviceMemory < 4) return false;
-    return true;
-  }
-
-  function setUplink(state, text) {
-    uplink.state = state;
-    jack.dataset.state = state;
-    uplinkEl.textContent = `Uplink: ${text}`;
-  }
-
-  function startUplink() {
-    if (uplink.state !== 'offline' || !worldCapable()) return;
-    setUplink('syncing', 'syncing…');
-    syslog('Establishing uplink…', 't-dim');
-    import(window.__worldModule)
-      .then((m) => m.createWorld({
-        rig: term,
-        reducedMotion,
-        readingUrl: manifest.readingUrl,
-        onStatus: (text) => setUplink('syncing', text),
-        onEnter: () => { syslog('Jacked in.'); if (finePointer) input.focus({ preventScroll: true }); },
-      }))
-      .then((world) => {
-        uplink.world = world;
-        setUplink('ready', 'ready');
-        syslog('Uplink ready.', 't-ok');
-        if (uplink.pending || location.hash === '#world') { uplink.pending = false; jackOut(); }
-      })
-      .catch((err) => {
-        console.warn('world mode failed to load', err);
-        setUplink('failed', 'lost');
-        syslog('Uplink lost.', 't-warn');
-        if (uplink.pending) { uplink.pending = false; offlineMessage(); }
-      });
-  }
+  const uplink = window.DHRUplink;
 
   function offlineMessage() {
     term.classList.remove('is-glitching');
@@ -208,20 +164,22 @@
     );
   }
 
-  function jackOut() {
-    if (uplink.state === 'ready') {
-      syslog('Jacking out…');
-      uplink.world.exit();
-    } else if (uplink.state === 'syncing' || (uplink.state === 'offline' && worldCapable())) {
-      uplink.pending = true;
-      print(line(el('span', { class: 't-warn' }, 'Establishing uplink… hold on.')));
-      startUplink();
-    } else {
-      offlineMessage();
+  uplink.on((type, d) => {
+    if (type === 'state') {
+      if (d.state === 'syncing' && d.text === 'syncing…') syslog('Establishing uplink…', 't-dim');
+      else if (d.state === 'ready') syslog('Uplink ready.', 't-ok');
+      else if (d.state === 'failed') syslog('Uplink lost.', 't-warn');
+    } else if (type === 'jackout') syslog('Link severed.', 't-warn');
+    else if (type === 'pending') print(line(el('span', { class: 't-warn' }, 'Establishing uplink… hold on.')));
+    else if (type === 'unavailable') offlineMessage();
+    else if (type === 'return') {
+      syslog('Link established.', 't-ok');
+      term.classList.remove('crt-on'); // its power-on already played in 3D
+      if (finePointer) input.focus({ preventScroll: true });
     }
-  }
+  });
 
-  jack.addEventListener('click', jackOut);
+  const jackOut = () => uplink.jackOut();
 
   // ------------------------------------------------------------ routing
 
@@ -247,6 +205,8 @@
       return;
     }
     syslog(`Opening file: ${r.label}`);
+    // on the monitor in world mode: walk over to that place instead of reloading
+    if (uplink.world && uplink.world.active) { uplink.world.visit(r.href); return; }
     if (reducedMotion) { window.location.href = r.href; return; }
     // a beat of fiction before the calm reader page
     const bar = el('span', {}, '');

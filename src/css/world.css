@@ -1,0 +1,357 @@
+/* World mode, shared by every page: the 3D layers, the heads-up display, the
+   datapad that shows pages in the warehouse, and the CRT / signal-tear effects.
+   Colours are fixed here (not page tokens) because the HUD looks the same on the
+   amber terminal and the paper reader. */
+
+html.in-world, html.in-world body { overflow: hidden; height: 100%; }
+html.in-world .crt,
+html.in-world .bar,
+html.in-world .foot,
+html.in-world .skip-link { display: none; }
+
+.world-gl, .world-css { position: fixed; inset: 0; }
+.world-gl { z-index: 0; display: block; width: 100%; height: 100%; opacity: 0; transition: opacity .6s; }
+.world-gl.is-on { opacity: 1; }
+.world-css { z-index: 1; pointer-events: none; }
+
+/* the terminal, re-parented onto the monitor */
+.world-screen {
+  pointer-events: auto;
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.world-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, .28) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .55));
+}
+.world-screen .rig { max-width: none; }
+
+.world-tip {
+  position: fixed;
+  z-index: 5;
+  pointer-events: none;
+  padding: .25rem .5rem;
+  font: .72rem var(--font-crt);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #031210;
+  background: #2ad4c9;
+  transform: translate(12px, 12px);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.world-tip.is-on { opacity: 1; }
+
+/* the reading app's own elements while you're out in the warehouse */
+.world-hidden { opacity: 0 !important; visibility: hidden; transition: opacity .5s, visibility 0s .5s; }
+
+/* ---------------------------------------------------------------- HUD */
+
+.world-ui {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .8rem 1rem calc(.8rem + env(safe-area-inset-bottom));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s;
+  font-family: var(--font-crt);
+  text-transform: uppercase;
+}
+.world-ui.is-on { opacity: 1; }
+.world-ui.is-on > * { pointer-events: auto; }
+
+.world-hud, .world-leave {
+  background: rgba(10, 8, 5, .8);
+  border: 1px solid #b37a00;
+  border-radius: 4px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 18px rgba(255, 176, 0, .12);
+}
+.world-hud {
+  display: flex;
+  gap: .25rem;
+  padding: .25rem;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.world-hud button, .world-leave {
+  font: .78rem var(--font-crt);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffb000;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: .45rem .7rem;
+  cursor: pointer;
+}
+.world-hud button:hover { color: #2ad4c9; border-color: rgba(42, 212, 201, .5); }
+.world-hud button[aria-current="true"] { color: #120c00; background: #ffb000; }
+.world-leave { display: inline-flex; align-items: center; gap: .5em; border-color: #b37a00; }
+.world-leave:hover { color: #031210; background: #2ad4c9; border-color: #2ad4c9; }
+.world-leave .jack-icon, .datapad .jack-icon {
+  width: 1.2em; height: 1.2em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.world-hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: .66rem;
+  letter-spacing: .14em;
+  color: #7a5a1e;
+  text-shadow: 0 1px 4px #000;
+}
+@media (max-width: 640px) {
+  .world-hint { display: none; }
+  .world-ui { gap: .4rem; padding-left: 8px; padding-right: 8px; }
+}
+
+/* ---------------------------------------------------------------- datapad */
+/* A page shown inside the world: same reader styles, in a floating panel.
+   Starts full-screen (is-full) when a flat page jacks out, so the handoff is seamless. */
+
+.datapad {
+  /* reader night palette, independent of the page it's opened on */
+  --bg: #0d0f14;
+  --bg-raised: #141821;
+  --ink: #e6e1d6;
+  --ink-soft: #b3ada2;
+  --ink-dim: #7d8590;
+  --rule: #262c38;
+  --link: #ffb54a;
+  --link-hover: #2ad4c9;
+  --mark: #ffb000;
+
+  position: fixed;
+  z-index: 3;
+  top: 4vh;
+  bottom: calc(5.4rem + env(safe-area-inset-bottom));
+  left: 50%;
+  width: min(46rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font-serif);
+  border: 1px solid #b37a00;
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(10, 8, 5, .55), 0 30px 80px rgba(0, 0, 0, .65), 0 0 34px rgba(255, 176, 0, .16);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-50%) scale(.96);
+  pointer-events: none;
+  transition: opacity .3s, transform .3s,
+    top .6s cubic-bezier(.2, .7, .2, 1), bottom .6s cubic-bezier(.2, .7, .2, 1),
+    width .6s cubic-bezier(.2, .7, .2, 1), border-radius .6s, border-color .6s;
+}
+:root[data-theme="paper"] .datapad {
+  --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
+  --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="night"]) .datapad {
+    --bg: #f6f1e7; --bg-raised: #efe8da; --ink: #23201b; --ink-soft: #4a443b; --ink-dim: #857c6e;
+    --rule: #ddd3c1; --link: #a24a00; --link-hover: #0a7d76; --mark: #e09a00;
+  }
+}
+.datapad.is-open { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+.datapad.is-full { top: 0; bottom: 0; width: 100vw; border-radius: 0; border-color: transparent; }
+
+.datapad-bar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .6rem .5rem .9rem;
+  font: .74rem var(--font-mono);
+  color: var(--ink-dim);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--rule);
+}
+.datapad-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.datapad-title::before { content: '▤ '; color: #ffb000; }
+.datapad-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: .25rem .55rem;
+  cursor: pointer;
+}
+.datapad-bar button:hover { color: var(--link-hover); border-color: var(--link-hover); }
+.datapad-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+.datapad-body .reader { padding: 2.4rem 1.2rem 3rem; }
+.datapad-body .prose figure { margin-left: 0; margin-right: 0; }
+.datapad-body .prose figcaption { margin-left: 0; margin-right: 0; }
+
+@media (max-width: 640px) {
+  .datapad { top: 8px; width: calc(100vw - 16px); bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
+}
+
+/* ---------------------------------------------------------------- CRT power-on / signal tear */
+
+/* Old-CRT power-on: a bright dot stretches to a line, the line opens into the
+   picture, brightness settles. Used on first boot and when the plug goes back in. */
+.crt-on {
+  animation: crt-on .8s cubic-bezier(.2, .7, .2, 1) both;
+  transform-origin: 50% 45%;
+}
+@keyframes crt-on {
+  0%   { transform: scale(.015, .003); filter: brightness(9) saturate(0); }
+  20%  { transform: scale(1, .003);    filter: brightness(9) saturate(0); }
+  48%  { transform: scale(1, 1);       filter: brightness(2.4) saturate(.6); }
+  62%  { filter: brightness(.65); }
+  76%  { filter: brightness(1.35); }
+  100% { transform: none;              filter: none; }
+}
+
+/* Jacking out: chromatic split + a torn band for a quarter second. */
+.is-unplugging { animation: signal-tear .26s steps(4) both; }
+@keyframes signal-tear {
+  0%   { transform: none; filter: none; clip-path: none; }
+  25%  { transform: translateX(-6px) skewX(3deg); filter: drop-shadow(4px 0 0 rgba(255, 30, 60, .85)) drop-shadow(-4px 0 0 rgba(0, 220, 255, .85)) brightness(1.5); }
+  50%  { transform: translate(5px, 2px); clip-path: inset(18% 0 48% 0); filter: brightness(2.2) saturate(0); }
+  75%  { transform: translateX(-2px); clip-path: inset(0 0 0 0); filter: drop-shadow(-3px 0 0 rgba(255, 30, 60, .8)) drop-shadow(3px 0 0 rgba(0, 220, 255, .8)); }
+  100% { transform: none; filter: none; clip-path: none; }
+}
+
+/* ---------------------------------------------------------------- the way out: bezel + close ✕ */
+/* Every page is a screen in the warehouse. Its edge is a thin bezel; hovering
+   it pulls the bezel back to show the room behind (--world-peek, a render of
+   this page's place set by uplink.js once the world has loaded). Clicking the
+   edge, or the ✕ in the screen's chrome, steps out into the warehouse. */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@property --peek-tint { syntax: '<color>'; inherits: false; initial-value: rgba(5, 4, 3, .9); }
+
+.bezel { display: none; }
+html.has-uplink:not(.in-world) .bezel { display: block; }
+
+.bezel-edge {
+  --peek-tint: rgba(5, 4, 3, .9);
+  position: fixed;
+  z-index: 70;
+  cursor: pointer;
+  background:
+    linear-gradient(var(--peek-tint), var(--peek-tint)),
+    var(--world-peek, radial-gradient(ellipse at 30% 40%, rgba(42, 212, 201, .5), transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(255, 140, 30, .5), transparent 60%), #07080c);
+  background-size: 100vw 100vh;
+  background-position: center;
+  background-attachment: fixed;
+  transition: width .32s cubic-bezier(.2, .7, .2, 1), height .32s cubic-bezier(.2, .7, .2, 1), --peek-tint .32s;
+}
+.bezel-edge[data-edge="top"]    { top: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 -1px 0 rgba(255, 176, 0, .28); }
+.bezel-edge[data-edge="bottom"] { bottom: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 1px 0 rgba(255, 176, 0, .28); }
+.bezel-edge[data-edge="left"]   { top: 0; bottom: 0; left: 0; width: 7px; box-shadow: inset -1px 0 0 rgba(255, 176, 0, .28); }
+.bezel-edge[data-edge="right"]  { top: 0; bottom: 0; right: 0; width: 7px; box-shadow: inset 1px 0 0 rgba(255, 176, 0, .28); }
+
+/* peeking: the screen draws back, the room shows through, light spills in */
+html.is-peeking .bezel-edge { --peek-tint: rgba(5, 4, 3, .12); }
+html.is-peeking .bezel-edge[data-edge="top"],
+html.is-peeking .bezel-edge[data-edge="bottom"] { height: 34px; }
+html.is-peeking .bezel-edge[data-edge="left"],
+html.is-peeking .bezel-edge[data-edge="right"] { width: 34px; }
+html.is-peeking .bezel-edge[data-edge="top"]    { box-shadow: inset 0 -1px 0 rgba(255, 176, 0, .6), 0 10px 30px rgba(42, 212, 201, .18); }
+html.is-peeking .bezel-edge[data-edge="bottom"] { box-shadow: inset 0 1px 0 rgba(255, 176, 0, .6), 0 -10px 30px rgba(42, 212, 201, .18); }
+html.is-peeking .bezel-edge[data-edge="left"]   { box-shadow: inset -1px 0 0 rgba(255, 176, 0, .6), 10px 0 30px rgba(255, 140, 30, .16); }
+html.is-peeking .bezel-edge[data-edge="right"]  { box-shadow: inset 1px 0 0 rgba(255, 176, 0, .6), -10px 0 30px rgba(255, 140, 30, .16); }
+
+.bezel-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font: .64rem/1 var(--font-crt);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffb000;
+  text-shadow: 0 0 8px rgba(255, 176, 0, .6), 0 1px 3px #000;
+  opacity: 0;
+  transition: opacity .2s .1s;
+}
+html.is-peeking .bezel-hint { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bezel-edge { transition: none; }
+}
+
+/* close ✕: window chrome on the screen, with an uplink LED */
+.screen-x {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .15s, color .15s, background .15s, border-color .15s;
+}
+.screen-x[hidden] { display: none; }
+.screen-x svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.screen-x:hover, .screen-x:focus-visible { opacity: 1; color: #031210; background: #2ad4c9; border-color: #2ad4c9; }
+.screen-x-led {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3a3226;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.screen-x[data-state="syncing"] .screen-x-led { background: #ffb000; animation: blink .6s steps(1) infinite; }
+.screen-x[data-state="ready"] .screen-x-led { background: #2ad4c9; box-shadow: 0 0 0 2px var(--bg), 0 0 8px #2ad4c9; }
+.screen-x[data-state="failed"] .screen-x-led { background: #ff6a1a; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* reader pages: the ✕ sits at the end of the top bar (the screen's title bar) */
+.screen-x--bar { color: var(--ink-dim); }
+/* terminal: top-right corner of the main panel */
+.screen-x--panel {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 6;
+  color: var(--ink);
+  background: var(--panel);
+  text-shadow: none;
+}
+@media (max-width: 899px) {
+  .screen-x--panel { top: 10px; right: 10px; }
+}
+
+/* the reading shelf app: top-right of its header */
+.screen-x--app { color: #000; margin-left: .75rem; }

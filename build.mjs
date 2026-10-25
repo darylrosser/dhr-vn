@@ -71,10 +71,23 @@ const IMPORT_MAP = `<script type="importmap">${JSON.stringify({ imports: {
 
 const BOOT_SNIPPET = `<script>(function(){var d=document.documentElement;try{if(matchMedia('(prefers-reduced-motion: reduce)').matches||sessionStorage.getItem('dhr-booted'))return}catch(e){return}d.classList.add('is-booting');setTimeout(function(){if(!window.__termBooted)d.classList.remove('is-booting')},8000)})()</script>`;
 
-function head({ title, description, canonical, kind }) {
+// The way out of a page into the warehouse is part of the screen itself: a
+// close ✕ in its chrome (with an uplink LED), and the bezel around the edge,
+// which pulls back on hover to show the room. uplink.js shows them on capable devices.
+const screenX = (cls = '') => `<button type="button" class="screen-x${cls ? ` ${cls}` : ''}" data-jack hidden aria-label="Close this screen and step into the warehouse" title="Exit to the warehouse"><span class="screen-x-led" aria-hidden="true"></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg><span class="jack-state visually-hidden">Uplink: offline</span></button>`;
+
+const BEZEL = `<div class="bezel" aria-hidden="true">
+  <div class="bezel-edge" data-edge="top" data-jack-edge></div>
+  <div class="bezel-edge" data-edge="right" data-jack-edge></div>
+  <div class="bezel-edge" data-edge="bottom" data-jack-edge><span class="bezel-hint">▸ exit to warehouse</span></div>
+  <div class="bezel-edge" data-edge="left" data-jack-edge></div>
+</div>`;
+
+// `place` = where the page lives in the warehouse (world.js PLACES); none = no world mode.
+function head({ title, description, canonical, kind, place = '' }) {
   const fullTitle = title ? `${title} | ${SITE.name}` : SITE.name;
   return `<!DOCTYPE html>
-<html lang="en" data-kind="${kind}">
+<html lang="en" data-kind="${kind}"${place ? ` data-place="${place}"` : ''}>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -85,9 +98,13 @@ function head({ title, description, canonical, kind }) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-${kind === 'terminal' ? BOOT_SNIPPET + IMPORT_MAP : THEME_SNIPPET}
+${kind === 'terminal' ? BOOT_SNIPPET : ''}${THEME_SNIPPET}
+${IMPORT_MAP}
+<script>window.__dhrAssets = ${JSON.stringify({ world: asset('js/world.js') })};</script>
 <link rel="stylesheet" href="${asset('css/base.css')}">
-<link rel="stylesheet" href="${asset(`css/${kind}.css`)}">
+<link rel="stylesheet" href="${asset('css/reader.css')}">
+<link rel="stylesheet" href="${asset('css/world.css')}">
+${kind === 'terminal' ? `<link rel="stylesheet" href="${asset('css/terminal.css')}">` : ''}
 </head>`;
 }
 
@@ -101,16 +118,18 @@ function promptPath(crumbs) {
   return `<a href="/" class="prompt-host">${SITE.name}</a><span class="prompt-sep">:</span><a href="/" class="prompt-home">~</a>${parts.map((p) => `<span class="prompt-slash">/</span>${p}`).join('')}<span class="prompt-dollar"> $</span>`;
 }
 
-function readerShell({ title, description, canonical, active, crumbs, body, scripts = [] }) {
+function readerShell({ title, description, canonical, active, crumbs, body, place = '' }) {
   const nav = NAV.map((n) => `<a href="${n.href}"${n.key === active ? ' aria-current="page"' : ''}>${n.label}</a>`).join('');
-  return `${head({ title, description, canonical, kind: 'reader' })}
+  return `${head({ title, description, canonical, kind: 'reader', place })}
 <body>
+${place ? BEZEL : ''}
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="bar">
   <div class="bar-inner">
     <p class="bar-prompt">${promptPath(crumbs)}<span class="bar-cursor" aria-hidden="true"></span></p>
     <nav class="bar-nav" aria-label="Main">${nav}</nav>
     <button type="button" class="theme-toggle" aria-label="Change colour theme"><span class="theme-toggle-label">auto</span></button>
+    ${place ? screenX('screen-x--bar') : ''}
   </div>
 </header>
 <main id="main" class="reader">
@@ -118,7 +137,8 @@ ${body}
 </main>
 ${footer()}
 <script src="${asset('js/theme.js')}" defer></script>
-${scripts.map((s) => `<script src="${asset(s)}" defer></script>`).join('\n')}
+<script src="${asset('js/eye.js')}" defer></script>
+<script src="${asset('js/uplink.js')}" defer></script>
 </body>
 </html>
 `;
@@ -168,7 +188,7 @@ function pageView(page) {
     canonical: `/${page.slug}/`,
     active: page.nav,
     crumbs: [page.slug],
-    scripts: page.dossier ? ['js/eye.js'] : [],
+    place: page.slug,
     body: `${page.dossier ? dossierPanel(page.dossier) : ''}
 <article class="prose">
   <p class="kicker"><span class="kicker-cmd">cat</span> ${esc(page.dossier ? page.dossier.statement : `${page.slug}.md`)}</p>
@@ -185,6 +205,7 @@ function postView(post) {
     canonical: `/blog/${post.slug}/`,
     active: 'blog',
     crumbs: ['blog', post.slug],
+    place: 'blog',
     body: `<article class="prose">
   <p class="kicker"><span class="kicker-cmd">cat</span> ${esc(post.slug)}.md <span class="kicker-dim">·</span> <time datetime="${post.date}">${fmtDate(post.date)}</time> <span class="kicker-dim">·</span> ${readMinutes(post.body)} min read</p>
   <h1>${post.title}</h1>
@@ -209,6 +230,7 @@ function blogIndexView(posts) {
     canonical: '/blog/',
     active: 'blog',
     crumbs: ['blog'],
+    place: 'blog',
     body: `<section class="prose">
   <p class="kicker"><span class="kicker-cmd">ls</span> -lt blog/ <span class="kicker-dim">·</span> ${posts.length} ${posts.length === 1 ? 'entry' : 'entries'}</p>
   <h1>The Blog</h1>
@@ -228,16 +250,14 @@ function homeView(posts, pages) {
     readingUrl: SITE.readingUrl,
   };
   const recent = posts.slice(0, 5).map((p) => `<li><span class="t-dim">${p.date}</span>  <a href="/blog/${p.slug}/">${p.title}</a></li>`).join('');
-  return `${head({ title: '', description: 'Daryl Hensman-Rosser: marketing, digital business, and the occasional ramble. Based in Saigon.', canonical: '/', kind: 'terminal' })}
+  return `${head({ title: '', description: 'Daryl Hensman-Rosser: marketing, digital business, and the occasional ramble. Based in Saigon.', canonical: '/', kind: 'terminal', place: 'home' })}
 <body>
+${BEZEL}
 <a class="skip-link" href="#prompt-input">Skip to command line</a>
 <div class="crt" aria-hidden="true"></div>
 <main class="rig" id="term">
   <section class="panel panel-main" aria-label="Terminal">
-    <button type="button" class="jack" id="jack" hidden aria-describedby="uplink">
-      <span class="jack-label">Jack out</span><span class="jack-icon" aria-hidden="true">⏏</span>
-      <span class="jack-state" id="uplink">Uplink: offline</span>
-    </button>
+    ${screenX('screen-x--panel')}
     <div class="screen" id="screen" tabindex="-1">
       <h1 class="wordmark"><span>DHR</span><span>.VN</span></h1>
       <p class="t-quote">=== "I've seen things you people wouldn't believe. Mostly bookshops." ===</p>
@@ -321,7 +341,7 @@ function homeView(posts, pages) {
 </main>
 <script id="site-manifest" type="application/json">${JSON.stringify(manifest).replace(/</g, '\\u003c')}</script>
 <script src="${asset('js/eye.js')}" defer></script>
-<script>window.__worldModule = ${JSON.stringify(asset('js/world.js'))};</script>
+<script src="${asset('js/uplink.js')}" defer></script>
 <script src="${asset('js/terminal.js')}" defer></script>
 </body>
 </html>

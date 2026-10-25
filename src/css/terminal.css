@@ -27,13 +27,7 @@ body {
   min-height: 100vh;
 }
 
-.visually-hidden {
-  position: absolute !important;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
+
 
 /* scanlines + vignette + faint flicker, purely decorative */
 .crt {
@@ -316,132 +310,8 @@ html.is-booting .is-shown { animation: flicker-in .18s steps(3); }
   100% { transform: translate(0); filter: none; }
 }
 
-/* ---------------------------------------------------------------- jack out */
-
-.jack {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 6;
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: center;
-  column-gap: .6em;
-  padding: .45rem .8rem .4rem;
-  font: inherit;
-  font-size: .85rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  text-align: left;
-  color: var(--ink-dim);
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  cursor: pointer;
-  text-shadow: none;
+/* first boot powers the rig on like an old CRT (keyframes in world.css) */
+html.is-booting .rig {
+  animation: crt-on .8s cubic-bezier(.2, .7, .2, 1) both;
+  transform-origin: 50% 45%;
 }
-.jack[hidden] { display: none; }
-.jack-icon { font-size: 1.1em; line-height: 1; }
-.jack-state { grid-column: 1 / -1; font-size: .62rem; letter-spacing: .14em; opacity: .8; }
-.jack-state::before { content: '●'; margin-right: .5em; }
-
-.jack[data-state="syncing"] .jack-state::before { animation: blink .6s steps(1) infinite; }
-.jack[data-state="ready"] {
-  color: #120c00;
-  background: var(--ink);
-  border-color: var(--ink);
-  box-shadow: 0 0 16px rgba(255, 176, 0, .45);
-}
-.jack[data-state="ready"] .jack-state::before { color: #0a4d48; }
-.jack:hover { border-color: var(--teal); color: var(--teal); }
-.jack[data-state="ready"]:hover { background: var(--teal); border-color: var(--teal); color: #031210; }
-
-@media (max-width: 899px) {
-  .jack { top: 10px; right: 10px; font-size: .75rem; }
-  .screen { padding-top: 76px; }  /* room for the jack-out button above the wordmark */
-}
-
-/* ---------------------------------------------------------------- world mode */
-
-html.in-world, html.in-world body { overflow: hidden; height: 100%; }
-html.in-world .crt { display: none; }
-
-.world-gl, .world-css {
-  position: fixed;
-  inset: 0;
-}
-.world-gl { z-index: 0; display: block; width: 100%; height: 100%; }
-.world-css { z-index: 1; pointer-events: none; }
-
-/* the terminal, re-parented onto the monitor */
-.world-screen {
-  pointer-events: auto;
-  background: var(--bg);
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-.world-screen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(to bottom, rgba(0, 0, 0, .28) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .55));
-}
-.world-screen .rig { max-width: none; }
-
-.world-ui {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: .6rem;
-  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .4s;
-  text-transform: uppercase;
-}
-.world-ui.is-on { opacity: 1; }
-.world-ui.is-on > * { pointer-events: auto; }
-.world-ui button, .world-ui a {
-  font: .8rem var(--font-crt);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--ink);
-  background: rgba(10, 8, 5, .82);
-  border: 1px solid var(--frame);
-  border-radius: 3px;
-  padding: .55rem .9rem;
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-.world-ui button:hover, .world-ui a:hover { color: #031210; background: var(--teal); border-color: var(--teal); }
-.world-hint {
-  flex-basis: 100%;
-  text-align: center;
-  font-size: .72rem;
-  letter-spacing: .14em;
-  color: var(--ink-dim);
-  text-shadow: 0 1px 4px #000;
-}
-.world-tip {
-  position: fixed;
-  z-index: 3;
-  pointer-events: none;
-  padding: .25rem .5rem;
-  font: .72rem var(--font-crt);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: #031210;
-  background: var(--teal);
-  transform: translate(12px, 12px);
-  opacity: 0;
-  transition: opacity .15s;
-}
-.world-tip.is-on { opacity: 1; }
