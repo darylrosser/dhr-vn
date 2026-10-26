@@ -3,7 +3,7 @@
 // Purely decorative: the panel is aria-hidden.
 (function () {
   // Mounts on every .eye at load; world mode calls DHRmountEye() for eyes in
-  // pages it loads into the datapad.
+  // pages it loads onto the desk monitor.
   window.DHRmountEye = function (pre, status) {
   if (!pre || pre.dataset.mounted) return;
   pre.dataset.mounted = '1';
@@ -142,7 +142,7 @@
 
   let last = 0;
   function loop(now) {
-    if (!pre.isConnected) { requestAnimationFrame(loop); return; } // parked in a closed datapad
+    if (!pre.isConnected) { requestAnimationFrame(loop); return; } // parked off the monitor
     if (now - last > 66) { last = now; frame(now); } // ~15 fps is plenty for a CRT
     requestAnimationFrame(loop);
   }
