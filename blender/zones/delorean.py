@@ -84,14 +84,20 @@ def door_mesh(name, side, open_ang=0.0):
     bm = bmesh.new()
     zc, zr, zb = 0.12, HALF_W - 0.2, HALF_W + 0.005
     sect = [(ROOF + 0.005, zc), (ROOF, zr), (BELT, zb), (SILL, zb)]
-    if open_ang:
-        ca, sa = math.cos(open_ang), math.sin(open_ang)
-        # (y, outward) about the hinge (ROOF, zc): outward points swing upward
-        sect = [(ROOF + (w - zc) * sa + (y - ROOF) * ca, zc + (w - zc) * ca - (y - ROOF) * sa) for y, w in sect]
+    ca, sa = math.cos(open_ang), math.sin(open_ang)
+
+    def swing(y, w):  # (y, outward) about the hinge (ROOF, zc): outward points swing upward
+        return ROOF + (w - zc) * sa + (y - ROOF) * ca, zc + (w - zc) * ca - (y - ROOF) * sa
     rows = []
     for x in DOOR_X:
-        # the front edge leans back with the windscreen above the beltline
-        rows.append([bm.verts.new(B(x + (0.3 * (y - BELT) / (ROOF - BELT) if (x < 0 and y > BELT) else 0), y, side * w)) for y, w in sect])
+        row = []
+        for y, w in sect:
+            # the front edge leans back with the windscreen above the beltline
+            # (worked out on the closed door, then the whole door swings up)
+            xx = x + (0.3 * (y - BELT) / (ROOF - BELT) if (x < 0 and y > BELT) else 0)
+            yy, ww = swing(y, w)
+            row.append(bm.verts.new(B(xx, yy, side * ww)))
+        rows.append(row)
     for k in range(len(sect) - 1):
         f = bm.faces.new((rows[0][k], rows[0][k + 1], rows[1][k + 1], rows[1][k]))
         f.material_index = 1 if k == 1 else 0  # the side window is glass

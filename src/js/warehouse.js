@@ -7,7 +7,7 @@
 // hazy view out of the window, neon flicker and the sunbeam. The GLB says
 // where those go through glTF extras (three userData):
 //   role: 'screen' (col, row, painter?, tint?) | 'window' (w, h) | 'flicker'
-//         | 'spin' (speed) | 'pulse' | 'shaft' (r, h, top, sides, color, opacity)
+//         | 'spin' (speed) | 'pulse' | 'shaft' (w, h, dx, dy, dz, length, color, opacity)
 //         | 'board' (canvas, w, h) | 'display' (painter)
 //   hotspot: a key of HOTSPOTS below → the hotspot contract.
 
@@ -73,7 +73,8 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   // bake can't do: the desk lamp's highlights on wet and shiny things, the
   // screen's spill on the JS-built monitor and plug, and reflections (an
   // environment of the bright window, warm bulbs and screens, blurred).
-  const lamp = new THREE.SpotLight('#ffd9a0', 5, 7, 0.75, 0.65, 1.6);
+  // (the desk's light is baked too: this only adds the shine, so it's low)
+  const lamp = new THREE.SpotLight('#ffd9a0', 1.6, 7, 0.75, 0.65, 1.6);
   lamp.position.set(0.1, 3.15, 0.3);
   lamp.target.position.set(0, DESK_TOP, 0);
   scene.add(lamp, lamp.target);
@@ -684,25 +685,37 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
   }
 
-  // a beam of light through the dusty air (cheap volumetrics): an open prism
-  // fading along its length (sides 4 makes it square, like the window), with
-  // a little dust drifting in it, only where the light catches it
-  function sunbeam(anchor, { r = 1, h = 4, top = 0.25, sides = 32, color = '#ffd9a0', opacity = 0.07 }) {
-    const geo = new THREE.CylinderGeometry(r * top, r, h, sides, 1, true);
-    if (sides === 4) geo.rotateY(Math.PI / 4);
-    geo.translate(0, -h / 2, 0);
+  // The sun through the window, through the dusty air (cheap volumetrics): a
+  // shaft with the window's own outline, running along the sun's direction
+  // (the same as the baked sunlight), fading as it goes; a little dust
+  // drifting in it, only where the light catches it. Local frame: the
+  // window's centre (not rotated).
+  function sunbeam(anchor, { w = 8, h = 4, dx = 0, dy = -0.5, dz = 1, length = 10, color = '#ffd9a0', opacity = 0.05 }) {
+    const dir = new THREE.Vector3(dx, dy, dz).normalize().multiplyScalar(length);
+    const corners = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
+    const pos = [], uv = [], index = [];
+    for (let i = 0; i < 4; i++) {
+      // one side of the shaft: from this window edge out along the sun
+      const [ax, ay] = corners[i], [bx, by] = corners[(i + 1) % 4];
+      const base = pos.length / 3;
+      pos.push(ax, ay, 0, bx, by, 0, bx + dir.x, by + dir.y, dir.z, ax + dir.x, ay + dir.y, dir.z);
+      uv.push(0, 1, 1, 1, 1, 0, 0, 0); // v: 1 at the window, 0 far along
+      index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(index);
     const beam = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      map: gradientTexture(), color, transparent: true, opacity: opacity * 2.4, depthWrite: false,
+      map: beamTexture(), color, transparent: true, opacity: opacity * 1.2, depthWrite: false,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
     }));
     anchor.add(beam);
     const n = reducedMotion ? 0 : 160;
     const p = new Float32Array(n * 3);
-    const half = (y) => r * (top + (1 - top) * (-y / h)) * 0.6; // inside the beam at that depth
     for (let i = 0; i < n; i++) {
-      const y = -h * (0.08 + rand() * 0.7);
-      const w = half(y);
-      p.set([(rand() - 0.5) * 2 * w, y, (rand() - 0.5) * 2 * w], i * 3);
+      const t = 0.08 + rand() * 0.6;
+      p.set([(rand() - 0.5) * w * 0.9 + dir.x * t, (rand() - 0.5) * h * 0.9 + dir.y * t, dir.z * t], i * 3);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
@@ -850,6 +863,28 @@ function grimeTexture() {
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+// the sunbeam's sides: brightest by the window, gone well before the far end,
+// and soft at the corners where the sides meet (no hard outline)
+function beamTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(64, 128);
+  for (let y = 0; y < 128; y++) {
+    const along = Math.pow(1 - y / 127, 1.6); // canvas top = v 1 = the window
+    for (let x = 0; x < 64; x++) {
+      const across = Math.pow(Math.sin(Math.PI * (x + 0.5) / 64), 1.5);
+      const v = Math.round(255 * along * across);
+      const o = (y * 64 + x) * 4;
+      img.data[o] = img.data[o + 1] = img.data[o + 2] = v;
+      img.data[o + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return new THREE.CanvasTexture(canvas);
 }
 
 // a soft round dot (sparks)

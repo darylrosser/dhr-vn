@@ -33,7 +33,7 @@ GROUPS = {
 DESK_TOP = 0.775
 X0, X1, Z0, Z1, H = -7.0, 7.0, -10.0, 5.5, 6.5
 WIN_W, WIN_Y0, WIN_Y1 = 8.0, 1.5, 5.7
-CAR = ((3.4, 0, -5.4), 0.45)   # where the car stands and its yaw (right of the screens, seen from your spot)
+CAR = ((3.4, 0, -5.4), 2.73)   # where the car stands and its yaw: side-on to your spot, nose to the right
 
 
 def build(quick=False):
@@ -89,9 +89,11 @@ def build(quick=False):
     # the bright haze outside, for the bake only (JS draws the view)
     haze = z.plane('haze_proxy', WIN_W + 6, WIN_Y1 + 4, (0, (WIN_Y1 + 4) / 2, Z0 - 2.5), material=emissive('w_haze', '#ffd9a8', 3.0), proxy=1)
     haze.visible_shadow = False  # the sun shines through it
-    # the light pouring in: a shaft from the window down across the floor
-    z.empty('window_beam', (0, (WIN_Y0 + WIN_Y1) / 2, Z0 + 0.05), rot=(math.radians(-62), 0, 0), role='shaft',
-            r=4.6, top=0.62, h=10.0, sides=4, color='#ffd9a0', opacity=0.05)
+    # the light pouring in: a shaft the shape of the window, along the sun (JS
+    # draws it; the direction matches the 'sun' light below)
+    sun_dir = (-1.2, -10.0, 16.0)
+    z.empty('window_beam', (0, (WIN_Y0 + WIN_Y1) / 2, Z0 - 0.05), role='shaft', w=WIN_W, h=WIN_Y1 - WIN_Y0,
+            dx=sun_dir[0], dy=sun_dir[1], dz=sun_dir[2], length=9.0, color='#ffd9a0', opacity=0.05)
     # roof and trusses
     z.box('roof', (W + 0.6, 0.2, D + 0.6), (cx, H + 0.1, cz), material=dark_steel, bake='room', texel=0.2)
     for i in range(5):
@@ -106,7 +108,7 @@ def build(quick=False):
 
     # ------------------------------------------------------------ the time machine + its cables
     (car_pos, car_yaw) = CAR
-    delorean.build(z, origin=car_pos, yaw=car_yaw, open_door=-1)  # the far gull-wing up
+    delorean.build(z, origin=car_pos, yaw=car_yaw)  # doors shut: there's no interior to see
     car = z.sub(car_pos, car_yaw)
     # kit bolted on: a box of electronics on the bonnet, a display on the roof, glowing valves at the back
     car.box('kit_hood', (0.55, 0.14, 0.5), (-1.45, 0.78, 0.05), rot=(0, 0, 0.12), material=dark_steel, bake='car', bevel=0.01)
@@ -208,7 +210,7 @@ def build(quick=False):
     # ------------------------------------------------------------ light
     # late sun through the window, low and warm; the sky's glow; bulbs and screens inside
     # (sunlight ~32° up: the window's grid lands on the floor from z ≈ -7.6 to -1, over the car)
-    z.light('SUN', (1.2, 10.0, Z0 - 10.0), '#ffc98a', 12.0, size=math.radians(1.5), aim=(0, 0, -4.0), name='sun')
+    z.light('SUN', (1.2, 10.0, Z0 - 10.0), '#ffc98a', 12.0, size=math.radians(1.5), aim=(0, 0, -4.0), name='sun')  # along sun_dir
     z.light('AREA', (0, (WIN_Y0 + WIN_Y1) / 2, Z0 - 0.6), '#ffe3b8', 1300, size=(WIN_W, WIN_Y1 - WIN_Y0), aim=(0, 1.5, 0), name='window_sky')
     bulb = emissive('w_edison', '#ffb15a', 9)
     for i, (x, y, zz) in enumerate(((-4.6, 3.2, -4.6), (-3.9, 2.9, 1.5), (4.4, 3.1, -5.8), (3.8, 3.0, -0.6), (-1.6, 3.3, -7.8))):
@@ -244,10 +246,11 @@ def cover_book(z, name, path, pages, pos, yaw, **tags):
     t = 0.008 + pages * 0.00007      # thickness from the page count
     edge = img.crop((0, 0, max(2, w_px // 12), h_px)).resize((1, 1)).getpixel((0, 0))
     spine = mat(f'{name}_spine', '#%02x%02x%02x' % edge, rough=0.6)
-    book = z.book(name, (w, t, d), pos, rot=(0, yaw, 0), cover=spine, bake='desk', **tags)
+    # (texel: thin page edges need room in the lightmap, or brighter light bleeds in)
+    book = z.book(name, (w, t, d), pos, rot=(0, yaw, 0), cover=spine, bake='desk', texel=4.0, **tags)
     c, s = math.cos(yaw), math.sin(yaw)
     top = z.plane(f'{name}_cover', w - 0.002, d - 0.002, (pos[0], pos[1] + t / 2 + 0.0004, pos[2]), rot=(-math.pi / 2, yaw, 0),
-                  material=photo(f'{name}_art', path, rough=0.45, tex=256), bake='desk', **tags)
+                  material=photo(f'{name}_art', path, rough=0.45, tex=256), bake='desk', texel=4.0, **tags)
     return join([book, top], name), t
 
 
@@ -379,7 +382,7 @@ def desk(z, rnd, wood, steel, dark_steel, black, cable):
     z.model('lamp', 'hanging_industrial_lamp', (lamp[0], lamp[1] - 0.2, lamp[2]), bake='desk', max_tris=2500, tex=512)
     z.tube('lamp_cord', [(lamp[0], lamp[1] + 1.1, lamp[2]), (lamp[0], H, lamp[2])], 0.006, material=black, bake='desk')
     z.cyl('lamp_bulb', 0.045, 0.07, (lamp[0], lamp[1] - 0.05, lamp[2]), material=emissive('bulb', '#ffd9a0', 6), live=1, segs=16)
-    z.light('SPOT', (lamp[0], lamp[1] - 0.08, lamp[2]), '#ffcf96', 300, size=0.08, aim=(lamp[0], 0, lamp[2]), spot=math.radians(100), blend=0.6, name='lamp')
+    z.light('SPOT', (lamp[0], lamp[1] - 0.08, lamp[2]), '#ffcf96', 150, size=0.2, aim=(lamp[0], 0, lamp[2]), spot=math.radians(110), blend=0.8, name='lamp')
 
 
 def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
@@ -417,7 +420,7 @@ def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
     z.model('junk_parts', 'plastic_crate_01', (1.6, 0, -2.2), rot=(0, 0.3, 0), bake='env', max_tris=800, tex=128)
     for k, (x, zz, y) in enumerate(((5.15, -1.1, 0), (5.17, -1.12, 0.17))):
         z.model(f'junk_tyre_{k}', 'old_tyre', (x, y, zz), rot=(0, rnd.random(), 0), bake='env', max_tris=600, tex=128)
-    z.model('junk_drum', 'Barrel_01', (5.3, 0, -3.6), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
+    z.model('junk_drum', 'Barrel_01', (0.9, 0, -4.5), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
     # on the floor: boards, scraps of paper, oil, grime
     for k in range(4):
         z.model(f'floor_pcb_{k}', 'circuit_board', (1.4 + rnd.random() * 3.5, 0.0, -1.0 - rnd.random() * 2.6), rot=(0, rnd.random() * 3, 0), scale=0.5, bake='env', max_tris=300, tex=128)
@@ -442,6 +445,35 @@ def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
             pts.append((start[0] + (end[0] - start[0]) * t + (rnd.random() - 0.5) * 1.2, 0.012, start[2] + (end[2] - start[2]) * t + (rnd.random() - 0.5) * 1.2))
         pts += [(end[0], 0.012, end[2]), end] if end[1] > 0.1 else [end]
         z.tube(f'junk_cable_{i}', pts, 0.009 + rnd.random() * 0.012, material=red if i % 3 == 0 else cable, bake='car', segs=6)
+    # the left side, between the desk and the TV wall: another bench of old
+    # kit under a lamp, boxes and crates, tyres, a jerrycan, a crate of parts
+    lb = z.sub((-3.3, 0, -2.3), 0.35)
+    bench(lb, 'bench_left', (0, 0, 0), 0.0, 1.7, bench_top, frame)
+    lb.model('left_tv', 'Television_01', (0.45, 0.92, -0.1), rot=(0, -0.3, 0), bake='hero', tex=128, max_tris=1000)
+    lb.model('left_panel', 'vintage_spacecraft_instrument', (-0.25, 0.92, -0.12), rot=(0, 0.2, 0), bake='hero', tex=128, max_tris=1000)
+    lb.model('left_radio', 'vintage_radio_transceiver', (-0.62, 0.92, 0.12), rot=(0, 0.5, 0), scale=0.8, bake='hero', tex=128, max_tris=800)
+    lb.model('left_lamp', 'desk_lamp_arm_01', (-0.75, 0.92, -0.25), rot=(0, 0.9, 0), bake='hero', tex=128, max_tris=1000)
+    lb.light('SPOT', (-0.45, 1.55, -0.05), '#ffd9a0', 120, size=0.06, aim=(-0.1, 0.9, 0.1), spot=math.radians(85), blend=0.5, name='left_lamp')
+    for k in range(2):
+        lb.model(f'left_pcb_{k}', 'circuit_board', (0.05 + k * 0.32, 0.92, 0.28), rot=(0, rnd.random() * 3, 0), scale=0.5, bake='hero', tex=128, max_tris=400)
+    for k, x in enumerate((0.05, 0.22)):
+        lb.cyl(f'left_bulb_glass_{k}', 0.04, 0.13, (x, 1.0, 0.05), material=mat('w_bulb_glass', '#3a2a18', rough=0.05), bake='hero', segs=16, r2=0.03)
+        lb.cyl(f'left_bulb_fil_{k}', 0.012, 0.07, (x, 1.0, 0.05), material=fil, live=1, segs=8)
+        lb.cyl(f'left_bulb_base_{k}', 0.035, 0.04, (x, 0.94, 0.05), material=frame, bake='hero', segs=16)
+        lb.light('POINT', (x, 1.0, 0.05), '#ff9a3c', 18, size=0.03, name=f'left_filament_{k}')
+    for k, (x, y, zz, sc, yaw) in enumerate(((-2.2, 0, -0.5, 0.9, 0.3), (-2.25, 0.3, -0.52, 0.75, -0.4), (-2.6, 0, -1.0, 0.8, 1.0),
+                                              (-4.9, 0, -3.4, 0.9, 0.1), (-4.85, 0.3, -3.38, 0.8, 0.6), (-4.4, 0, -4.0, 0.7, 1.3))):
+        z.model(f'left_box_{k}', 'cardboard_box_01', (x, y, zz), rot=(0, yaw, 0), scale=sc, bake='env', max_tris=400, tex=128)
+    z.model('left_crate', 'wooden_crate_02', (-4.5, 0, -0.5), rot=(0, 1.3, 0), bake='env', max_tris=700, tex=128)
+    z.model('left_crate_2', 'wooden_crate_01', (-4.55, 0.46, -0.45), rot=(0, 0.7, 0), scale=0.8, bake='env', max_tris=700, tex=128)
+    z.model('left_parts', 'plastic_crate_01', (-3.6, 0, -0.9), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
+    z.model('left_can', 'metal_jerrycan', (-2.0, 0, -3.5), rot=(0, 2.2, 0), bake='env', max_tris=700, tex=128)
+    for k, (x, zz, y) in enumerate(((-5.0, -1.7, 0), (-5.02, -1.72, 0.17), (-4.98, -1.69, 0.34))):
+        z.model(f'left_tyre_{k}', 'old_tyre', (x, y, zz), rot=(0, rnd.random(), 0), bake='env', max_tris=500, tex=128)
+    for k in range(10):
+        x, zz = -5.0 + rnd.random() * 3.0, -0.2 - rnd.random() * 4.5
+        z.box(f'left_scrap_{k}', (0.08 + rnd.random() * 0.14, 0.001, 0.08 + rnd.random() * 0.18), (x, 0.0045 + k * 0.0002, zz), rot=(0, rnd.random() * 3, 0), material=paper, bake='env')
+
     # a couple of coils lying on the floor
     for k, (x, zz) in enumerate(((2.8, -0.9), (-1.6, -3.6))):
         pts = [(x + math.cos(a) * (0.22 + 0.015 * a), 0.012 + 0.006 * (a // 6.28), zz + math.sin(a) * (0.22 + 0.015 * a) * 0.8) for a in [j * 0.5 for j in range(40)]]
@@ -527,7 +559,7 @@ def evidence_board(z, rnd):
     steel = pbr('w_steel', 'metal_plate', scale=1.0, tint='#8a8f98', tex=256)
     dark = pbr('w_steel_dark', 'metal_plate_02', scale=0.8, tint='#4a4c52', tex=256)
     cork = image_pbr('cork', noise_texture('cork', '#8a6238', [('#3e2612', 0.0, 0.42), ('#c79a62', 0.62, 1.0)], density=0.55, seed=3), scale=0.5, rough=0.95)
-    card = mat('index_card', '#e8e2d4', rough=0.9)
+    card = mat('index_card', '#cbc3b2', rough=0.95)  # aged card, not printer-white
     paper = mat('b_paper', '#ddd5c4', rough=0.9)
     sticky = mat('sticky', '#e8cf4a', rough=0.8)
     red_ink = mat('red_ink', '#9a1c18')
@@ -564,4 +596,4 @@ def evidence_board(z, rnd):
         (ax, ay), (bx, by) = clues[a], clues[b]
         z.tube(f'string_{k}', [(ax, ay, 0.036), ((ax + bx) / 2, (ay + by) / 2 - 0.01, 0.04), (bx, by, 0.036)], 0.0018, material=string, live=1, segs=4)
     z.text('board_title', 'SUBJECT: D. HENSMAN-ROSSER', 0.045, (-0.3, 2.22, 0.024), material=red_ink, bake='hero')
-    z.light('SPOT', (0.3, 3.4, 2.0), '#ffd9a0', 260, size=0.15, aim=(0, 1.5, 0), spot=math.radians(48), blend=0.5, name='board_spot')
+    z.light('SPOT', (0.3, 3.6, 2.4), '#ffd9a0', 110, size=0.35, aim=(0, 1.3, 0), spot=math.radians(75), blend=0.9, name='board_spot')
