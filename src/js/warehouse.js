@@ -55,6 +55,41 @@ const modelUrl = (file) => new URL(`../models/${file}${new URL(import.meta.url).
 // bake looks right a touch brighter than physical.
 const LIGHTMAP_GAIN = Math.PI * 1.25;
 
+// Dust and grime, worked out in the shader so they cost nothing to download:
+// a film of dust in drifts on everything facing up (thinner where you work at
+// the desk), matte where it lies, and walls and sides darkened low down where
+// the floor's dirt splashes up. Value noise in world space, so it doesn't
+// line up with any texture.
+function dusty(m) {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vDustPos;\nvarying vec3 vDustN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDustPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvDustN = normalize(mat3(modelMatrix) * objectNormal);');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vDustPos;
+varying vec3 vDustN;
+float dustHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float dustNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(dustHash(i), dustHash(i + vec2(1, 0)), f.x), mix(dustHash(i + vec2(0, 1)), dustHash(i + vec2(1, 1)), f.x), f.y);
+}`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+vec3 dn = normalize(vDustN);
+float drift = dustNoise(vDustPos.xz * 2.3) * 0.55 + dustNoise(vDustPos.xz * 9.0 + 7.0) * 0.3 + dustNoise(vDustPos.xz * 45.0) * 0.15;
+float desk = mix(0.35, 1.0, smoothstep(0.9, 1.6, length(vDustPos.xz - vec2(0.0, 0.1))));
+float dust = smoothstep(0.3, 0.9, dn.y) * smoothstep(0.32, 0.72, drift) * 0.6 * desk;
+float grime = (1.0 - abs(dn.y)) * (1.0 - smoothstep(0.0, 0.7, vDustPos.y)) * (0.25 + 0.3 * drift);
+diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.25, 0.205, 0.15) * (0.75 + 0.5 * drift), dust);
+diffuseColor.rgb *= 1.0 - grime;`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 1.0, dust);')
+      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= 1.0 - dust;');
+  };
+  m.customProgramCacheKey = () => 'dusty';
+  return m;
+}
+
 export function createWarehouse(scene, renderer, { reducedMotion = false, camera } = {}) {
   const hotspots = [];
   const updaters = [];
@@ -525,7 +560,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
         m.metalness = Math.min(m.metalness, 0.35);
         m.lightMap = tex;
         m.lightMapIntensity = range * LIGHTMAP_GAIN;
-        litMaterials.set(key, m);
+        litMaterials.set(key, dusty(m));
       }
       o.material = litMaterials.get(key);
     });
@@ -597,7 +632,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
   }
 
-  // a single screen showing one of the screen-wall painters (the F1 rig's timing)
+  // a single screen showing one of the screen-wall painters (the car's roof screen, its time circuits)
   function display(face, painter) {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -1210,6 +1245,40 @@ const SCREEN_PAINTERS = {
       ctx.fillText(`> ${lines[(off + i) % lines.length]}`, 8, 22 + i * 13);
     }
     scanlines(ctx);
+  },
+  // the DeLorean's time circuits: destination, present (now, here), last departed
+  timecircuits(ctx, t) {
+    ctx.fillStyle = '#0c0c0d';
+    ctx.fillRect(0, 0, 256, 160);
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const h12 = now.getHours() % 12 || 12;
+    const rows = [
+      ['DESTINATION TIME', '#ff3a1a', 'OCT 21 2015', '04:29', 'PM'],
+      ['PRESENT TIME', '#3aff5a', `${MON[now.getMonth()]} ${pad(now.getDate())} ${now.getFullYear()}`, `${pad(h12)}${t % 1 < 0.5 ? ':' : ' '}${pad(now.getMinutes())}`, now.getHours() < 12 ? 'AM' : 'PM'],
+      ['LAST TIME DEPARTED', '#ffb21a', 'OCT 26 1985', '01:21', 'AM'],
+    ];
+    ctx.textBaseline = 'top';
+    rows.forEach(([label, color, date, time, ampm], i) => {
+      const y = 6 + i * 52;
+      ctx.fillStyle = '#2a2a2c';
+      ctx.fillRect(6, y, 244, 46);
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(10, y + 4, 236, 28);
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6;
+      ctx.font = 'bold 20px "Share Tech Mono", monospace';
+      ctx.fillText(date, 14, y + 8);
+      ctx.fillText(time, 164, y + 8);
+      ctx.font = 'bold 10px "Share Tech Mono", monospace';
+      ctx.fillText(ampm, 226, y + 16);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#d8d4c8';
+      ctx.font = '9px "Share Tech Mono", monospace';
+      ctx.fillText(label, 14, y + 35);
+    });
   },
 };
 

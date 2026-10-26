@@ -30,10 +30,10 @@ cyberpunk (amber and teal screens, neon on the kit). The plain pages are the acc
 | **In front: the desk** | A battered workbench: the monitor plus three more screens round it (none top right, so the car shows), a mechanical keyboard on a desk mat, the books on the go (real covers), the phone, a notepad of to-dos, coffee, tools, a rubber duck, the robot arm holding the jack plug | The monitor is your browser (`/`, and every page) |
 | **Left: the TV wall** | Floor-to-ceiling rack of mismatched old TVs, each a different colour of static; the big one on the bench is the blog (so is the top-left desk screen) | `/blog/` on the monitor |
 | **Left, nearer: the bookcase** | Steel uprights, plank shelves, full of books | `/reading/` |
-| **Left, nearest: the tool wall** | Pegboard of tools over a bench, XƯỞNG in teal neon | |
+| **Left, nearest: the tool wall** | Pegboard of tools over a bench, DHR.VN in teal neon | |
 | **On the desk** | The stack of books | `/reading/` (its own app) |
-| **On the desk** | The phone | `/contact/`: you sit down and it lifts up with the page on it |
-| **Ahead, right of the screens** | The Back to the Future DeLorean, kit bolted on, valves glowing, the window behind | Projects (coming) |
+| **On the desk** | The phone | `/contact/`: it comes up into view where you're looking, the page on it |
+| **Ahead, right of the screens** | The Back to the Future DeLorean, kit bolted on, valves glowing, the window behind; your side's gull-wing is up on the cabin (grey leather, the time circuits showing today's date, the flux capacitor glowing) | Projects (coming) |
 | **Right: the east wall** | The evidence board (photos, red string), a payphone under pink neon | `/about/` on the monitor |
 
 Notes for the build:
@@ -41,6 +41,8 @@ Notes for the build:
   (the desk rig, the TVs, the arm, the time machine) is modelled by script. The DeLorean is a
   fan replica built from scratch: no badges or logos.
 - The room is one GLB (`workshop`), loaded before you see it.
+- Dust and dirt are a shader (drifts on everything facing up, grime low on the walls), not
+  textures: the room costs no more to download for being filthier.
 - Later: looping video on some of the TVs.
 
 ## Pages are places
@@ -64,7 +66,7 @@ Notes for the build:
    page (the TV wall → blog, the evidence board → about): you sit down, the arm plugs you in,
    the page comes up on the monitor and you dive into it (the page you came from without a
    reload; any other loads for real). Out in the room the monitor runs a screensaver: JACK IN
-   TO ENTER. For the phone you sit down and it lifts up with the contact page on it; Esc
+   TO ENTER. The phone comes up into view wherever you're looking, the contact page on it; Esc
    puts it down. No jumping across the room, so no extra UI to get back.
 4. **Any page can be an entry point.** A post opened from Google shows the reader with a
    jack-out control; jacking out leaves it on the monitor and you get up from it.

@@ -64,13 +64,14 @@ you click to open their page in place.
 - **In the world** you stand and look around (`seat.js`: drag, or the arrow keys); the
   monitor runs a screensaver (JACK IN TO ENTER). Going into the screen is always jacking in:
   clicking the monitor, or a thing that opens a page, sits you down, the arm plugs you in and
-  you dive into the page (the origin page with no reload, any other loads for real). For the
-  phone you sit down and it lifts up with the contact page. Esc puts the phone down, or jacks
+  you dive into the page (the origin page with no reload, any other loads for real). The
+  phone comes up into view where you're looking, with the contact page. Esc puts the phone down, or jacks
   you back into the page you started on.
 - **`warehouse.js`** loads the room (GLB from `src/models/`, built by `blender/`, see
   VISION.md) and owns the live props: monitor (`shapeMonitor`), link (arm, plug, cable,
-  sparks), the phone, what the screens and TVs show, the hazy view out of the window, neon
-  flicker, the sunbeam.
+  sparks), the phone, what the screens and TVs show (the car's time circuits too), the hazy
+  view out of the window, neon flicker, the sunbeam, and the dust and grime (a shader on the
+  lit materials, so nothing extra to download).
 - three.js `0.170.0` from jsDelivr via an import map (KTX2 transcoder and Meshopt decoder come
   from the same place).
 

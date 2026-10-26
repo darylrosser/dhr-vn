@@ -1,7 +1,9 @@
 # The time machine: a DMC-12 in brushed stainless with the Back to the Future
 # kit (Mr. Fusion, the rear reactor and vents, flux bands along the sills, the
-# OUTATIME plate), gull-wing doors shut (dark glass; no interior to build or
-# ship). Modelled from scratch by script; no badges or logos.
+# OUTATIME plate), one gull-wing door up on a cabin you can see into: grey
+# leather buckets, the dash and wheel, the time circuits on the console and
+# the flux capacitor glowing behind the seats. Modelled from scratch by
+# script; no badges or logos.
 #
 # Car frame (three coords): nose towards -x, centred on the origin, wheels on
 # the floor. Overall ≈ 4.2 m × 1.86 m × 1.14 m.
@@ -54,14 +56,32 @@ def body_mesh(name):
     return finish(bm, name)
 
 
-def cut_arches(body):
-    """Boolean the wheel arches out of the body sides."""
+DOOR_X = (-0.72, 0.42)   # door front and rear edge
+SILL = 0.42
+CABIN = (-0.78, 0.48)    # the cabin tub, front to back (the body is solid to the beltline)
+FLOOR = 0.36
+
+
+def cut_body(body, open_side=None):
+    """Boolean the wheel arches, the cabin tub and (on open_side) the door
+    aperture out of the body."""
     cutters = []
     for x, r in WHEELS:
         bpy.ops.mesh.primitive_cylinder_add(radius=r + 0.06, depth=2.6, location=B(x, r, 0), rotation=(0, 0, 0))
         c = bpy.context.object
         c.rotation_euler = (math.pi / 2, 0, 0)  # axis across the car
         cutters.append(c)
+
+    def cutter(x0, x1, y0, y1, z0, z1):
+        bpy.ops.mesh.primitive_cube_add(size=1, location=B((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
+        c = bpy.context.object
+        c.scale = (x1 - x0, z1 - z0, y1 - y0)  # Blender axes: x, -z, y
+        cutters.append(c)
+    if open_side is not None:
+        w = HALF_W - 0.08
+        cutter(CABIN[0], CABIN[1], FLOOR, ROOF + 0.3, -w, w)
+        z0, z1 = sorted((open_side * 0.4, open_side * (HALF_W + 0.3)))
+        cutter(DOOR_X[0], DOOR_X[1], SILL + 0.02, ROOF + 0.3, z0, z1)
     for c in cutters:
         mod = body.modifiers.new('arch', 'BOOLEAN')
         mod.operation = 'DIFFERENCE'
@@ -71,10 +91,6 @@ def cut_arches(body):
             bpy.ops.object.modifier_apply(modifier=mod.name)
     for c in cutters:
         bpy.data.objects.remove(c)
-
-
-DOOR_X = (-0.72, 0.42)   # door front and rear edge
-SILL = 0.42
 
 
 def door_mesh(name, side, open_ang=0.0):
@@ -143,10 +159,10 @@ def build(z, origin=(0, 0, 0), yaw=0.0, open_door=None):
         parts.append(obj)
         return obj
 
-    # body shell with the wheel arches cut out
+    # body shell with the wheel arches (and, with a door up, the cabin) cut out
     body = bpy.data.objects.new('dmc_body', body_mesh('dmc_body'))
     bpy.context.scene.collection.objects.link(body)
-    cut_arches(body)
+    cut_body(body, open_door)
     bpy.context.scene.collection.objects.unlink(body)
     body.data.materials.clear()  # the cut faces came with the cutters' empty slots
     body.data.materials.append(stainless)
@@ -199,6 +215,8 @@ def build(z, origin=(0, 0, 0), yaw=0.0, open_door=None):
         place(d)
         d['bake'] = 'car'
         box_uv(d.data, 2.0, d.matrix_world)
+    if open_door is not None:
+        interior(z.sub(origin, yaw), open_door, black, chrome, grey)
     # wheels: black tyres, five-slot "turbine" alloys
     for x, r in WHEELS:
         for sd in (-1, 1):
@@ -237,3 +255,103 @@ def build(z, origin=(0, 0, 0), yaw=0.0, open_door=None):
     car['bake'] = 'car'
     car['hotspot'] = 'garage'
     return car
+
+
+def interior(c, side, black, chrome, grey):
+    """The cabin, in the car's frame c: carpeted tub, two grey leather buckets,
+    the dash and wheel (left-hand drive: the driver sits at +z), the console
+    with the time circuits, the flux capacitor on the bulkhead behind the
+    seats. Joined into one object with its own lightmap room."""
+    leather = mat('dmc_leather', '#625f58', rough=0.7)
+    carpet = mat('dmc_carpet', '#221f1c', rough=1.0)
+    trim = mat('dmc_trim', '#232325', rough=0.75)
+    parts = []
+
+    def box(name, size, pos, rot=(0, 0, 0), m=trim, **kw):
+        parts.append(c.box(name, size, pos, rot, material=m, **kw))
+        return parts[-1]
+
+    def cyl(name, r, h, pos, rot=(0, 0, 0), m=black, **kw):
+        parts.append(c.cyl(name, r, h, pos, rot, material=m, **kw))
+        return parts[-1]
+
+    x0, x1 = CABIN
+    w = HALF_W - 0.08
+    # the tub: carpet over the floor, trim lining the sides and the bulkhead
+    box('cab_floor', (x1 - x0, 0.03, 2 * w), ((x0 + x1) / 2, FLOOR + 0.015, 0), m=carpet)
+    box('cab_bulkhead', (0.03, BELT - FLOOR + 0.25, 2 * w), (x1 - 0.015, (FLOOR + BELT + 0.25) / 2, 0))
+    for sd in (-1, 1):
+        y1 = BELT if sd != side else SILL + 0.02  # only the sill stays below the open door
+        box(f'cab_side_{sd}', (x1 - x0, y1 - FLOOR, 0.03), ((x0 + x1) / 2, (y1 + FLOOR) / 2, sd * (w - 0.015)))
+        box(f'cab_sill_{sd}', (DOOR_X[1] - DOOR_X[0], 0.03, 0.12), ((DOOR_X[0] + DOOR_X[1]) / 2, y1, sd * (w - 0.05)), m=grey)
+    # the dash: a wedge under the windscreen, the binnacle in front of the driver
+    box('dash', (0.34, 0.2, 2 * w), (x0 + 0.17, 0.7, 0), rot=(0, 0, 0.15), bevel=0.02)
+    box('dash_top', (0.3, 0.03, 2 * w - 0.04), (x0 + 0.2, 0.81, 0), rot=(0, 0, 0.3), m=black)
+    box('binnacle', (0.14, 0.11, 0.38), (x0 + 0.3, 0.84, 0.38), rot=(0, 0, 0.35), bevel=0.015)
+    box('gauges', (0.005, 0.07, 0.32), (x0 + 0.375, 0.84, 0.38), rot=(0, 0, 0.35), m=mat('dmc_gauges', '#0b0b0c', rough=0.3))
+    for k, zz in enumerate((-0.12, 0.0, 0.12)):  # air vents across the passenger side
+        box(f'dash_vent_{k}', (0.01, 0.04, 0.09), (x0 + 0.33, 0.72, -0.35 + zz), m=black)
+    box('glovebox', (0.01, 0.1, 0.4), (x0 + 0.34, 0.62, -0.38), rot=(0, 0, 0.15))
+    # steering wheel on its column, tilted back at the driver
+    n = Vector((0.9, 0.44, 0)).normalized()          # the wheel's axis (towards the driver)
+    u, v = Vector((0, 0, 1)), Vector((-0.44, 0.9, 0)).normalized()
+    hub = Vector((x0 + 0.48, 0.74, 0.38))
+    ring = [tuple(hub + 0.18 * (math.cos(a) * u + math.sin(a) * v)) for a in (k * 2 * math.pi / 24 for k in range(24))]
+    parts.append(c.tube('wheel_rim', ring, 0.015, material=black, segs=8, closed=True))
+    col0 = hub - n * 0.32
+    parts.append(c.tube('wheel_column', [tuple(col0), tuple(hub - n * 0.02)], 0.03, material=black, segs=10))
+    parts.append(c.tube('wheel_spokes', [tuple(hub - 0.18 * u), tuple(hub), tuple(hub + 0.18 * u)], 0.012, material=grey, segs=6))
+    parts.append(c.tube('wheel_spoke_lo', [tuple(hub), tuple(hub - 0.18 * v)], 0.012, material=grey, segs=6))
+    parts.append(c.tube('wheel_hub', [tuple(hub - n * 0.02), tuple(hub + n * 0.03)], 0.045, material=black, segs=12))
+    # the console down the middle: gear lever, handbrake, the time circuits
+    box('console', (0.95, 0.2, 0.24), (x0 + 0.52, FLOOR + 0.13, 0), bevel=0.02)
+    box('console_fascia', (0.06, 0.32, 0.26), (x0 + 0.26, FLOOR + 0.2, 0), rot=(0, 0, -0.35), bevel=0.01)
+    cyl('gear_lever', 0.008, 0.16, (x0 + 0.62, FLOOR + 0.31, 0.0), rot=(0, 0, -0.2), m=chrome, segs=8)
+    parts.append(c.add('gear_knob', sphere_mesh('gear_knob', 0.025), (x0 + 0.637, FLOOR + 0.39, 0.0), material=black))
+    box('gear_gaiter', (0.08, 0.02, 0.08), (x0 + 0.6, FLOOR + 0.235, 0), m=black)
+    box('handbrake', (0.2, 0.025, 0.03), (x0 + 0.85, FLOOR + 0.25, 0.0), rot=(0, 0, 0.2), m=black)
+    # time circuits: a box of three readouts on the console, tilted up at the
+    # cabin; the plane in front is painted live (destination, present, last departed)
+    tc = c.sub((x0 + 0.47, FLOOR + 0.3, side * 0.06), math.pi - 0.45 if side < 0 else 0.45)
+    parts.append(tc.box('time_circuits', (0.3, 0.2, 0.06), (0, 0, 0), rot=(-0.7, 0, 0), material=grey, bevel=0.008))
+    tc.plane('time_circuits_face', 0.27, 0.17, (0, 0.021, 0.0245), rot=(-0.7, 0, 0),
+             material=emissive('dmc_time_face', '#ff3a1a', 2.0, textured=True), role='display', painter='timecircuits')
+    # two grey leather buckets: cushion, back leaning back, headrest, bolsters
+    for sd in (-1, 1):
+        zz = sd * 0.38
+        box(f'seat_base_{sd}', (0.36, 0.06, 0.36), (0.05, FLOOR + 0.03, zz), m=black)
+        box(f'seat_cushion_{sd}', (0.5, 0.1, 0.46), (0.02, FLOOR + 0.1, zz), rot=(0, 0, 0.06), m=leather, bevel=0.035)
+        box(f'seat_back_{sd}', (0.13, 0.5, 0.46), (0.3, FLOOR + 0.38, zz), rot=(0, 0, -0.22), m=leather, bevel=0.04)
+        box(f'seat_head_{sd}', (0.1, 0.13, 0.26), (0.37, FLOOR + 0.69, zz), rot=(0, 0, -0.22), m=leather, bevel=0.035)
+        for b in (-1, 1):
+            box(f'seat_bolster_{sd}_{b}', (0.12, 0.36, 0.07), (0.28, FLOOR + 0.36, zz + b * 0.215), rot=(0, 0, -0.22), m=leather, bevel=0.03)
+        # the belt hanging off the B-pillar
+        parts.append(c.tube(f'seatbelt_{sd}', [(0.45, BELT + 0.15, sd * (w - 0.04)), (0.36, 0.7, sd * (zz / sd + 0.24)), (0.2, FLOOR + 0.25, sd * 0.2)], 0.012, material=black, segs=4))
+    # the flux capacitor: a box on the bulkhead between the headrests, a
+    # window in its door and the glowing Y inside (live, so it can pulse)
+    fc = c.sub((x1 - 0.08, BELT + 0.12, 0), 0.5 * side)  # turned a little towards the open door
+    parts.append(fc.box('flux_box', (0.08, 0.32, 0.26), (0, 0, 0), material=grey, bevel=0.01))
+    parts.append(fc.box('flux_frame', (0.012, 0.22, 0.18), (-0.045, 0, 0), material=chrome))
+    fc.box('flux_window', (0.004, 0.2, 0.16), (-0.052, 0, 0), material=mat('dmc_flux_glass', '#1a1612', rough=0.1), live=1)
+    glow = emissive('dmc_flux', '#fff2b0', 5)
+    for name, end in (('l', (0.07, -0.06)), ('r', (0.07, 0.06)), ('d', (-0.08, 0.0))):
+        fc.tube(f'flux_y_{name}', [(-0.056, 0.0, 0.0), (-0.056, end[0], end[1])], 0.006, material=glow, segs=6, live=1)
+    for sd in (-1, 1):  # the cables off the top of it
+        parts.append(fc.tube(f'flux_cable_{sd}', [(0, 0.16, sd * 0.06), (0.02, 0.28, sd * 0.1), (0.1, 0.3, sd * 0.3)], 0.012, material=black, segs=6))
+    # a lived-in cabin: a clipboard on the near seat, a cable to the dash
+    box('clipboard', (0.24, 0.012, 0.32), (0.0, FLOOR + 0.165, side * 0.38), rot=(0, 0.3, 0.06), m=mat('dmc_clipboard', '#8a6a42', rough=0.8))
+    box('clipboard_sheet', (0.2, 0.003, 0.27), (0.0, FLOOR + 0.173, side * 0.385), rot=(0, 0.3, 0.06), m=mat('dmc_sheet', '#b5ad9a', rough=0.95))
+    parts.append(c.tube('cab_cable', [(x1 - 0.1, BELT + 0.05, 0.12), (0.1, FLOOR + 0.05, 0.1), (x0 + 0.4, FLOOR + 0.04, 0.12), (x0 + 0.3, 0.6, 0.1)], 0.01, material=mat('dmc_cable_red', '#7a1a14', rough=0.6), segs=6))
+    # bake light: the cabin's own dim dome lamp and the flux glow
+    c.light('POINT', (-0.1, ROOF - 0.08, 0), '#ffe2b0', 5, size=0.1, name='dome_light')
+    c.light('POINT', (x1 - 0.15, BELT + 0.12, 0), '#fff0c0', 2.5, size=0.05, name='flux_light')
+    cab = join(parts, 'delorean_cabin')
+    cab['bake'] = 'car'
+    cab['texel'] = 1.6
+    return cab
+
+
+def sphere_mesh(name, r, segs=12):
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2 + 1, radius=r)
+    return finish(bm, name)

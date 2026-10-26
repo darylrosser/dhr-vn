@@ -12,8 +12,8 @@
 //   fills the window, the arm yanks the plug out of your neck and you get up
 //   to your spot behind the desk. Out in the room the monitor runs a
 //   screensaver: JACK IN TO ENTER.
-// - The phone isn't a screen you go into: you sit down and it lifts up with
-//   the contact page on it. The books (and the bookcase) open the reading app.
+// - The phone isn't a screen you go into: it comes up into view wherever
+//   you're looking, the contact page on it. The books (and the bookcase) open the reading app.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
 //   looking at the books on the desk; going back fades it in again.
 
@@ -34,13 +34,12 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // Where you stand, and what you look at (blender/zones/workshop.py has them).
 const STAND = V(0, 1.72, 2.5);    // behind the desk, straight on to the screens
-const CHAIR = V(0, 1.22, 1.15);   // sat at the desk (jacking in, the phone)
+const CHAIR = V(0, 1.22, 1.15);   // sat at the desk (jacking in)
 const GAZE = {
   desk: V(0, 1.2, -1.5),         // the screens, the window beyond, the car off to the right
   monitor: V(0, 1.1, -0.12),
   arm: V(0.32, 1.06, -0.12),     // the monitor, glancing right at the arm
   books: V(-0.92, DESK_TOP + 0.08, 0.26),
-  phone: V(0.5, DESK_TOP, 0.32),
 };
 const PHONE_PX = 360;           // the contact page on the phone: a phone-width layout
 
@@ -264,7 +263,6 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   }
 
   let token = 0;                     // newer moves cancel older ones
-  let lastLook = GAZE.desk.clone();  // where you were looking before you sat down for the phone
 
   // ---------------------------------------------------------------- the phone
 
@@ -285,6 +283,18 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     return phoneHeld;
   }
 
+  // just out of sight below the held pose, tipped back: where it comes up from
+  const phoneLow = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion() };
+  const tipBack = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), -0.6);
+  const camUp = new THREE.Vector3();
+  function lowPose() {
+    const held = heldPose();
+    camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    phoneLow.position.copy(held.position).addScaledVector(camUp, -phone.height * 1.45);
+    phoneLow.quaternion.copy(held.quaternion).multiply(tipBack);
+    return phoneLow;
+  }
+
   function movePhone(to, ms) {
     const o = phone.object;
     return new Promise((resolve) => {
@@ -298,9 +308,13 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     a.t = Math.min(1, a.t + (dt * 1000) / a.ms);
     const k = ease(a.t);
     o.position.lerpVectors(a.from.position, a.to.position, k);
-    o.position.y += Math.sin(Math.PI * k) * 0.08; // picked up, not slid
     o.quaternion.slerpQuaternions(a.from.quaternion, a.to.quaternion, k);
     if (a.t >= 1) { phoneAnim = null; a.done(); }
+  }
+  const rest = () => phone.object.userData.rest;
+  function setPhone(pose) {
+    phone.object.position.copy(pose.position);
+    phone.object.quaternion.copy(pose.quaternion);
   }
 
   // the page sits on the phone's screen
@@ -311,19 +325,19 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     phoneObject.scale.setScalar(phone.width / PHONE_PX);
   }
 
+  // no walking over or sitting down: the phone comes up into your hand from
+  // below, in front of wherever you're looking
   async function raisePhone(page, path) {
     const my = ++token;
+    hold = currentPose(); // stay looking where you are
     setMode('moving');
     setHover(null);
-    lastLook.copy(look);
-    // sit down at the desk, then pick it up
-    await flyP(currentPose(), chairPose(GAZE.phone.clone().add(V(0, 0.25, -0.5))), { ms: 1100, arc: 0.04 });
-    if (my !== token) return;
     phoneEl.replaceChildren(page.node);
     phoneEl.scrollTop = 0;
     phoneEl.style.width = `${PHONE_PX}px`;
     phoneEl.style.height = `${Math.round(PHONE_PX * phone.height / phone.width)}px`;
-    await movePhone(heldPose(), 750);
+    setPhone(lowPose());
+    await movePhone(heldPose(), 600);
     if (my !== token || !active) return;
     phoneObject.visible = true;
     placePhonePage();
@@ -334,17 +348,17 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     document.title = page.title;
   }
 
-  async function lowerPhone({ ms = 650, stand = true } = {}) {
+  // down out of sight again, and back on the desk. resume: look around again after
+  async function lowerPhone({ ms = 450, resume = true } = {}) {
     const my = ++token;
     phoneObject.visible = false;
     phonePath = null;
     setMode('moving');
-    await movePhone(phone.object.userData.rest, ms);
+    await movePhone(lowPose(), ms);
+    setPhone(rest());
     setUrl(origin.url);
     document.title = origin.title;
-    if (!stand || my !== token || !active || entering) return;
-    await flyP(currentPose(), standPose(lastLook), { ms: 1200, arc: 0.06 }); // and get up
-    if (my === token && active && !entering) setMode('room');
+    if (resume && my === token && active && !entering) setMode('room');
   }
 
   // ---------------------------------------------------------------- pointer + things
@@ -591,7 +605,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     ui.classList.remove('is-on');
     setHover(null);
     const page = placeForPath(url) === 'home' ? null : fetchPage(url).catch(() => null);
-    if (mode === 'phone') await lowerPhone({ ms: 300, stand: false });
+    if (mode === 'phone') await lowerPhone({ ms: 300, resume: false });
     await plugIn(async () => {
       const p = await page;
       if (p) putOnMonitor(p.node);
@@ -647,7 +661,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     token++;
     setHover(null);
     ui.classList.remove('is-on');
-    if (mode === 'phone') await lowerPhone({ ms: 300, stand: false });
+    if (mode === 'phone') await lowerPhone({ ms: 300, resume: false });
     if (kind === 'app') await enterApp();
     else await enterScreen();
     detach();
