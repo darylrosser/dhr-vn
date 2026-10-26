@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 
 const PITCH_MIN = -0.6, PITCH_MAX = 0.65;
-const DRAG_SPEED = 0.0035;  // radians per pixel dragged
+const DRAG_SPEED = 0.0022;  // radians per pixel dragged (slower than the hand: it reads as turning your head)
 const KEY_SPEED = 1.4;      // rad/s
 const KEYS = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
 
@@ -79,7 +79,7 @@ export function createSeat({ camera, dom, reducedMotion, at, facing, left = 1.2,
     if (!enabled) return;
     for (const k of held) { goalYaw += KEYS[k][0] * KEY_SPEED * dt; goalPitch += KEYS[k][1] * KEY_SPEED * dt; }
     if (held.size) clamp();
-    const k = reducedMotion ? 1 : 1 - Math.exp(-dt * (drag ? 18 : 7));
+    const k = reducedMotion ? 1 : 1 - Math.exp(-dt * (drag ? 11 : 7));
     yaw += (goalYaw - yaw) * k;
     pitch += (goalPitch - pitch) * k;
     euler.set(pitch, yaw, 0);
