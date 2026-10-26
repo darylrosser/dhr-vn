@@ -48,7 +48,7 @@ Notes for the build:
 | Page | Where it shows | Notes |
 |------|----------------|-------|
 | `/` | The monitor (the terminal) | Jack out / in. |
-| `/blog/`, posts | The monitor | Lean in to read. |
+| `/blog/`, posts | The monitor | You jack in to read. |
 | `/about/` | The monitor | The dossier panel. |
 | `/reading/` | A look at the books, then the reading app | Warm lighting shift. |
 | `/contact/` | The phone, held up in front of you | Phone-width layout. |
@@ -60,12 +60,12 @@ Notes for the build:
    data-saver users get the plain site. Nothing below may break that.
 2. **The world loads in the background** only after the page is usable, only on capable devices.
    The jack-out control doubles as the loading status.
-3. **Once in the world, you stay in it, and where you stand.** Click a thing and its
-   page opens on the monitor; you lean in until it fills the window and it *is* the page
-   (live DOM, scroll it, click its links: they open there too, pushState / fetch, no reloads).
-   Esc or "Lean back" and you're back where you stood, looking where you were. For the phone
-   you sit down and it lifts up with the contact page on it. No jumping across the room, so
-   no extra UI to get back.
+3. **Going into the screen is always jacking in.** Click the monitor, or a thing that opens a
+   page (the TV wall → blog, the evidence board → about): you sit down, the arm plugs you in,
+   the page comes up on the monitor and you dive into it (the page you came from without a
+   reload; any other loads for real). Out in the room the monitor runs a screensaver: JACK IN
+   TO ENTER. For the phone you sit down and it lifts up with the contact page on it; Esc
+   puts it down. No jumping across the room, so no extra UI to get back.
 4. **Any page can be an entry point.** A post opened from Google shows the reader with a
    jack-out control; jacking out leaves it on the monitor and you get up from it.
 5. **The handoff is seamless.** The live DOM is moved into 3D (CSS3DRenderer) at the exact
@@ -80,7 +80,7 @@ Notes for the build:
 You are the one who's wired in, man-machine: a port at the back of your neck, a cable from it
 to the back of the monitor, and a robot arm bolted to the desk that does the plugging.
 
-- **Jack out:** you start leaned into the page; you sit back, the arm yanks the plug out of
+- **Jack out:** you start in the page; you sit back, the arm yanks the plug out of
   your neck (sparks, a jolt) and carries it back to its cradle on the desk, and you get up.
 - **Jack in:** you sit down facing the monitor, the arm lifts the plug, swings it past your
   ear and slams it home (sparks, a jolt, the picture tears), then you dive into the screen
@@ -112,9 +112,9 @@ the robot arm `src/js/arm.js`.
 - `src/js/world.js` → `createWorld({ kind, place, surface, … })`, three kinds of origin:
   `terminal` (live DOM onto the desk monitor via CSS3D), `reader` (the page's `<main>` onto
   the monitor the same way), `app` (the `/reading/` shelf fades; you're looking at the books).
-- In the world: hotspots, links on the monitor and terminal `cd` open pages in place without
-  reloads (`#world` in the URL); "Jack in" opens the page on the monitor for real; Esc leans
-  back, then returns to the origin page; the back button too.
+- In the world: hotspots and the monitor jack you into pages (the origin page without a
+  reload); the phone holds contact (`#world` in the URL while it's up); Esc puts the phone
+  down, or jacks you back into the origin page; the back button too.
 - Hotspot contract:
   `object.userData.hotspot = { label, visit: '/url/' | action: 'monitor' | 'look', highlight(on) }`;
   in the GLB a node's `hotspot` extra names a key of `HOTSPOTS` in warehouse.js.

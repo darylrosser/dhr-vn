@@ -61,12 +61,12 @@ you click to open their page in place.
 - **Jack out:** the live terminal, or the page's live `<main>`, moves onto the monitor
   (`CSS3DRenderer`, sized to the window) and the camera starts where it fills the window; the
   robot arm (`arm.js`) yanks the plug out of your neck and you get up from the desk.
-- **In the world** you stand and look around (`seat.js`: drag, or the arrow keys).
-  Clicking a thing opens its page on the monitor and you lean in (the page is live: scroll it,
-  its links and terminal `cd` open there too; URL follows with `#world`); for the phone you
-  sit down and it lifts up with the contact page. Esc / "Lean back" puts you back; Esc again
-  returns to the page you started on. "Jack in": you sit down, the arm plugs you in and you
-  dive into the page on the monitor.
+- **In the world** you stand and look around (`seat.js`: drag, or the arrow keys); the
+  monitor runs a screensaver (JACK IN TO ENTER). Going into the screen is always jacking in:
+  clicking the monitor, or a thing that opens a page, sits you down, the arm plugs you in and
+  you dive into the page (the origin page with no reload, any other loads for real). For the
+  phone you sit down and it lifts up with the contact page. Esc puts the phone down, or jacks
+  you back into the page you started on.
 - **`warehouse.js`** loads the room (GLB from `src/models/`, built by `blender/`, see
   VISION.md) and owns the live props: monitor (`shapeMonitor`), link (arm, plug, cable,
   sparks), the phone, what the screens and TVs show, the hazy view out of the window, neon

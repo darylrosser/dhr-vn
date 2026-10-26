@@ -179,10 +179,15 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     const lay = new THREE.Vector3(monitorPort.x + 0.18, DESK_TOP + 0.012, monitorPort.z + 0.16);
     const mid = lay.clone().lerp(out, 0.5);
     mid.y = Math.max(DESK_TOP + 0.015, Math.min(lay.y, out.y) - 0.08);
-    const curve = new THREE.CatmullRomCurve3([monitorPort, lay, mid, out, top], false, 'centripetal');
+    // sample the curve and keep it on top of the desk wherever it's over it
+    const pts = new THREE.CatmullRomCurve3([monitorPort, lay, mid, out, top], false, 'centripetal').getPoints(60);
+    for (const p of pts) {
+      if (Math.abs(p.x) < 1.2 && Math.abs(p.z) < 0.5) p.y = Math.max(p.y, DESK_TOP + 0.013);
+    }
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
     if (cable) cable.geometry.dispose();
     else { cable = new THREE.Mesh(undefined, rubber); scene.add(cable); }
-    cable.geometry = new THREE.TubeGeometry(curve, 80, 0.011, 8, false);
+    cable.geometry = new THREE.TubeGeometry(curve, 90, 0.011, 8, false);
     cableDirty = false;
   }
 
@@ -295,15 +300,17 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   phone.rotation.set(-Math.PI / 2, 0, -0.25); // face up, top away from you
   phone.userData.rest = { position: phone.position.clone(), quaternion: phone.quaternion.clone() };
   const phoneCase = new THREE.Mesh(new RoundedBoxGeometry(PHONE_W, PHONE_H, PHONE_T, 3, 0.008), mat('#1b1d21', { roughness: 0.35, metalness: 0.6, envMapIntensity: 0.8 }));
-  const phoneEdge = new THREE.Mesh(new RoundedBoxGeometry(PHONE_W + 0.0016, PHONE_H + 0.0016, PHONE_T * 0.35, 2, 0.008), new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAL).multiplyScalar(1.4), toneMapped: false }));
+  const phoneEdge = new THREE.Mesh(new RoundedBoxGeometry(PHONE_W + 0.0008, PHONE_H + 0.0008, PHONE_T * 0.3, 2, 0.008), new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAL).multiplyScalar(0.55), toneMapped: false }));
+  const phoneCam = new THREE.Mesh(new THREE.CircleGeometry(0.0022, 16), new THREE.MeshBasicMaterial({ color: '#050607' }));
+  phoneCam.position.set(0, PHONE_H / 2 - 0.0075, PHONE_T / 2 + 0.0006);
   const lockCanvas = document.createElement('canvas');
   lockCanvas.width = 240;
   lockCanvas.height = 500;
   const lockTex = new THREE.CanvasTexture(lockCanvas);
   lockTex.colorSpace = THREE.SRGBColorSpace;
-  const phoneScreen = new THREE.Mesh(new THREE.PlaneGeometry(PHONE_W - 0.006, PHONE_H - 0.012), new THREE.MeshBasicMaterial({ map: lockTex, toneMapped: false }));
-  phoneScreen.position.z = PHONE_T / 2 + 0.0004;
-  phone.add(phoneCase, phoneEdge, phoneScreen);
+  const phoneScreen = new THREE.Mesh(new THREE.PlaneGeometry(PHONE_W - 0.005, PHONE_H - 0.019), new THREE.MeshBasicMaterial({ map: lockTex, toneMapped: false }));
+  phoneScreen.position.set(0, -0.001, PHONE_T / 2 + 0.0004);
+  phone.add(phoneCase, phoneEdge, phoneScreen, phoneCam);
   scene.add(phone);
   makeHotspot(phone, HOTSPOTS.contact, [phoneCase], TEAL);
   let lockNext = 0;
@@ -346,27 +353,49 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     return s;
   }
 
-  // Off the home page the monitor shows a standby screen instead of the live terminal.
-  function setMonitorIdle() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 320;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#060402';
+  // While you're out in the room (not jacked in) the monitor runs a screensaver:
+  // JACK IN TO ENTER drifting about the screen, bouncing off its edges.
+  const saver = document.createElement('canvas');
+  saver.width = 512;
+  saver.height = 320;
+  const saverTex = new THREE.CanvasTexture(saver);
+  saverTex.colorSpace = THREE.SRGBColorSpace;
+  const saverMat = new THREE.MeshBasicMaterial({ map: saverTex, toneMapped: false, color: new THREE.Color(1.2, 1.2, 1.2) });
+  const saverState = { x: 60, y: 70, vx: 46, vy: 31, next: 0, last: 0 };
+  function paintSaver(t) {
+    const ctx = saver.getContext('2d');
+    const s = saverState;
+    const dt = Math.min(0.2, t - (s.last || t));
+    s.last = t;
+    const BW = 300, BH = 112;
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    if (s.x < 8 || s.x > 512 - BW - 8) { s.vx *= -1; s.x = Math.max(8, Math.min(512 - BW - 8, s.x)); }
+    if (s.y < 8 || s.y > 320 - BH - 8) { s.vy *= -1; s.y = Math.max(8, Math.min(320 - BH - 8, s.y)); }
+    ctx.fillStyle = '#040302';
     ctx.fillRect(0, 0, 512, 320);
     ctx.fillStyle = AMBER;
-    ctx.font = '900 italic 64px Orbitron, "Arial Black", sans-serif';
-    ctx.fillText('DHR.VN', 40, 120);
+    ctx.font = '900 italic 52px Orbitron, "Arial Black", sans-serif';
+    ctx.fillText('DHR.VN', s.x + 6, s.y + 52);
     ctx.font = '20px "Share Tech Mono", monospace';
-    ctx.fillStyle = DIM;
-    ctx.fillText('DHR-OS 4.0.0 // TERMINAL STANDBY', 40, 175);
-    ctx.fillStyle = TEAL;
-    ctx.fillText('> JACK IN TO RESUME_', 40, 230);
+    ctx.fillStyle = Math.sin(t * 3) > -0.3 ? TEAL : DIM;
+    ctx.fillText('> JACK IN TO ENTER_', s.x + 8, s.y + 92);
     scanlinesBig(ctx, 512, 320);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    glassBack.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.2, 1.2, 1.2) });
+    saverTex.needsUpdate = true;
   }
+  const blankMat = glassBack.material;
+  let saverOn = false;
+  /** the screensaver on (out in the room) or off (a page is on the monitor) */
+  function setMonitorIdle(on = true) {
+    saverOn = on;
+    glassBack.material = on ? saverMat : blankMat;
+    if (on) paintSaver(performance.now() / 1000);
+  }
+  updaters.push((t) => {
+    if (!saverOn || t < saverState.next) return;
+    saverState.next = t + 1 / 15;
+    paintSaver(t);
+  });
 
   function shapeMonitor(w, h, c) {
     const frame = 0.035;
@@ -603,20 +632,29 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     sky.position.set(0, STREET + 40, -120);
     anchor.add(sky);
 
-    // towers: two rows of soft silhouettes, nearly lost in the glare
+    // buildings: three rows of soft silhouettes, nearly lost in the glare (the
+    // nearer, the more you can make them out), laid out to sit in the window
+    // with sky between them; a few with water tanks and masts
     const rows = [
-      { z: -90, n: 14, spread: 200, hmin: 30, hmax: 90, wmin: 10, wmax: 24, k: 0.9 },
-      { z: -45, n: 9, spread: 110, hmin: 20, hmax: 60, wmin: 6, wmax: 14, k: 0.78 },
+      { z: -95, k: 0.52, towers: [[-46, 12, 82], [-24, 9, 58], [-8, 14, 90], [12, 10, 66], [30, 13, 78], [52, 9, 60]] },
+      { z: -60, k: 0.36, towers: [[-30, 9, 44], [-15, 7, 30], [4, 11, 52], [20, 8, 36], [34, 10, 46]] },
+      { z: -34, k: 0.2, towers: [[-17, 7, 20], [-6, 5, 13], [9, 8, 24], [19, 6, 15]] },
     ];
     for (const row of rows) {
-      const mat = flat(new THREE.Color('#6a5040').lerp(GLOW, row.k).multiplyScalar(1.15));
-      for (let i = 0; i < row.n; i++) {
-        const bw = row.wmin + rand() * (row.wmax - row.wmin);
-        const bh = row.hmin + rand() * (row.hmax - row.hmin);
-        const x = (i / (row.n - 1) - 0.5) * row.spread + (rand() - 0.5) * 8;
+      const mat = flat(new THREE.Color('#5a4434').lerp(GLOW, row.k));
+      for (const [x, bw, bh] of row.towers) {
         const tower = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), mat);
-        tower.position.set(x, STREET + bh / 2, row.z + (rand() - 0.5) * 6);
+        tower.position.set(x, STREET + bh / 2, row.z);
         anchor.add(tower);
+        if (rand() < 0.35) {
+          const mast = new THREE.Mesh(new THREE.BoxGeometry(0.4, bh * 0.25, 0.4), mat);
+          mast.position.set(x + (rand() - 0.5) * bw * 0.5, STREET + bh * 1.12, row.z);
+          anchor.add(mast);
+        } else if (rand() < 0.5) {
+          const tank = new THREE.Mesh(new THREE.CylinderGeometry(bw * 0.15, bw * 0.15, bw * 0.22, 10), mat);
+          tank.position.set(x - bw * 0.2, STREET + bh + bw * 0.11, row.z);
+          anchor.add(tank);
+        }
       }
     }
     // a tall teal ad on the nearer skyline, washed out by the sun, breathing
@@ -627,7 +665,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
 
     // the glass: years of dust, thicker towards the bottom edge
     const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
-      map: grimeTexture(), transparent: true, depthWrite: false, fog: false, color: '#c8a880',
+      map: grimeTexture(), transparent: true, opacity: 0.7, depthWrite: false, fog: false, color: '#c8a880',
     }));
     glass.position.z = -0.03;
     anchor.add(glass);
@@ -647,16 +685,33 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   }
 
   // a beam of light through the dusty air (cheap volumetrics): an open prism
-  // fading along its length; sides 4 makes it square, like the window
+  // fading along its length (sides 4 makes it square, like the window), with
+  // a little dust drifting in it, only where the light catches it
   function sunbeam(anchor, { r = 1, h = 4, top = 0.25, sides = 32, color = '#ffd9a0', opacity = 0.07 }) {
     const geo = new THREE.CylinderGeometry(r * top, r, h, sides, 1, true);
     if (sides === 4) geo.rotateY(Math.PI / 4);
     geo.translate(0, -h / 2, 0);
     const beam = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      map: gradientTexture(), color, transparent: true, opacity, depthWrite: false,
+      map: gradientTexture(), color, transparent: true, opacity: opacity * 2.4, depthWrite: false,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
     }));
     anchor.add(beam);
+    const n = reducedMotion ? 0 : 160;
+    const p = new Float32Array(n * 3);
+    const half = (y) => r * (top + (1 - top) * (-y / h)) * 0.6; // inside the beam at that depth
+    for (let i = 0; i < n; i++) {
+      const y = -h * (0.08 + rand() * 0.7);
+      const w = half(y);
+      p.set([(rand() - 0.5) * 2 * w, y, (rand() - 0.5) * 2 * w], i * 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    const dust = new THREE.Points(g, new THREE.PointsMaterial({
+      color: new THREE.Color(color).multiplyScalar(0.9), size: 0.01, map: dotTexture(), transparent: true, opacity: 0.32,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }));
+    anchor.add(dust);
+    updaters.push((t) => { dust.position.set(Math.sin(t * 0.11) * 0.08, Math.sin(t * 0.07) * 0.1, Math.cos(t * 0.09) * 0.08); });
   }
 
   // the gym whiteboard: PRs in marker
@@ -716,7 +771,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   return {
     hotspots,
     link,
-    phone: { object: phone, screen: phoneScreen, width: PHONE_W - 0.006, height: PHONE_H - 0.012 },
+    phone: { object: phone, screen: phoneScreen, width: PHONE_W - 0.005, height: PHONE_H - 0.019 },
     shapeMonitor,
     setMonitorIdle,
     load,
@@ -757,10 +812,10 @@ function hazeTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, '#a89070');
-  g.addColorStop(0.5, '#e8c89a');
-  g.addColorStop(0.8, '#fff0d8');
-  g.addColorStop(1, '#ffe2b0');
+  g.addColorStop(0, '#94806a');
+  g.addColorStop(0.5, '#d8bf98');
+  g.addColorStop(0.8, '#f0dcba');
+  g.addColorStop(1, '#f6dcae');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, 256);
   const tex = new THREE.CanvasTexture(canvas);

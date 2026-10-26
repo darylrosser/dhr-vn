@@ -45,8 +45,8 @@ html.in-world .skip-link { display: none; }
   }
 }
 
-/* the monitor: the terminal, or a page, at the window's own size (CSS3D);
-   you lean in to use it (world.js turns its pointer events on then) */
+/* the monitor: the terminal, or a page, at the window's own size (CSS3D),
+   while you jack in or out of it (out in the room it runs a screensaver) */
 .world-screen {
   pointer-events: none;
   background: var(--bg);
@@ -158,22 +158,25 @@ html.in-world .skip-link { display: none; }
 }
 
 /* ---------------------------------------------------------------- the phone */
-/* The contact page on the phone's screen (CSS3D), at phone width. */
+/* The contact page on the phone's screen (CSS3D), at phone width: rounded
+   to the screen, no scrollbar (you swipe or wheel it like a phone). */
 .world-phone {
   pointer-events: none;
   background: var(--bg);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  border-radius: 14px;
+  border-radius: 22px;
+  scrollbar-width: none;
 }
+.world-phone::-webkit-scrollbar { display: none; }
 .world-phone .reader { padding: 2.6rem 1.1rem 2.4rem; }
 .world-phone .prose figure, .world-phone .prose figcaption { margin-left: 0; margin-right: 0; }
 
-/* "Lean back" only while you're leaning in or holding the phone */
+/* "Put it down" only while you're holding the phone */
 .world-ui .world-back { display: none; }
-.world-ui[data-mode="leaned"] .world-back, .world-ui[data-mode="phone"] .world-back { display: inline-flex; }
-.world-ui[data-mode="leaned"] .world-hint, .world-ui[data-mode="phone"] .world-hint { display: none; }
+.world-ui[data-mode="phone"] .world-back { display: inline-flex; }
+.world-ui[data-mode="phone"] .world-hint { display: none; }
 
 /* the plug goes in: the picture tears for a moment */
 .world-glitch {

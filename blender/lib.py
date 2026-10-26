@@ -239,8 +239,9 @@ def noise_texture(name, base, spots, size=512, density=0.25, seed=1):
     return out.filepath_raw
 
 
-def brushed_texture(name, base='#b8bcc0', size=512, seed=7):
-    """Brushed metal: fine streaks along u, a few long scratches; PNG in out/."""
+def brushed_texture(name, base='#b8bcc0', size=512, seed=7, grime=0.0):
+    """Brushed metal: fine streaks along u, a few long scratches; PNG in out/.
+    grime > 0 adds blotchy dirt and dust (darker patches, up to that much)."""
     rng = np.random.default_rng(seed)
     rows = rng.normal(0, 1, (size, 1)).astype(np.float32)
     streak = np.repeat(rows, size, 1)
@@ -248,6 +249,18 @@ def brushed_texture(name, base='#b8bcc0', size=512, seed=7):
         n = rng.normal(0, 1, (size, -(-size // w))).astype(np.float32)
         streak += np.repeat(n, w, 1)[:, :size] * 0.5
     k = 1 + 0.035 * streak / streak.std()
+    if grime:
+        # soft blotches: a few octaves of smoothed noise, tileable (wraps)
+        dirt = np.zeros((size, size), np.float32)
+        for cells, amp in ((4, 1.0), (8, 0.6), (32, 0.3), (128, 0.25)):
+            g = rng.random((cells, cells)).astype(np.float32)
+            rep = size // cells
+            up = np.repeat(np.repeat(g, rep, 0), rep, 1)
+            for _ in range(2):  # blur by averaging with shifted copies (wrapping)
+                up = (up + np.roll(up, rep // 2, 0) + np.roll(up, rep // 2, 1) + np.roll(up, -rep // 2, 0)) / 4
+            dirt += amp * up
+        dirt = (dirt - dirt.min()) / (dirt.max() - dirt.min())
+        k = k * (1 - grime * np.clip(dirt * 1.4 - 0.35, 0, 1))
     img = np.array(hex_rgb(base)[:3], np.float32)[None, None, :] * k[..., None]
     srgb = np.where(img <= 0.0031308, img * 12.92, 1.055 * np.power(np.clip(img, 0, 1), 1 / 2.4) - 0.055)
     out = bpy.data.images.new(name, size, size, alpha=False)

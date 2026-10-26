@@ -106,7 +106,7 @@ def build(quick=False):
 
     # ------------------------------------------------------------ the time machine + its cables
     (car_pos, car_yaw) = CAR
-    delorean.build(z, origin=car_pos, yaw=car_yaw)
+    delorean.build(z, origin=car_pos, yaw=car_yaw, open_door=-1)  # the far gull-wing up
     car = z.sub(car_pos, car_yaw)
     # kit bolted on: a box of electronics on the bonnet, a display on the roof, glowing valves at the back
     car.box('kit_hood', (0.55, 0.14, 0.5), (-1.45, 0.78, 0.05), rot=(0, 0, 0.12), material=dark_steel, bake='car', bevel=0.01)
@@ -147,15 +147,15 @@ def build(quick=False):
         z.model(f'shelf_{i}', 'steel_frame_shelves_02', pos, rot=(0, yaw, 0), bake='env', tex=128)
         sx = pos[0] + (0.05 if pos[0] < 0 else -0.05)
         for level, y in enumerate((0.42, 0.98, 1.54)):
-            for k in range(2):
-                zz = pos[2] - 0.18 + k * 0.32
+            for k in range(3):  # crammed
+                zz = pos[2] - 0.22 + k * 0.22
                 pick = rnd.random()
                 if pick < 0.35:
-                    z.model(f'box_{i}_{level}_{k}', 'cardboard_box_01', (sx, y, zz), rot=(0, rnd.random() * 0.4, 0), scale=0.7, bake='env', max_tris=600, tex=128)
+                    z.model(f'box_{i}_{level}_{k}', 'cardboard_box_01', (sx, y, zz), rot=(0, rnd.random() * 0.4, 0), scale=0.7, bake='env', max_tris=200, tex=128)
                 elif pick < 0.7:
-                    z.model(f'tin_{i}_{level}_{k}', 'oil_tin', (sx, y, zz), rot=(0, rnd.random() * 3, 0), bake='env', max_tris=400, tex=128)
+                    z.model(f'tin_{i}_{level}_{k}', 'oil_tin', (sx, y, zz), rot=(0, rnd.random() * 3, 0), bake='env', max_tris=180, tex=128)
                 else:
-                    z.model(f'can_{i}_{level}_{k}', 'can_rusted', (sx, y, zz), rot=(0, rnd.random() * 3, 0), bake='env', max_tris=400, tex=128)
+                    z.model(f'can_{i}_{level}_{k}', 'can_rusted', (sx, y, zz), rot=(0, rnd.random() * 3, 0), bake='env', max_tris=180, tex=128)
     z.model('tool_chest', 'metal_tool_chest', (6.2, 0, -4.2), rot=(0, -math.pi / 2, 0), bake='env', tex=128)
     bench(z, 'bench_e', (6.2, 0, -6.6), -math.pi / 2, 2.2, bench_top, dark_steel)
     z.model('gas', 'propane_tank', (5.9, 0, -3.3), bake='env', tex=128)
@@ -163,6 +163,7 @@ def build(quick=False):
         z.model(f'tyre_{i}', 'old_tyre', (x, 0, zz), rot=(math.pi / 2, 0, 0), bake='env', tex=128)
 
     # floor clutter round the car and in the corners
+    junk(z, rnd, bench_top, dark_steel, cable, car_pos, car_yaw)
     z.model('tool_cart', 'tool_cart', (-2.7, 0, -4.6), rot=(0, 0.6, 0), bake='env', tex=128)
     z.model('welder', 'portable_welding_cart', (-2.6, 0, -7.4), rot=(0, 0.7, 0), bake='env', tex=128)
     z.model('hand_truck', 'hand_truck', (5.9, 0, 3.6), rot=(0, -1.3, 0), bake='env', tex=128)
@@ -192,9 +193,9 @@ def build(quick=False):
     z.model('bench_lamp_w', 'desk_lamp_arm_01', (X0 + 0.3, 0.92, 1.85), rot=(0, 1.6, 0), bake='hero', max_tris=2000, tex=256)
     z.light('SPOT', (X0 + 0.6, 1.6, 2.1), '#ffd9a0', 90, size=0.06, aim=(X0 + 0.4, 0.9, 2.3), spot=math.radians(80), blend=0.5, name='tool_lamp')
     # the bookcase: steel uprights, plank shelves, full of books (the reading list too)
-    books.bookcase(z.sub((X0 + 0.21, 0, -0.4), math.pi / 2), rnd, dark_steel, bench_top, bays=2, bay_w=1.2, height=3.0, levels=7, hotspot='reading')
+    books.bookcase(z.sub((X0 + 0.21, 0, -0.4), math.pi / 2), rnd, dark_steel, bench_top, bays=2, bay_w=1.2, height=3.0, levels=6, hotspot='reading')
     # XƯỞNG ("workshop") in teal neon over the tool wall
-    z.text('neon_xuong', 'XƯỞNG', 0.36, (X0 + 0.05, 2.95, 2.2), rot=(0, math.pi / 2, 0), material=emissive('w_neon_teal', '#2ad4c9', 2.6), tube=0.008, role='flicker')
+    z.text('neon_dhr', 'DHR.VN', 0.36, (X0 + 0.05, 2.95, 2.2), rot=(0, math.pi / 2, 0), material=emissive('w_neon_teal', '#2ad4c9', 2.6), tube=0.008, role='flicker')
     z.light('AREA', (X0 + 0.4, 2.95, 2.2), '#2ad4c9', 20, size=(0.3, 1.1), aim=(X0 + 3, 2.5, 2.2), name='neon_spill')
 
     # ------------------------------------------------------------ the evidence board (about), east wall
@@ -303,10 +304,10 @@ def desk(z, rnd, wood, steel, dark_steel, black, cable):
     pile['hotspot'] = 'reading'
 
     # handwriting: a notepad of to-dos, glasses on it; sticky notes on the screens
-    z.plane('notepad', 0.15, 0.21, (-0.55, DESK_TOP + 0.004, 0.32), rot=(-math.pi / 2, 0.25, 0),
+    z.plane('notepad', 0.15, 0.21, (-0.55, DESK_TOP + 0.0095, 0.32), rot=(-math.pi / 2, 0.25, 0),
             material=photo('w_notepad', textures.note('notepad', ['TODO', '~fix flux capacitor', 'order 1.21 GW', 'blog: Saigon books pt 2', '~coffee', 'call the vet re: Mochi'], size=(512, 720)), rough=0.85, tex=512), bake='desk')
-    z.box('notepad_back', (0.152, 0.008, 0.212), (-0.55, DESK_TOP + 0.0, 0.32), rot=(0, 0.25, 0), material=mat('w_card', '#6b5a44', rough=0.9), bake='desk')
-    z.model('glasses', 'round_spectacles', (-0.5, DESK_TOP + 0.008, 0.3), rot=(0, 0.6, 0), bake='desk', max_tris=800, tex=256)
+    z.box('notepad_back', (0.152, 0.008, 0.212), (-0.55, DESK_TOP + 0.004, 0.32), rot=(0, 0.25, 0), material=mat('w_card', '#6b5a44', rough=0.9), bake='desk')
+    z.model('glasses', 'round_spectacles', (-0.5, DESK_TOP + 0.0095, 0.3), rot=(0, 0.6, 0), bake='desk', max_tris=800, tex=256)
     for i, (x, y_, lines, col, rot) in enumerate(((-1.02, 1.0, ['BACK UP', 'THE', 'BACKUPS'], '#e8cf4a', 0.06), (1.0, 1.42, ['88 MPH', '!!'], '#ff8fc0', -0.08))):
         side = -1 if x < 0 else 1
         ang = -side * 0.5
@@ -319,7 +320,7 @@ def desk(z, rnd, wood, steel, dark_steel, black, cable):
     z.tube('mug_handle', [(0.725, DESK_TOP + 0.08, 0.4), (0.76, DESK_TOP + 0.075, 0.4), (0.76, DESK_TOP + 0.03, 0.4), (0.725, DESK_TOP + 0.025, 0.4)], 0.007, material=mat('w_mug', '#e8e4da', rough=0.2), bake='desk')
     z.cyl('coffee', 0.041, 0.002, (0.68, DESK_TOP + 0.088, 0.4), material=mat('coffee', '#140a05', rough=0.1), bake='desk')
     ring = mat('w_ring', '#2a1a10', rough=0.4)
-    for i, (x, zz) in enumerate(((0.6, 0.2), (-0.25, 0.44), (0.95, 0.4))):
+    for i, (x, zz) in enumerate(((0.6, 0.2), (-0.78, 0.44), (0.95, 0.4))):  # off the mat: nothing coplanar
         z.cyl(f'coffee_ring_{i}', 0.05, 0.0006, (x, DESK_TOP + 0.0003, zz), material=ring, bake='desk', segs=24)
     z.model('plant', 'potted_plant_04', (-1.05, DESK_TOP, -0.32), bake='desk', max_tris=1500, tex=512)
     z.model('duck', 'rubber_duck_toy', (-0.36, DESK_TOP, -0.02), rot=(0, 0.7, 0), scale=0.35, bake='desk', max_tris=900, tex=256)
@@ -379,6 +380,72 @@ def desk(z, rnd, wood, steel, dark_steel, black, cable):
     z.tube('lamp_cord', [(lamp[0], lamp[1] + 1.1, lamp[2]), (lamp[0], H, lamp[2])], 0.006, material=black, bake='desk')
     z.cyl('lamp_bulb', 0.045, 0.07, (lamp[0], lamp[1] - 0.05, lamp[2]), material=emissive('bulb', '#ffd9a0', 6), live=1, segs=16)
     z.light('SPOT', (lamp[0], lamp[1] - 0.08, lamp[2]), '#ffcf96', 300, size=0.08, aim=(lamp[0], 0, lamp[2]), spot=math.radians(100), blend=0.6, name='lamp')
+
+
+def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
+    """The mess round the car, between it and the desk: a bench of old
+    electronics under a lamp, filament bulbs, stacked boxes and crates,
+    tyres, a drum, circuit boards and paper on the floor, oil stains, and
+    cables, black and red, snaking off the car everywhere."""
+    red = mat('w_cable_red', '#6a1a14', rough=0.6)
+    paper = mat('w_scrap', '#cfc6b2', rough=0.95)
+    oil = mat('w_oil', '#0c0b0a', rough=0.1)
+    grime = mat('w_grime', '#1a1612', rough=0.9)
+    # the electronics bench, angled towards you, its lamp on
+    b = z.sub((4.7, 0, -2.6), -0.35)
+    bench(b, 'bench_junk', (0, 0, 0), 0.0, 1.8, bench_top, frame)
+    b.model('junk_tv', 'Television_01', (-0.55, 0.92, -0.1), rot=(0, 0.35, 0), bake='hero', tex=128, max_tris=1000)
+    b.model('junk_radio', 'vintage_radio_transceiver', (0.15, 0.92, -0.15), rot=(0, -0.2, 0), bake='hero', tex=128, max_tris=900)
+    b.model('junk_meter', 'retro_multimeter', (0.62, 0.92, 0.1), rot=(0, -0.6, 0), bake='hero', tex=128, max_tris=600)
+    for k in range(3):
+        b.model(f'junk_pcb_{k}', 'circuit_board', (-0.2 + k * 0.3, 0.92, 0.25), rot=(0, rnd.random() * 3, 0), scale=0.5, bake='hero', tex=128, max_tris=400)
+    b.model('junk_lamp', 'desk_lamp_arm_01', (0.75, 0.92, -0.25), rot=(0, 2.4, 0), bake='hero', tex=128, max_tris=1200)
+    b.light('SPOT', (0.45, 1.55, -0.05), '#ffd9a0', 140, size=0.06, aim=(0.1, 0.9, 0.1), spot=math.radians(85), blend=0.5, name='junk_lamp')
+    # filament bulbs on the bench, glowing (as in every workshop worth the name)
+    fil = emissive('w_filament', '#ff9a3c', 7)
+    for k, (x, zz) in enumerate(((-0.15, 0.32), (0.05, 0.38))):
+        b.cyl(f'bulb_glass_{k}', 0.04, 0.13, (x, 0.92 + 0.08, zz), material=mat('w_bulb_glass', '#3a2a18', rough=0.05), bake='hero', segs=16, r2=0.03)
+        b.cyl(f'bulb_fil_{k}', 0.012, 0.07, (x, 0.92 + 0.08, zz), material=fil, live=1, segs=8)
+        b.cyl(f'bulb_base_{k}', 0.035, 0.04, (x, 0.92 + 0.02, zz), material=frame, bake='hero', segs=16)
+        b.light('POINT', (x, 1.02, zz), '#ff9a3c', 18, size=0.03, name=f'filament_{k}')
+    # boxes stacked any old how, crates, a plastic crate of parts
+    for k, (x, y, zz, sc, yaw) in enumerate(((2.3, 0, -2.4, 0.9, 0.2), (2.35, 0.3, -2.42, 0.8, -0.3), (2.3, 0.57, -2.4, 0.65, 0.5),
+                                              (2.9, 0, -1.9, 0.8, 1.2), (1.9, 0, -3.1, 0.7, 0.7))):
+        z.model(f'junk_box_{k}', 'cardboard_box_01', (x, y, zz), rot=(0, yaw, 0), scale=sc, bake='env', max_tris=500, tex=128)
+    z.model('junk_crate', 'wooden_crate_02', (3.5, 0, -1.6), rot=(0, 0.4, 0), bake='env', max_tris=800, tex=128)
+    z.model('junk_crate_2', 'wooden_crate_01', (3.55, 0.46, -1.62), rot=(0, 0.9, 0), scale=0.8, bake='env', max_tris=800, tex=128)
+    z.model('junk_parts', 'plastic_crate_01', (1.6, 0, -2.2), rot=(0, 0.3, 0), bake='env', max_tris=800, tex=128)
+    for k, (x, zz, y) in enumerate(((5.15, -1.1, 0), (5.17, -1.12, 0.17))):
+        z.model(f'junk_tyre_{k}', 'old_tyre', (x, y, zz), rot=(0, rnd.random(), 0), bake='env', max_tris=600, tex=128)
+    z.model('junk_drum', 'Barrel_01', (5.3, 0, -3.6), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
+    # on the floor: boards, scraps of paper, oil, grime
+    for k in range(4):
+        z.model(f'floor_pcb_{k}', 'circuit_board', (1.4 + rnd.random() * 3.5, 0.0, -1.0 - rnd.random() * 2.6), rot=(0, rnd.random() * 3, 0), scale=0.5, bake='env', max_tris=300, tex=128)
+    for k in range(26):
+        x, zz = -2.5 + rnd.random() * 8.0, -0.8 - rnd.random() * 7.5
+        z.box(f'scrap_{k}', (0.08 + rnd.random() * 0.14, 0.001, 0.08 + rnd.random() * 0.18), (x, 0.004 + k * 0.0002, zz), rot=(0, rnd.random() * 3, 0), material=paper, bake='env')
+    for k in range(12):
+        x, zz = -2.0 + rnd.random() * 7.0, -0.8 - rnd.random() * 7.0
+        rr = 0.15 + rnd.random() * 0.45
+        z.cyl(f'oil_spot_{k}', rr, 0.002, (x, 0.0012, zz), material=oil if k % 3 else grime, bake='env', segs=14)
+    # cables off the car, everywhere: to the bench, the desk, the boxes, the walls
+    c, s = math.cos(car_yaw), math.sin(car_yaw)
+    ox, oz = car_pos[0], car_pos[2]
+    ends = [(4.3, 0.9, -2.4), (1.15, 0.6, -0.3), (2.2, 0.0, -2.0), (0.6, 0.0, -1.6), (-1.5, 0.0, -2.5), (-2.4, 0.0, -4.4),
+            (5.2, 0.0, -1.0), (3.2, 0.0, -0.6), (6.5, 1.2, -3.8), (-0.5, 0.0, -6.5), (1.0, 0.0, -8.0), (4.0, 0.0, -8.6)]
+    for i, end in enumerate(ends):
+        lx, lz = (rnd.random() - 0.5) * 3.0, (0.95 if i % 2 else -0.95)
+        start = (ox + lx * c + lz * s, 0.3 + rnd.random() * 0.5, oz - lx * s + lz * c)
+        pts = [start, (start[0], 0.02, start[2])]
+        for k in range(1, 5):
+            t = k / 5
+            pts.append((start[0] + (end[0] - start[0]) * t + (rnd.random() - 0.5) * 1.2, 0.012, start[2] + (end[2] - start[2]) * t + (rnd.random() - 0.5) * 1.2))
+        pts += [(end[0], 0.012, end[2]), end] if end[1] > 0.1 else [end]
+        z.tube(f'junk_cable_{i}', pts, 0.009 + rnd.random() * 0.012, material=red if i % 3 == 0 else cable, bake='car', segs=6)
+    # a couple of coils lying on the floor
+    for k, (x, zz) in enumerate(((2.8, -0.9), (-1.6, -3.6))):
+        pts = [(x + math.cos(a) * (0.22 + 0.015 * a), 0.012 + 0.006 * (a // 6.28), zz + math.sin(a) * (0.22 + 0.015 * a) * 0.8) for a in [j * 0.5 for j in range(40)]]
+        z.tube(f'coil_{k}', pts, 0.01, material=red if k else cable, bake='env', segs=6)
 
 
 def key_uv(mesh, kx, kz, KW, KD):
@@ -446,8 +513,8 @@ def crt(z, name, pos, yaw, size, shell, dark, **tags):
     m = z.sub(pos, yaw)
     w, h, d = size, size * 0.82, size * 0.95
     m.box(f'{name}_case', (w, h, d), (0, h / 2, -d / 2 + 0.02), material=shell, bake='hero', bevel=0.02)
-    m.box(f'{name}_back', (w * 0.7, h * 0.7, d * 0.5), (0, h * 0.45, -d - 0.05), material=shell, bake='hero', bevel=0.03)
-    m.box(f'{name}_bezel', (w * 0.86, h * 0.76, 0.02), (0, h * 0.55, 0.02), material=dark, bake='hero', bevel=0.01)
+    m.box(f'{name}_back', (w * 0.7, h * 0.7, d * 0.5), (0, h * 0.45, -d - 0.05), material=shell, bake='hero')  # (unseen: no bevel)
+    m.box(f'{name}_bezel', (w * 0.86, h * 0.76, 0.02), (0, h * 0.55, 0.02), material=dark, bake='hero')
     m.box(f'{name}_knobs', (w * 0.5, 0.025, 0.01), (0, h * 0.1, 0.025), material=dark, bake='hero')
     tags = {k: v for k, v in tags.items() if v is not None}
     tint = tags.get('tint', '#ffb000')

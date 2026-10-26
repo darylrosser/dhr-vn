@@ -77,13 +77,17 @@ DOOR_X = (-0.72, 0.42)   # door front and rear edge
 SILL = 0.42
 
 
-def door_mesh(name, side):
-    """Gull-wing door, closed pose: roof half (from the centre spine), side
-    glass sloping out to the beltline, then the door skin down to the sill.
-    Hinge line along x at (z = 0.12, y = ROOF)."""
+def door_mesh(name, side, open_ang=0.0):
+    """Gull-wing door: roof half (from the centre spine), side glass sloping
+    out to the beltline, then the door skin down to the sill. Hinge line
+    along x at (z = side * 0.12, y = ROOF); open_ang swings it up about that."""
     bm = bmesh.new()
     zc, zr, zb = 0.12, HALF_W - 0.2, HALF_W + 0.005
     sect = [(ROOF + 0.005, zc), (ROOF, zr), (BELT, zb), (SILL, zb)]
+    if open_ang:
+        ca, sa = math.cos(open_ang), math.sin(open_ang)
+        # (y, outward) about the hinge (ROOF, zc): outward points swing upward
+        sect = [(ROOF + (w - zc) * sa + (y - ROOF) * ca, zc + (w - zc) * ca - (y - ROOF) * sa) for y, w in sect]
     rows = []
     for x in DOOR_X:
         # the front edge leans back with the windscreen above the beltline
@@ -96,15 +100,17 @@ def door_mesh(name, side):
     return finish(bm, name)
 
 
-def build(z, origin=(0, 0, 0), yaw=0.0):
-    """Add the car to zone z at origin (zone coords). Returns the clickable body."""
+def build(z, origin=(0, 0, 0), yaw=0.0, open_door=None):
+    """Add the car to zone z at origin (zone coords). open_door: the side
+    (+1 / -1, local z) whose gull-wing is up. Returns the clickable body."""
     ox, oy, oz = origin
     c_, s_ = math.cos(yaw), math.sin(yaw)
 
     def P(x, y, zz):  # car frame → zone frame
         return (ox + x * c_ + zz * s_, oy + y, oz - x * s_ + zz * c_)
 
-    stainless = image_pbr('dmc_stainless', brushed_texture('dmc_brushed'), scale=0.8, rough=0.3, metal=0.7, tex=512)
+    # stainless that's sat in a workshop for years: dulled, dusty, grimy low down
+    stainless = image_pbr('dmc_stainless', brushed_texture('dmc_brushed', base='#8f9295', grime=0.55), scale=0.8, rough=0.5, metal=0.6, tex=512)
     black = mat('dmc_black', '#121214', rough=0.6)
     rubber = mat('dmc_rubber', '#0c0c0d', rough=0.85)
     glass = mat('dmc_glass', '#0d1418', rough=0.05)
@@ -179,9 +185,9 @@ def build(z, origin=(0, 0, 0), yaw=0.0):
         x = 0.68 + k * 0.13
         box(f'louvre_{k}', (0.07, 0.015, 1.36), (x, 1.12 - (x - 0.6) * 0.21 + 0.03, 0), rot=(0, 0, -0.21), m=black)
 
-    # gull-wing doors, shut
+    # gull-wing doors: shut, or one swung up
     for sd in (-1, 1):
-        d = bpy.data.objects.new(f'door_{sd}', door_mesh(f'door_{sd}', sd))
+        d = bpy.data.objects.new(f'door_{sd}', door_mesh(f'door_{sd}', sd, math.radians(78) if sd == open_door else 0.0))
         d.data.materials.append(stainless)
         d.data.materials.append(glass)
         place(d)
