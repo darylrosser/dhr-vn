@@ -150,12 +150,12 @@ def build(quick=False):
     for i, (pos, yaw) in enumerate((((-6.6, 0, -8.6), math.pi / 2), ((-6.6, 0, -7.6), math.pi / 2), ((6.6, 0, -8.6), -math.pi / 2), ((6.6, 0, -7.6), -math.pi / 2))):
         z.model(f'shelf_{i}', 'steel_frame_shelves_02', pos, rot=(0, yaw, 0), bake='env', tex=128)
         sx = pos[0] + (0.05 if pos[0] < 0 else -0.05)
-        for level, y in enumerate((0.42, 0.98, 1.54)):
-            for k in range(3):  # crammed
-                zz = pos[2] - 0.22 + k * 0.22
+        for level, y in enumerate((0.13, 0.64, 1.15, 1.65)):  # the model's shelf tops
+            for k in range(2):
+                zz = pos[2] - 0.14 + k * 0.28
                 pick = rnd.random()
                 if pick < 0.35:
-                    z.model(f'box_{i}_{level}_{k}', 'cardboard_box_01', (sx, y, zz), rot=(0, rnd.random() * 0.4, 0), scale=0.7, bake='env', max_tris=200, tex=128)
+                    z.model(f'box_{i}_{level}_{k}', 'cardboard_box_01', (sx, y, zz), rot=(0, math.pi / 2 + (rnd.random() - 0.5) * 0.3, 0), scale=0.6, bake='env', max_tris=200, tex=128)
                 elif pick < 0.7:
                     z.model(f'tin_{i}_{level}_{k}', 'oil_tin', (sx, y, zz), rot=(0, rnd.random() * 3, 0), bake='env', max_tris=180, tex=128)
                 else:
@@ -164,7 +164,7 @@ def build(quick=False):
     bench(z, 'bench_e', (6.2, 0, -6.6), -math.pi / 2, 2.2, bench_top, dark_steel)
     z.model('gas', 'propane_tank', (5.9, 0, -3.3), bake='env', tex=128)
     for i, (x, zz) in enumerate(((4.6, -9.2), (5.2, -9.4))):
-        z.model(f'tyre_{i}', 'old_tyre', (x, 0, zz), rot=(math.pi / 2, 0, 0), bake='env', tex=128)
+        tyre_flat(z, f'tyre_{i}', (x, 0, zz), tex=128)
 
     # floor clutter round the car and in the corners
     junk(z, rnd, bench_top, dark_steel, cable, car_pos, car_yaw)
@@ -414,8 +414,8 @@ def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
     z.model('junk_crate', 'wooden_crate_02', (3.5, 0, -1.6), rot=(0, 0.4, 0), bake='env', max_tris=800, tex=128)
     z.model('junk_crate_2', 'wooden_crate_01', (3.55, 0.46, -1.62), rot=(0, 0.9, 0), scale=0.8, bake='env', max_tris=800, tex=128)
     z.model('junk_parts', 'plastic_crate_01', (1.6, 0, -2.2), rot=(0, 0.3, 0), bake='env', max_tris=800, tex=128)
-    for k, (x, zz, y) in enumerate(((5.15, -1.1, 0), (5.17, -1.12, 0.17))):
-        z.model(f'junk_tyre_{k}', 'old_tyre', (x, y, zz), rot=(0, rnd.random(), 0), bake='env', max_tris=600, tex=128)
+    for k in range(2):  # a stack of two, not quite square
+        tyre_flat(z, f'junk_tyre_{k}', (5.15 + k * 0.04, k * 0.17, -1.1 - k * 0.03), max_tris=600, tex=128)
     z.model('junk_drum', 'Barrel_01', (0.9, 0, -4.5), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
     # on the floor: boards, scraps of paper, oil, grime
     for k in range(4):
@@ -464,8 +464,8 @@ def junk(z, rnd, bench_top, frame, cable, car_pos, car_yaw):
     z.model('left_crate_2', 'wooden_crate_01', (-4.55, 0.46, -0.45), rot=(0, 0.7, 0), scale=0.8, bake='env', max_tris=700, tex=128)
     z.model('left_parts', 'plastic_crate_01', (-3.6, 0, -0.9), rot=(0, 0.5, 0), bake='env', max_tris=700, tex=128)
     z.model('left_can', 'metal_jerrycan', (-2.0, 0, -3.5), rot=(0, 2.2, 0), bake='env', max_tris=700, tex=128)
-    for k, (x, zz, y) in enumerate(((-5.0, -1.7, 0), (-5.02, -1.72, 0.17), (-4.98, -1.69, 0.34))):
-        z.model(f'left_tyre_{k}', 'old_tyre', (x, y, zz), rot=(0, rnd.random(), 0), bake='env', max_tris=500, tex=128)
+    for k in range(3):
+        tyre_flat(z, f'left_tyre_{k}', (-5.0 + (rnd.random() - 0.5) * 0.06, k * 0.17, -1.7 + (rnd.random() - 0.5) * 0.06), max_tris=500, tex=128)
     for k in range(10):
         x, zz = -5.0 + rnd.random() * 3.0, -0.2 - rnd.random() * 4.5
         scrap(z, f'left_scrap_{k}', rnd, (x, 0.0045 + k * 0.0002, zz), paper)
@@ -492,8 +492,9 @@ def lathe_mesh(name, profile, segs=48, smooth=50):
 
 
 def mug(z, pos):
-    """An enamel camping mug, chipped dark-blue rim, three-quarters full of
-    coffee (a ring of crema round the edge). Turned, with walls and a lip.
+    """An enamel camping mug, dark-blue rim, black coffee filled up to the
+    rim's band (any lower and you look over the lip at white enamel).
+    A ring of crema round the edge. Turned, with walls and a lip.
     Lit live (no lightmap): a small round thing up close shows every texel."""
     x, y, zz = pos
     enamel = mat('w_mug', '#e6e1d4', rough=0.25)
@@ -510,8 +511,16 @@ def mug(z, pos):
     handle = [(hx - 0.002, y + 0.083, zz)] + [(hx + 0.012 + 0.018 * math.sin(a), y + 0.052 + 0.03 * math.cos(a), zz) for a in [k * math.pi / 10 for k in range(11)]] + [(hx - 0.002, y + 0.021, zz)]
     z.tube('mug_handle', handle, 0.0055, material=enamel, segs=10, live=1)
     # coffee: crema to the wall, darker in the middle
-    z.cyl('coffee', 0.0403, 0.003, (x, y + 0.0785, zz), material=mat('w_crema', '#6a4526', rough=0.2), segs=40, live=1)
-    z.cyl('coffee_dark', 0.031, 0.001, (x, y + 0.0805, zz), material=mat('w_coffee', '#1e0f07', rough=0.08), segs=32, live=1)
+    z.cyl('coffee', 0.0403, 0.003, (x, y + 0.0925, zz), material=mat('w_crema', '#2e1a0c', rough=0.45), segs=40, live=1)
+    z.cyl('coffee_dark', 0.035, 0.001, (x, y + 0.0945, zz), material=mat('w_coffee', '#0e0603', rough=0.2), segs=32, live=1)
+
+
+def tyre_flat(z, name, pos, **kw):
+    """An old tyre lying flat, pos = the middle of its bottom face. (The scan
+    stands upright on its tread; tipped over about its foot it lies 0.3 m
+    over and half its width under the floor, so that's taken back.)"""
+    x, y, zz = pos
+    return z.model(name, 'old_tyre', (x, y + 0.085, zz - 0.305), rot=(math.pi / 2, 0, 0), bake='env', **kw)
 
 
 def scrap(z, name, rnd, pos, paper):

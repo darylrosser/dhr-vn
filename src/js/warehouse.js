@@ -55,12 +55,16 @@ const modelUrl = (file) => new URL(`../models/${file}${new URL(import.meta.url).
 // bake looks right a touch brighter than physical.
 const LIGHTMAP_GAIN = Math.PI * 1.25;
 
-// Dust and grime, worked out in the shader so they cost nothing to download:
-// a film of dust in drifts on everything facing up (thinner where you work at
-// the desk), matte where it lies, and walls and sides darkened low down where
-// the floor's dirt splashes up. Value noise in world space, so it doesn't
-// line up with any texture.
+// Grime, worked out in the shader so it costs nothing to download. Always
+// darker, never lighter (cyberpunk, not a dusty barn): soot and filth in
+// drifts on everything facing up (thinner where you work at the desk), matte
+// where it lies, and walls and sides blackened low down where the floor's
+// dirt splashes up. Value noise in world space, so it doesn't line up with
+// any texture. The brick walls get more: soot in big patches and up under
+// the roof, dirt streaked down them, and every brick a slightly different
+// shade, so the texture's repeat is lost.
 function dusty(m) {
+  const wall = m.name === 'w_brick';
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vDustPos;\nvarying vec3 vDustN;')
@@ -79,14 +83,23 @@ float dustNoise(vec2 p) {
 vec3 dn = normalize(vDustN);
 float drift = dustNoise(vDustPos.xz * 2.3) * 0.55 + dustNoise(vDustPos.xz * 9.0 + 7.0) * 0.3 + dustNoise(vDustPos.xz * 45.0) * 0.15;
 float desk = mix(0.35, 1.0, smoothstep(0.9, 1.6, length(vDustPos.xz - vec2(0.0, 0.1))));
-float dust = smoothstep(0.3, 0.9, dn.y) * smoothstep(0.32, 0.72, drift) * 0.6 * desk;
-float grime = (1.0 - abs(dn.y)) * (1.0 - smoothstep(0.0, 0.7, vDustPos.y)) * (0.25 + 0.3 * drift);
-diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.25, 0.205, 0.15) * (0.75 + 0.5 * drift), dust);
-diffuseColor.rgb *= 1.0 - grime;`)
+float dust = smoothstep(0.3, 0.9, dn.y) * smoothstep(0.32, 0.72, drift) * 0.55 * desk;
+float grime = (1.0 - abs(dn.y)) * (1.0 - smoothstep(0.0, 0.9, vDustPos.y)) * (0.35 + 0.35 * drift);
+diffuseColor.rgb = mix(diffuseColor.rgb, min(diffuseColor.rgb, vec3(0.05, 0.042, 0.034) * (0.6 + 0.8 * drift)), dust);
+diffuseColor.rgb *= 1.0 - grime;
+#ifdef DUSTY_WALL
+float along = vDustPos.x + vDustPos.z;  // across whichever wall this is
+float soot = smoothstep(0.35, 0.8, dustNoise(vec2(along * 0.45, vDustPos.y * 0.3) + 3.0));
+float streak = smoothstep(0.5, 0.85, dustNoise(vec2(along * 6.0, vDustPos.y * 0.35))) * (0.4 + 0.6 * dustNoise(vec2(along * 0.8, 5.0)));
+float shade = dustNoise(vec2(along * 4.2, vDustPos.y * 13.0));  // ~ brick sized
+diffuseColor.rgb *= 0.65 + 0.3 * shade;
+diffuseColor.rgb *= 1.0 - 0.5 * soot - 0.4 * streak - 0.45 * smoothstep(3.0, 6.5, vDustPos.y);
+#endif`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 1.0, dust);')
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= 1.0 - dust;');
   };
-  m.customProgramCacheKey = () => 'dusty';
+  if (wall) m.defines = { ...m.defines, DUSTY_WALL: '' };
+  m.customProgramCacheKey = () => (wall ? 'dusty-wall' : 'dusty');
   return m;
 }
 
@@ -491,6 +504,9 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
       for (const m of [].concat(o.material)) {
         for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) t.anisotropy = 4;
         if (m.isMeshStandardMaterial) m.envMapIntensity = 0.5;
+        // the coffee: black with a dull sheen, not a mirror of the room or
+        // the lamp right over it (that reads as milk)
+        if (m.name === 'w_coffee' || m.name === 'w_crema') { m.envMapIntensity = 0.05; m.roughness = 0.75; }
       }
     });
     root.traverse((o) => {

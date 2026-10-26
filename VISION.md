@@ -41,8 +41,9 @@ Notes for the build:
   (the desk rig, the TVs, the arm, the time machine) is modelled by script. The DeLorean is a
   fan replica built from scratch: no badges or logos.
 - The room is one GLB (`workshop`), loaded before you see it.
-- Dust and dirt are a shader (drifts on everything facing up, grime low on the walls), not
-  textures: the room costs no more to download for being filthier.
+- Grime is a shader, not textures (soot and filth on everything facing up, the brick walls
+  sooted and streaked, everything blackened low down): always darker, never lighter, and the
+  room costs no more to download for being filthier.
 - Later: looping video on some of the TVs.
 
 ## Pages are places
