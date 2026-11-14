@@ -855,7 +855,7 @@ body.shelf-page {
   z-index: 2; /* above every cubby, so its shadow falls on the row below */
 }
 
-/* cubby divider on the right of each book, like the 3D unit (the last column's sits under the side post) */
+/* cubby divider on the right of each book, like the 3D unit (not on the last in a row: the side post is there) */
 .gbook::before {
   content: "";
   position: absolute;
@@ -871,6 +871,8 @@ body.shelf-page {
     var(--wood-base);
   box-shadow: 3px 0 6px rgba(40, 22, 8, 0.18), -2px 0 5px rgba(40, 22, 8, 0.12);
 }
+
+.gbook.is-row-end::before { display: none; }
 
 .gbook-3d {
   position: relative;

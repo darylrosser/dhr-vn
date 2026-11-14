@@ -183,7 +183,9 @@ function layout() {
   fillers.forEach((f, i) => { if (i < need) grid.appendChild(f); else f.remove(); });
 
   const origin = bookcase.getBoundingClientRect();
-  grid.querySelectorAll('.gbook:not([hidden])').forEach(el => {
+  grid.querySelectorAll('.gbook:not([hidden])').forEach((el, i) => {
+    // the last cubby in a row meets the side post, so it has no divider of its own
+    el.classList.toggle('is-row-end', (i + 1) % cols === 0);
     const r = el.getBoundingClientRect();
     el.style.setProperty('--bx', (origin.left - r.left).toFixed(1) + 'px');
     el.style.setProperty('--by', (origin.top - r.top).toFixed(1) + 'px');
