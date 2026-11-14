@@ -115,22 +115,76 @@ a:hover { color: var(--link-hover); }
   color: var(--ink-dim);
 }
 
+/* "YOU ARE BUGS." (The Three-Body Problem): the Trisolarans hijack every
+   screen on Earth. A black band in either theme, tilted like the old site's,
+   phosphor-green VT323 with a misaligned-signal fringe, scanlines, rolling
+   interference, and every few seconds the signal jolts. */
+.foot { overflow-x: clip; }
 .foot-marquee {
+  position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--rule);
-  background: var(--amber);
-  color: #0b0b0b;
-  font-weight: 700;
-  letter-spacing: .2em;
+  width: calc(100% + 4rem);
+  margin: 0 -2rem;
+  rotate: -1deg;
+  background: #020502;
+  border-block: 1px solid rgba(0, 255, 65, .35);
+  box-shadow: 0 0 28px rgba(0, 255, 65, .14), inset 0 0 22px rgba(0, 255, 65, .08);
+  color: #00ff41;
+  font: 400 1.9rem/1 'VT323', var(--font-mono);
+  letter-spacing: .22em;
+  text-shadow:
+    0 0 .45em rgba(0, 255, 65, .85),
+    -1.5px 0 rgba(255, 0, 70, .55),
+    1.5px 0 rgba(0, 170, 255, .55);
   white-space: nowrap;
+  animation: foot-glitch 7.3s steps(1) infinite;
+}
+/* scanlines + a faint flicker */
+.foot-marquee::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, .55) 0 1px, transparent 1px 3px);
+  animation: foot-flicker .14s steps(2) infinite;
+}
+/* a band of interference rolling through */
+.foot-marquee::before {
+  content: '';
+  position: absolute;
+  inset: -60% 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 42%, rgba(0, 255, 65, .16) 48%, rgba(220, 255, 230, .22) 50%, rgba(0, 255, 65, .1) 53%, transparent 58%);
+  animation: foot-roll 3.6s linear infinite;
 }
 .foot-marquee-track {
   display: inline-block;
-  padding: .35rem 0;
-  animation: marquee 60s linear infinite;
+  padding: .55rem 0 .45rem;
+  animation: marquee 26s linear infinite;
 }
-.foot-marquee span { margin-right: 3rem; }
+.foot-marquee span { margin-right: 2.6rem; }
 @keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes foot-roll { from { translate: 0 -40%; } to { translate: 0 40%; } }
+@keyframes foot-flicker { 50% { opacity: .82; } }
+/* mostly steady; then the signal jumps, flashes and shifts colour for a moment */
+@keyframes foot-glitch {
+  0%, 88%, 100% { translate: 0 0; filter: none; }
+  89% { translate: -9px 1px; filter: brightness(1.7) hue-rotate(-35deg); }
+  90% { translate: 6px -1px; filter: contrast(1.6) saturate(1.8); }
+  91% { translate: -2px 0; filter: brightness(.55); }
+  92% { translate: 12px 0; filter: hue-rotate(60deg) brightness(1.3); }
+  93% { translate: 0 0; filter: none; }
+  97% { translate: 0 0; filter: brightness(1.25); }
+  98% { translate: -3px 0; filter: none; }
+}
+@media (max-width: 640px) {
+  .foot-marquee { font-size: 1.45rem; letter-spacing: .18em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .foot-marquee, .foot-marquee::after, .foot-marquee::before, .foot-marquee-track { animation: none; }
+  .foot-marquee::before { display: none; }
+}
 
 .foot-inner {
   max-width: 68rem;

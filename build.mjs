@@ -92,7 +92,7 @@ function head({ title, description, canonical, kind, place = '' }) {
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=VT323&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 ${THEME_SNIPPET}
 ${IMPORT_MAP}
 <script>window.__dhrAssets = ${JSON.stringify({ world: asset('js/world.js') })};</script>
@@ -149,7 +149,7 @@ ${scripts}</body>
 
 function footer() {
   return `<footer class="foot">
-  <div class="foot-marquee" aria-hidden="true"><div class="foot-marquee-track">${'<span>YOU ARE BUGS.</span>'.repeat(12)}</div></div>
+  <div class="foot-marquee" aria-hidden="true"><div class="foot-marquee-track">${'<span>YOU ARE BUGS.</span>'.repeat(16)}</div></div>
   <div class="foot-inner">
     <nav class="foot-nav" aria-label="Footer">${NAV.map((n) => `<a href="${n.href}">${n.key === 'home' ? 'home' : n.label}</a>`).join('')}</nav>
     <p class="foot-meta">© ${new Date().getFullYear()} ${SITE.name} <span class="foot-dim">// end of transmission</span></p>
@@ -333,7 +333,7 @@ function shelfChrome() {
     html = html.replace(/(href|src)="(style\.css|data\.js|grid\.js|stats\.js)"/g, `$1="$2?v=${v}"`);
     const headBits = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=VT323&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 ${THEME_SNIPPET}
 ${page.place ? `${IMPORT_MAP}
 <script>window.__dhrAssets = ${JSON.stringify({ world: asset('js/world.js') })};</script>` : ''}
