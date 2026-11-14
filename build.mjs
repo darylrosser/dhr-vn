@@ -307,10 +307,30 @@ const SHELF_PAGES = [
   { file: 'reading/stats.html', crumbs: ['reading', 'stats'], place: '', skipTo: '#stats-main' },
 ];
 
+// The shelf's own files are linked by plain names (style.css, data.js…), and
+// Cloudflare tells browsers to keep static files for hours. So, like /assets,
+// they get ?v=<hash of their contents>: a deploy changes the URL, nobody gets
+// a new page with an old stylesheet.
+const SHELF_FILES = ['style.css', 'data.js', 'grid.js', 'books.js', 'stats.js'];
+
+function shelfVersion() {
+  const h = crypto.createHash('sha1');
+  for (const f of SHELF_FILES) h.update(f).update(fs.readFileSync(path.join(ROOT, 'public/reading', f)));
+  return h.digest('hex').slice(0, 8);
+}
+
 function shelfChrome() {
+  const v = shelfVersion();
+  // grid.js imports books.js: version that URL too, or it could stay cached
+  const gridFile = path.join(DIST, 'reading/grid.js');
+  const grid = fs.readFileSync(gridFile, 'utf8');
+  if (!grid.includes("from './books.js'")) throw new Error("reading/grid.js no longer imports './books.js'");
+  fs.writeFileSync(gridFile, grid.replace("from './books.js'", `from './books.js?v=${v}'`));
+
   for (const page of SHELF_PAGES) {
     const file = path.join(DIST, page.file);
     let html = fs.readFileSync(file, 'utf8');
+    html = html.replace(/(href|src)="(style\.css|data\.js|grid\.js|stats\.js)"/g, `$1="$2?v=${v}"`);
     const headBits = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
