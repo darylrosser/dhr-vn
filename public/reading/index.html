@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Books I've Read In 2026 | dhr.vn</title>
-<meta name="description" content="A 3D reading shelf of my reads in 2026, with detailed information about each book.">
+<meta name="description" content="A bookshelf of my reads in 2026, with my thoughts on each book.">
 <!-- world mode (see /assets/js/uplink.js): the shelf is a place in the warehouse.
      Only the tokens the HUD + datapad need, so the shelf's own styles are untouched. -->
 <style>:root { --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace; --font-crt: 'Share Tech Mono', var(--font-mono); --font-display: 'Orbitron', sans-serif; --font-serif: 'Lora', Georgia, serif; --amber: #ffb000; --teal: #2ad4c9; --hot: #ff6a1a; }</style>
@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
 </head>
-<body>
+<body class="shelf-page">
 <div class="bezel" aria-hidden="true">
   <div class="bezel-edge" data-edge="top" data-jack-edge></div>
   <div class="bezel-edge" data-edge="right" data-jack-edge></div>
@@ -50,7 +50,9 @@
   <button type="button" class="shelf-chip-btn" data-sort="rating">By rating</button>
 </nav>
 
-<div id="canvas-container"></div>
+<div class="bookcase" id="bookcase">
+  <main class="book-grid" id="book-grid" aria-label="Books read in 2026"></main>
+</div>
 
 <!-- Book detail modal -->
 <div class="modal" id="book-modal" hidden>
@@ -83,6 +85,7 @@
 </div>
 
 <script src="data.js"></script>
+<!-- three.js is only for world mode (/assets/js/world.js); the shelf itself is plain HTML/CSS -->
 <script type="importmap">
 {
   "imports": {
@@ -92,7 +95,7 @@
 }
 </script>
 
-<script type="module" src="main.js"></script>
+<script type="module" src="grid.js"></script>
 <script>window.__dhrAssets = { world: '/assets/js/world.js' };</script>
 <script src="/assets/js/eye.js" defer></script>
 <script src="/assets/js/uplink.js" defer></script>

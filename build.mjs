@@ -18,7 +18,7 @@ const SITE = {
   name: 'dhr.vn',
   url: 'https://dhr.vn',
   author: 'Daryl Hensman-Rosser',
-  // The three.js reading shelf (public/reading, carried over from the old site).
+  // The reading shelf (public/reading): a bookcase of covers in plain HTML/CSS.
   readingUrl: '/reading/',
 };
 

@@ -81,4 +81,4 @@ you click to open their page in place.
   flavour goes in the top bar, kicker line, headings' `##`, and footer.
 - Every terminal command has a normal link equivalent; the home page works with JS off.
 - The boot animation runs once per tab session and never with reduced motion.
-- `/reading/` still points at the live three.js shelf on dhr.vn.
+- `/reading/` is a CSS bookcase (no three.js); its import map is only there for world mode.
