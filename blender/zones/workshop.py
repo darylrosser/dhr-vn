@@ -645,5 +645,5 @@ def evidence_board(z, rnd):
     for k, (a, b) in enumerate(((0, 5), (5, 11), (2, 5), (5, 6), (1, 4), (6, 10), (3, 6), (8, 9))):
         (ax, ay), (bx, by) = clues[a], clues[b]
         z.tube(f'string_{k}', [(ax, ay, 0.036), ((ax + bx) / 2, (ay + by) / 2 - 0.01, 0.04), (bx, by, 0.036)], 0.0018, material=string, live=1, segs=4)
-    z.text('board_title', 'SUBJECT: D. HENSMAN-ROSSER', 0.045, (-0.3, 2.22, 0.024), material=red_ink, bake='hero')
+    z.text('board_title', 'SUBJECT: D. ROSSER', 0.045, (-0.3, 2.22, 0.024), material=red_ink, bake='hero')
     z.light('SPOT', (0.3, 3.6, 2.4), '#ffd9a0', 110, size=0.35, aim=(0, 1.3, 0), spot=math.radians(75), blend=0.9, name='board_spot')

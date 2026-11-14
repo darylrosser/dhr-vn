@@ -17,7 +17,7 @@ const DIST = path.join(ROOT, 'dist');
 const SITE = {
   name: 'dhr.vn',
   url: 'https://dhr.vn',
-  author: 'Daryl Hensman-Rosser',
+  author: 'Daryl Rosser',
   // The reading shelf (public/reading): a bookcase of covers in plain HTML/CSS.
   readingUrl: '/reading/',
 };
@@ -60,8 +60,6 @@ const NAV = [
 // Inline so the saved theme applies before first paint (no flash).
 const THEME_SNIPPET = `<script>try{var t=localStorage.getItem('dhr-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>`;
 
-// Boot animation once per tab session, never with reduced motion. Hides the
-// content before first paint; the timeout un-hides it if terminal.js never runs.
 // three.js for world mode, pinned. Only the home page loads it, and only on demand.
 const THREE_VERSION = '0.170.0';
 const IMPORT_MAP = `<script type="importmap">${JSON.stringify({ imports: {
@@ -69,13 +67,10 @@ const IMPORT_MAP = `<script type="importmap">${JSON.stringify({ imports: {
   'three/addons/': `https://cdn.jsdelivr.net/npm/three@${THREE_VERSION}/examples/jsm/`,
 } })}</script>`;
 
-const BOOT_SNIPPET = `<script>(function(){var d=document.documentElement;try{if(matchMedia('(prefers-reduced-motion: reduce)').matches||sessionStorage.getItem('dhr-booted'))return}catch(e){return}d.classList.add('is-booting');setTimeout(function(){if(!window.__termBooted)d.classList.remove('is-booting')},8000)})()</script>`;
 
-// The way out of a page into the warehouse is part of the screen itself: a
-// close ✕ in its chrome (with an uplink LED), and the bezel around the edge,
-// which pulls back on hover to show the room. uplink.js shows them on capable devices.
-const screenX = (cls = '') => `<button type="button" class="screen-x${cls ? ` ${cls}` : ''}" data-jack hidden aria-label="Close this screen and step into the warehouse" title="Exit to the warehouse"><span class="screen-x-led" aria-hidden="true"></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg><span class="jack-state visually-hidden">Uplink: offline</span></button>`;
-
+// The way out of a page into the warehouse: the bezel around the screen's edge,
+// which pulls back on hover to show the room (or `exit` at the header prompt).
+// uplink.js shows it on capable devices.
 const BEZEL = `<div class="bezel" aria-hidden="true">
   <div class="bezel-edge" data-edge="top" data-jack-edge></div>
   <div class="bezel-edge" data-edge="right" data-jack-edge></div>
@@ -98,13 +93,12 @@ function head({ title, description, canonical, kind, place = '' }) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-${kind === 'terminal' ? BOOT_SNIPPET : ''}${THEME_SNIPPET}
+${THEME_SNIPPET}
 ${IMPORT_MAP}
 <script>window.__dhrAssets = ${JSON.stringify({ world: asset('js/world.js') })};</script>
 <link rel="stylesheet" href="${asset('css/base.css')}">
 <link rel="stylesheet" href="${asset('css/reader.css')}">
 <link rel="stylesheet" href="${asset('css/world.css')}">
-${kind === 'terminal' ? `<link rel="stylesheet" href="${asset('css/terminal.css')}">` : ''}
 </head>`;
 }
 
@@ -118,20 +112,28 @@ function promptPath(crumbs) {
   return `<a href="/" class="prompt-host">${SITE.name}</a><span class="prompt-sep">:</span><a href="/" class="prompt-home">~</a>${parts.map((p) => `<span class="prompt-slash">/</span>${p}`).join('')}<span class="prompt-dollar"> $</span>`;
 }
 
-function readerShell({ title, description, canonical, active, crumbs, body, place = '' }) {
+// The site's top bar: prompt (a working command line, see prompt.js), nav and
+// theme toggle. The way out to the warehouse is the bezel round the screen's
+// edge, or `exit` at the prompt.
+// Used by every reader page and injected into the reading shelf (shelfChrome).
+function siteBar({ active, crumbs, skipTo = '#main' }) {
   const nav = NAV.map((n) => `<a href="${n.href}"${n.key === active ? ' aria-current="page"' : ''}>${n.label}</a>`).join('');
+  return `<a class="skip-link" href="${skipTo}">Skip to content</a>
+<header class="bar">
+  <div class="bar-inner">
+    <form class="bar-prompt" id="bar-form" autocomplete="off">${promptPath(crumbs)}<label class="visually-hidden" for="bar-input">Command (type help)</label><input id="bar-input" class="bar-input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" enterkeyhint="go" aria-controls="bar-out" hidden><span class="bar-cursor" aria-hidden="true"></span></form>
+    <nav class="bar-nav" aria-label="Main">${nav}</nav>
+    <button type="button" class="theme-toggle" aria-label="Switch between light and dark"><span class="theme-toggle-label" aria-hidden="true">◐</span></button>
+  </div>
+  <div class="bar-out" id="bar-out" aria-live="polite" hidden></div>
+</header>`;
+}
+
+function readerShell({ title, description, canonical, active, crumbs, body, place = '', scripts = '' }) {
   return `${head({ title, description, canonical, kind: 'reader', place })}
 <body>
 ${place ? BEZEL : ''}
-<a class="skip-link" href="#main">Skip to content</a>
-<header class="bar">
-  <div class="bar-inner">
-    <p class="bar-prompt">${promptPath(crumbs)}<span class="bar-cursor" aria-hidden="true"></span></p>
-    <nav class="bar-nav" aria-label="Main">${nav}</nav>
-    <button type="button" class="theme-toggle" aria-label="Change colour theme"><span class="theme-toggle-label">auto</span></button>
-    ${place ? screenX('screen-x--bar') : ''}
-  </div>
-</header>
+${siteBar({ active, crumbs })}
 <main id="main" class="reader">
 ${body}
 </main>
@@ -139,7 +141,8 @@ ${footer()}
 <script src="${asset('js/theme.js')}" defer></script>
 <script src="${asset('js/eye.js')}" defer></script>
 <script src="${asset('js/uplink.js')}" defer></script>
-</body>
+<script src="${asset('js/prompt.js')}" defer></script>
+${scripts}</body>
 </html>
 `;
 }
@@ -241,111 +244,39 @@ ${items}
   });
 }
 
-function homeView(posts, pages) {
-  // Everything here is real HTML so the page works with no JS; terminal.js
-  // adds the boot animation and the interactive prompt, eye.js the scanner.
-  const manifest = {
-    posts: posts.map((p) => ({ slug: p.slug, title: stripTags(p.title), date: p.date, minutes: readMinutes(p.body) })),
-    pages: pages.map((p) => ({ slug: p.slug, title: stripTags(p.title) })),
-    readingUrl: SITE.readingUrl,
-  };
-  const recent = posts.slice(0, 5).map((p) => `<li><span class="t-dim">${p.date}</span>  <a href="/blog/${p.slug}/">${p.title}</a></li>`).join('');
-  return `${head({ title: '', description: 'Daryl Hensman-Rosser: marketing, digital business, and the occasional ramble. Based in Saigon.', canonical: '/', kind: 'terminal', place: 'home' })}
-<body>
-${BEZEL}
-<a class="skip-link" href="#prompt-input">Skip to command line</a>
-<div class="crt" aria-hidden="true"></div>
-<main class="rig" id="term">
-  <section class="panel panel-main" aria-label="Terminal">
-    ${screenX('screen-x--panel')}
-    <div class="screen" id="screen" tabindex="-1">
-      <h1 class="wordmark"><span>DHR</span><span>.VN</span></h1>
-      <p class="t-quote">=== "I've seen things you people wouldn't believe. Mostly bookshops." ===</p>
+// ---------------------------------------------------------------- home
 
-      <div class="boot" data-step>
-        <p class="t-dim">DHR-OS 4.0.0 (TTY1) // ${new Date().toISOString().slice(0, 10)} // SAIGON SECTOR 1</p>
-        <p class="t-dim">[<span class="t-ok"> OK </span>] Mounting /home/daryl … 400-odd books detected</p>
-        <p class="t-dim">[<span class="t-ok"> OK </span>] Coffee subsystem online</p>
-        <p class="t-dim">[<span class="t-warn">WARN</span>] Fiancée has requested a moratorium on book purchases</p>
-      </div>
+function homeView(posts) {
+  const latest = posts.slice(0, 5).map((p) => `<li><a href="/blog/${p.slug}/">${p.title}</a><span class="home-latest-meta"><time datetime="${p.date}">${fmtDate(p.date)}</time> · ${readMinutes(p.body)} min</span></li>`).join('\n    ');
+  return readerShell({
+    title: '',
+    description: 'Daryl Rosser: marketing, digital business, and the occasional ramble. Based in Saigon.',
+    canonical: '/',
+    active: 'home',
+    crumbs: [],
+    place: 'home',
+    body: `<article class="prose home">
+  <p class="kicker"><span class="kicker-cmd">whoami</span></p>
+  <h1>&lt;Claude: Insert self aggrandising line here&gt;</h1>
+  <p>My name is Daryl. I live in Saigon, which is in Vietnam, which is on Earth, which is in the Milky Way. Which is also a chocolate bar. And choco stars. Man, I miss those things.</p>
+  <p>I run a marketing agency that occasionally convinces businesses to give us money<sup><a href="#fn1" id="ref1">1</a></sup> in exchange for making them slightly more money. I also write an inordinate amount of code, though "write" is perhaps generous when it's mostly become insulting AI agents until they get it right.<sup><a href="#fn2" id="ref2">2</a></sup></p>
+  <p>I read books. Many books. <mark>Too many books</mark>, if you ask my wife, who has requested I stop buying books until I finish the ones currently occupying three bookshelves, two nightstands, and what used to be the dining room table.</p>
+  <p>This is where I write about some of this, and occasionally other things that seem important at 2am.</p>
 
-      <section class="block" data-step aria-labelledby="whoami-h">
-        <p class="cmd" id="whoami-h"><span class="ps1">&gt;</span> whoami</p>
-        <p class="t-headline">In a world where one man's journey is nothing short of ordinary.</p>
-        <div class="t-out">
-          <p>The statistics are quite clear: there are approximately 8 billion<sup><a href="#fn1" id="ref1">1</a></sup> people on Earth, and <mark>I am definitely one of them.</mark></p>
-          <p>My name is Daryl. I live in Saigon, which is in Vietnam, which is on Earth, which is as far as we<sup><a href="#fn2" id="ref2">2</a></sup> can tell is orbiting its Sun at approximately 67,000 miles per hour. None of this is my fault. Well, the Saigon part is.</p>
-          <p>I run a marketing agency that occasionally convinces businesses to give us money<sup><a href="#fn3" id="ref3">3</a></sup> in exchange for making them slightly more money. I also write code, though "write" is perhaps generous given that I mostly ask an AI very politely and it does the actual work. <mark>The AI has not yet demanded equity.</mark><sup><a href="#fn4" id="ref4">4</a></sup></p>
-          <p>I read books. Many books. <mark>Too many books</mark>, if you ask my fiancée, who has requested I stop buying books until I finish the ones currently occupying three bookshelves, two nightstands, and what used to be the dining room table.</p>
-          <p>This is where I write about some of this, and occasionally other things that seem important at 2am.</p>
-        </div>
-      </section>
+  <h2>Latest writing</h2>
+  <ul class="home-latest">
+    ${latest}
+  </ul>
+  <p class="home-more"><a href="/blog/">All posts →</a></p>
 
-      <section class="block" data-step aria-labelledby="ls-h">
-        <p class="cmd" id="ls-h"><span class="ps1">&gt;</span> ls</p>
-        <nav aria-label="Main">
-          <ul class="t-ls">
-            <li><a href="/blog/">blog/</a></li>
-            <li><a href="/about/">about/</a></li>
-            <li><a href="${SITE.readingUrl}">reading/</a></li>
-            <li><a href="/contact/">contact/</a></li>
-          </ul>
-        </nav>
-      </section>
-
-      <section class="block" data-step aria-labelledby="recent-h">
-        <p class="cmd" id="recent-h"><span class="ps1">&gt;</span> ls -lt blog | head</p>
-        <ul class="t-list">${recent}</ul>
-      </section>
-
-      <section class="block t-notes" data-step aria-label="Footnotes">
-        <p class="cmd"><span class="ps1">&gt;</span> cat footnotes.txt</p>
-        <ol>
-          <li id="fn1"># I have not personally verified this number. <a href="#ref1" aria-label="Back to reference 1">↩</a></li>
-          <li id="fn2"># The royal "we." As in "we landed on the moon" and "we invented the internet." Though, I'm happy to accept credit on humanity's behalf. <a href="#ref2" aria-label="Back to reference 2">↩</a></li>
-          <li id="fn3"># Currency. A peculiar system where Earth inhabitants exchange actual goods and services for either decorative paper or numerical adjustments to electronic databases. Both parties in these transactions treat this as entirely reasonable. <a href="#ref3" aria-label="Back to reference 3">↩</a></li>
-          <li id="fn4"># As of this writing. Future updates may reflect changes to this arrangement. <a href="#ref4" aria-label="Back to reference 4">↩</a></li>
-        </ol>
-      </section>
-
-      <div id="log" class="log" aria-live="polite"></div>
-    </div>
-
-    <nav class="chips" id="chips" aria-label="Quick commands" hidden>
-      <button type="button" data-cmd="help">help</button>
-      <button type="button" data-cmd="ls blog">ls blog</button>
-      <button type="button" data-cmd="cd about">about</button>
-      <button type="button" data-cmd="cd reading">reading</button>
-      <button type="button" data-cmd="cd contact">contact</button>
-      <button type="button" data-cmd="exit" class="chip-exit">exit ▸</button>
-    </nav>
-    <form class="prompt" id="prompt" autocomplete="off" hidden>
-      <label class="ps1" for="prompt-input"><span aria-hidden="true">›</span><span class="visually-hidden">Command</span></label>
-      <input id="prompt-input" name="cmd" type="text" placeholder="Enter command…" spellcheck="false" autocapitalize="off" autocorrect="off" enterkeyhint="go">
-      <span class="prompt-block" aria-hidden="true"></span>
-    </form>
+  <section class="footnotes" aria-label="Footnotes">
+    <ol>
+      <li id="fn1">Currency. A peculiar system where Earth inhabitants exchange actual goods and services for either decorative paper or numerical adjustments to electronic databases. Both parties in these transactions treat this as entirely reasonable. <a href="#ref1" aria-label="Back to reference 1">↩</a></li>
+      <li id="fn2">Works surprisingly well. Not sure how well it'll play out when Skynet/AGI hits. <a href="#ref2" aria-label="Back to reference 2">↩</a></li>
+    </ol>
   </section>
-
-  <section class="panel panel-eye" aria-hidden="true">
-    <p class="panel-label">VK-7 // Subject scan</p>
-    <pre class="eye" id="eye"></pre>
-    <p class="panel-label panel-label--foot"><span id="eye-status">Pupil response: nominal</span></p>
-  </section>
-
-  <section class="panel panel-log" aria-hidden="true">
-    <div class="syslog" id="syslog">
-      <p>System ready.</p>
-      <p>Initiating VK baseline…</p>
-    </div>
-  </section>
-</main>
-<script id="site-manifest" type="application/json">${JSON.stringify(manifest).replace(/</g, '\\u003c')}</script>
-<script src="${asset('js/eye.js')}" defer></script>
-<script src="${asset('js/uplink.js')}" defer></script>
-<script src="${asset('js/terminal.js')}" defer></script>
-</body>
-</html>
-`;
+</article>`,
+  });
 }
 
 function notFoundView() {
@@ -358,9 +289,50 @@ function notFoundView() {
     body: `<article class="prose">
   <p class="kicker"><span class="kicker-cmd">cd</span> ???</p>
   <h1>No such file or directory.</h1>
-  <p>Whatever you were looking for isn't here. It may never have been. <a href="/">Back to the terminal</a>.</p>
+  <p>Whatever you were looking for isn't here. It may never have been. <a href="/">Back home</a>.</p>
 </article>`,
   });
+}
+
+// ---------------------------------------------------------------- reading shelf
+
+// public/reading is hand-written HTML (copied as is). These placeholders in it
+// get the site's shared pieces, so the shelf has the same header, theme and
+// assets as every other page:
+//   <!-- site:head -->     fonts, saved theme, import map (world mode), shared CSS
+//   <!-- site:bar -->      the top bar (siteBar)
+//   <!-- site:scripts -->  theme toggle (+ world mode on pages that have a place)
+const SHELF_PAGES = [
+  { file: 'reading/index.html', crumbs: ['reading'], place: 'reading', skipTo: '#book-grid' },
+  { file: 'reading/stats.html', crumbs: ['reading', 'stats'], place: '', skipTo: '#stats-main' },
+];
+
+function shelfChrome() {
+  for (const page of SHELF_PAGES) {
+    const file = path.join(DIST, page.file);
+    let html = fs.readFileSync(file, 'utf8');
+    const headBits = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+${THEME_SNIPPET}
+${page.place ? `${IMPORT_MAP}
+<script>window.__dhrAssets = ${JSON.stringify({ world: asset('js/world.js') })};</script>` : ''}
+<link rel="stylesheet" href="${asset('css/base.css')}">
+<link rel="stylesheet" href="${asset('css/reader.css')}">
+${page.place ? `<link rel="stylesheet" href="${asset('css/world.css')}">` : ''}`;
+    // stats lives at /reading/stats (stats.html), not /reading/stats/
+    const bar = siteBar({ active: 'reading', crumbs: page.crumbs, skipTo: page.skipTo })
+      .replace('href="/reading/stats/"', 'href="/reading/stats"');
+    const scripts = `<script src="${asset('js/theme.js')}" defer></script>
+<script src="${asset('js/prompt.js')}" defer></script>${page.place ? `
+<script src="${asset('js/eye.js')}" defer></script>
+<script src="${asset('js/uplink.js')}" defer></script>` : ''}`;
+    for (const [marker, value] of [['<!-- site:head -->', headBits], ['<!-- site:bar -->', bar], ['<!-- site:scripts -->', scripts]]) {
+      if (!html.includes(marker)) throw new Error(`${page.file} is missing ${marker}`);
+      html = html.replace(marker, value);
+    }
+    fs.writeFileSync(file, html);
+  }
 }
 
 // ---------------------------------------------------------------- build
@@ -400,18 +372,23 @@ export function build() {
   const pages = loadDir('pages');
   const posts = loadDir('posts').filter((p) => !p.draft).sort((a, b) => b.date.localeCompare(a.date));
 
-  out('index.html', homeView(posts, pages));
+  out('index.html', homeView(posts));
   out('blog/index.html', blogIndexView(posts));
   for (const p of posts) out(`blog/${p.slug}/index.html`, postView(p));
   for (const p of pages) out(`${p.slug}/index.html`, pageView(p));
   out('404.html', notFoundView());
+  out('site.json', JSON.stringify({
+    posts: posts.map((p) => ({ slug: p.slug, title: stripTags(p.title), date: p.date, minutes: readMinutes(p.body) })),
+    readingUrl: SITE.readingUrl,
+  }));
+  shelfChrome();
 
   console.log(`built ${posts.length} posts, ${pages.length} pages in ${Date.now() - t0} ms`);
 }
 
 // ---------------------------------------------------------------- dev server
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.avif': 'image/avif', '.woff2': 'font/woff2', '.glb': 'model/gltf-binary' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.avif': 'image/avif', '.woff2': 'font/woff2', '.otf': 'font/otf', '.webp': 'image/webp', '.glb': 'model/gltf-binary' };
 
 function serve(port = 4321) {
   http.createServer((req, res) => {

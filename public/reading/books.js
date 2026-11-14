@@ -97,7 +97,7 @@ export function setBookCounter(books, year = CURRENT_YEAR) {
   // long version for desktop, a short one that fits small phones on one line
   document.getElementById('book-counter').innerHTML =
     '<span class="counter-long">' + total + ' ' + bookWord + ' read so far in ' + year + ' (' + readCount + ' print, ' + listenedCount + ' audio)</span>' +
-    '<span class="counter-short">' + total + ' ' + bookWord + ' in ' + year + ' · ' + readCount + ' print · ' + listenedCount + ' audio</span>';
+    '<span class="counter-short">' + total + ' ' + bookWord + ' · ' + readCount + ' print · ' + listenedCount + ' audio</span>';
 }
 
 export function formatReadDate(isoString) {

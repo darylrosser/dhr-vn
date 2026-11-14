@@ -1,7 +1,7 @@
 # dhr.vn: terminal edition
 
-The fast, accessible base layer of dhr.vn: a terminal-styled home page plus a calm
-reader layout for posts and pages. The 3D warehouse ("world mode") is planned to load
+The fast, accessible base layer of dhr.vn: a calm reader layout for the home page,
+posts and pages, with a working command line in the header's `$` prompt. The 3D warehouse ("world mode") is planned to load
 on top of this later; nothing here depends on it.
 
 The existing site in `../DHR.vn` is untouched. Content was copied from it once.
@@ -23,9 +23,8 @@ No dependencies. Node 20+.
 | `content/pages/*.html` | Regular pages (`about`, `contact`). Same format; `nav` = which nav item to highlight. |
 | `build.mjs` | Templates + build + dev server. |
 | `src/css/base.css` | Tokens (night / paper themes), footer. |
-| `src/css/reader.css` | Posts, pages, blog index, contact form. |
-| `src/css/terminal.css` | Home terminal. |
-| `src/js/terminal.js` | Boot animation + command prompt (progressive enhancement). |
+| `src/css/reader.css` | Top bar (and its command line), home, posts, pages, blog index, contact form. |
+| `src/js/prompt.js` | The header prompt's commands on every page: `help`, `ls`, `cd`, `exit`… (`/` to focus; progressive enhancement). |
 | `src/js/theme.js` | auto / paper / night toggle on reader pages. |
 | `public/` | Copied to `dist/` as-is (images, `_headers`). |
 
@@ -57,8 +56,8 @@ you click to open their page in place.
 
 - **`uplink.js`** (every page): loads `world.js` in the background on capable devices
   (WebGL2, no Save-Data, `deviceMemory` >= 4 when reported) and wires every `[data-jack]`
-  button. The terminal narrates it via `DHRUplink.on()`; reader pages just show the button.
-- **Jack out:** the live terminal, or the page's live `<main>`, moves onto the monitor
+  control. The header prompt narrates it via `DHRUplink.on()` (`exit` jacks out).
+- **Jack out:** the page's live `<main>` moves onto the monitor
   (`CSS3DRenderer`, sized to the window) and the camera starts where it fills the window; the
   robot arm (`arm.js`) yanks the plug out of your neck and you get up from the desk.
 - **In the world** you stand and look around (`seat.js`: drag, or the arrow keys); the
@@ -79,8 +78,7 @@ you click to open their page in place.
 
 - The text is never themed: proportional serif, ~68ch, no effects on body copy. Terminal
   flavour goes in the top bar, kicker line, headings' `##`, and footer.
-- Every terminal command has a normal link equivalent; the home page works with JS off.
-- The boot animation runs once per tab session and never with reduced motion.
+- Every prompt command has a normal link equivalent; every page works with JS off.
 - `/reading/` is a CSS bookcase (no three.js); its import map is only there for world mode.
 - Adding a book to `/reading/`: drop its cover in `public/reading/covers/<isbn>.jpg`, then run
   `npm run thumbs` to make its small shelf cover (until then the shelf uses the full one).

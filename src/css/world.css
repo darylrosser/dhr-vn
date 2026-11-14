@@ -4,6 +4,7 @@
    amber terminal and the paper reader. */
 
 html.in-world, html.in-world body { overflow: hidden; height: 100%; }
+html.in-world { scrollbar-gutter: auto; } /* full-screen 3D: no reserved scrollbar strip */
 html.in-world .crt,
 html.in-world .bar,
 html.in-world .foot,
@@ -233,14 +234,6 @@ html.in-world .skip-link { display: none; }
    it pulls the bezel back to show the room behind (--world-peek, a render of
    this page's place set by uplink.js once the world has loaded). Clicking the
    edge, or the ✕ in the screen's chrome, steps out into the warehouse. */
-
-.visually-hidden {
-  position: absolute !important;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
 
 @property --peek-tint { syntax: '<color>'; inherits: false; initial-value: rgba(5, 4, 3, .9); }
 

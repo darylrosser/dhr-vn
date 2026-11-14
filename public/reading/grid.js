@@ -210,6 +210,9 @@ function layout() {
   }
   fillers.forEach((f, i) => { if (i < need) grid.appendChild(f); else f.remove(); });
 
+  const genreNav = document.getElementById('shelf-genre-filter');
+  genreNav.classList.toggle('is-clipped', genreNav.scrollWidth > genreNav.clientWidth + 1);
+
   const origin = bookcase.getBoundingClientRect();
   grid.querySelectorAll('.gbook:not([hidden])').forEach((el, i) => {
     // the last cubby in a row meets the side post, so it has no divider of its own
@@ -257,7 +260,7 @@ function fitToScreen(count) {
 
   const rows = Math.max(FIT_MIN_ROWS, Math.ceil(count / FIT_COLS));
   const availH = innerHeight - top - plank - bottomGap; // under the top board
-  const availW = innerWidth - sideGap * 2 - post * 2;
+  const availW = document.documentElement.clientWidth - sideGap * 2 - post * 2; // minus any scrollbar gutter
   const cellH = Math.floor(availH / rows);
   const cellW = Math.floor(Math.min(availW / FIT_COLS, cellH * 1.1)); // near-square cubbies
   const bookH = Math.max(MIN_BOOK_H, Math.floor(Math.min(

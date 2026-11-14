@@ -69,7 +69,7 @@ const conversations = {
         ]
     },
     fiancee: {
-        name: 'Fiancée',
+        name: 'Wife',
         status: 'Active 2 days ago',
         avatar: '💍',
         messages: [
@@ -139,7 +139,7 @@ export function setupMessagesApp() {
             conversations.client.messages[index].time = `${displayHours}:${minutes} ${ampm}`;
         });
         
-        // Update Fiancée's messages to show actual time from 26 minutes ago and a bit earlier
+        // Update Wife's messages to show actual time from 26 minutes ago and a bit earlier
         const fianceeTime1 = new Date(conversationTimestamps.fiancee - (5 * 60 * 1000)); // 5 minutes before the last one
         const fianceeTime2 = new Date(conversationTimestamps.fiancee);
         

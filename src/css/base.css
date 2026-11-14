@@ -56,7 +56,13 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* always keep room for the scrollbar, so the header and content sit in the same
+     place on pages that scroll and pages that don't (e.g. the reading shelf) */
+  scrollbar-gutter: stable;
+}
 
 body {
   margin: 0;
@@ -66,6 +72,15 @@ body {
 }
 
 img { max-width: 100%; height: auto; }
+
+/* for screen readers only */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
 a { color: var(--link); }
 a:hover { color: var(--link-hover); }

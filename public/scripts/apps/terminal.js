@@ -95,7 +95,7 @@ Building things: Still going...`,
 - Previous: SEO podcast (720,000+ views/downloads)
 - Ancient history: Facebook Gaming sites, Viral Social Sites (8M+ fans), Lead Generation Network`,
     
-    whoami: () => `Daryl Hensman-Rosser
+    whoami: () => `Daryl Rosser
 Currently based in Ho Chi Minh City, Vietnam`,
     
     partner: () => `If you'd like a small active investor (local service businesses, DTC brands, etc), please use the contact link in the dock below.<br><br>If you're interested in hiring me as a fractional CMO (from $5,000/mo), please use the contact link in the dock below.<br><br>If you'd like SEO consulting, try my agency at <a href="https://logeix.com" target="_blank">Logeix.com</a>.`,
@@ -142,7 +142,7 @@ drwxr-xr-x  2 dhr  dhr   512 Jun 20 15:30 work
         } else if (args === 'work/consulting_history.log') {
             return "[2024-06-15] 8-figure fashion brand - technical SEO audit complete\n[2024-05-28] 7-figure supplements brand - content strategy implementation\n[2024-04-12] Major Shopify Plus store - site migration SEO\n[2024-03-20] International beauty brand - multi-region SEO setup\n[2023-12-10] Large electronics retailer - Core Web Vitals optimization\n...\n[2015-01-20] First major e-commerce client - the beginning";
         } else if (args === 'README.md') {
-            return "# DHR\n\nPersonal site of Daryl Hensman-Rosser\n\n## About\nBritish guy based in Ho Chi Minh City, Vietnam. Working remotely on Rosser Brothers (holdco) and Logeix (Shopify SEO agency).\n\n## Commands\nThis site works like a terminal. Try typing 'help' to see available commands.\n\n## Contact\nTry the contact form in the dock.";
+            return "# DHR\n\nPersonal site of Daryl Rosser\n\n## About\nBritish guy based in Ho Chi Minh City, Vietnam. Working remotely on Rosser Brothers (holdco) and Logeix (Shopify SEO agency).\n\n## Commands\nThis site works like a terminal. Try typing 'help' to see available commands.\n\n## Contact\nTry the contact form in the dock.";
         }
         return `cat: ${args}: No such file or directory`;
     },
