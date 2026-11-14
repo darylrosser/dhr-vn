@@ -1,6 +1,7 @@
 // The command line in the site header: `dhr.vn:~/blog $ ▮` takes commands on
 // every page. Output drops down in a panel under the bar. Everything it does
 // is also a normal link, so the site never needs it.
+//   typing   goes straight to the prompt (keyboard + mouse devices)
 //   /        focus the prompt (from anywhere on the page)
 //   Esc      close the output and leave the prompt
 (function () {
@@ -205,13 +206,20 @@
     }
   });
 
-  // `/` anywhere focuses the prompt (never from another field)
+  // Typing anywhere goes to the prompt, as if it were already focused (on
+  // devices with a keyboard and mouse). Not Space (it scrolls the page), not
+  // from another field or the book notes, and never with modifier keys.
+  // `/` also just focuses it.
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   window.addEventListener('keydown', (e) => {
-    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1 || e.key === ' ') return;
     const a = document.activeElement;
-    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
-    e.preventDefault();
-    input.focus();
+    if (a === input) return;
+    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable || a.closest('[role="dialog"], .modal:not([hidden])'))) return;
+    if (document.querySelector('.modal:not([hidden])')) return;
+    if (e.key === '/') { e.preventDefault(); input.focus(); return; }
+    if (!finePointer) return;
+    input.focus(); // the key that triggered this lands in the input
   });
 
   // clicking elsewhere closes the output
