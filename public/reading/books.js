@@ -94,8 +94,10 @@ export function setBookCounter(books, year = CURRENT_YEAR) {
   const listenedCount = books.filter(b => b.type === 'audio').length;
   const total = books.length;
   const bookWord = total === 1 ? 'book' : 'books';
-  document.getElementById('book-counter').textContent =
-    total + ' ' + bookWord + ' read so far in ' + year + ' (' + readCount + ' print, ' + listenedCount + ' audio)';
+  // long version for desktop, a short one that fits small phones on one line
+  document.getElementById('book-counter').innerHTML =
+    '<span class="counter-long">' + total + ' ' + bookWord + ' read so far in ' + year + ' (' + readCount + ' print, ' + listenedCount + ' audio)</span>' +
+    '<span class="counter-short">' + total + ' ' + bookWord + ' in ' + year + ' · ' + readCount + ' print · ' + listenedCount + ' audio</span>';
 }
 
 export function formatReadDate(isoString) {
@@ -121,14 +123,23 @@ export function formatDuration(durationHours, durationMinutes) {
   return h + ' hours';
 }
 
-export function coverUrl(isbn) {
-  if (!isbn) return null;
-  const path = 'covers/' + isbn + '.jpg';
+function readingPath(path) {
   if (typeof location !== 'undefined' && location.protocol === 'file:') {
     const base = location.href.replace(/[#?].*$/, '').replace(/\/[^/]*$/, '/');
     return base + path;
   }
   return path;
+}
+
+// Full-size cover (the notes modal).
+export function coverUrl(isbn) {
+  return isbn ? readingPath('covers/' + isbn + '.jpg') : null;
+}
+
+// Small cover for the shelf: 360px wide WebP, ~25 KB instead of up to ~500 KB.
+// Made by tools/cover-thumbs.sh; grid.js falls back to the full cover if one is missing.
+export function thumbUrl(isbn) {
+  return isbn ? readingPath('covers/thumbs/' + isbn + '.webp') : null;
 }
 
 export function escapeHtml(text) {

@@ -82,3 +82,5 @@ you click to open their page in place.
 - Every terminal command has a normal link equivalent; the home page works with JS off.
 - The boot animation runs once per tab session and never with reduced motion.
 - `/reading/` is a CSS bookcase (no three.js); its import map is only there for world mode.
+- Adding a book to `/reading/`: drop its cover in `public/reading/covers/<isbn>.jpg`, then run
+  `npm run thumbs` to make its small shelf cover (until then the shelf uses the full one).

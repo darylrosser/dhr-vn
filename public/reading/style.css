@@ -37,10 +37,10 @@ body {
 }
 
 /* filter and sort: two horizontally scrolling chip rows under the header */
-.shelf-genre-filter,
-.shelf-sort {
+/* filter and sort: one horizontally scrolling chip row under the header,
+   sort first (it's short), a thin rule, then the genres */
+.shelf-toolbar {
   display: flex;
-  flex-wrap: nowrap;
   align-items: center;
   gap: 0.35rem;
   overflow-x: auto;
@@ -48,8 +48,21 @@ body {
   padding: 0.3rem 1rem;
   -webkit-overflow-scrolling: touch;
 }
-.shelf-genre-filter::-webkit-scrollbar,
-.shelf-sort::-webkit-scrollbar { display: none; }
+.shelf-toolbar::-webkit-scrollbar { display: none; }
+.shelf-genre-filter,
+.shelf-sort {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.shelf-sort {
+  order: -1;
+  padding-right: 0.6rem;
+  margin-right: 0.25rem;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
 
 .shelf-toolbar-label {
   font-size: 0.85rem;
@@ -745,15 +758,19 @@ body.shelf-page {
 /* the bookcase: back wall + side posts + top board + shelves, in the old 3D shelf's wood */
 .bookcase {
   /* one thickness for every piece of wood: posts, top board, shelves, dividers */
-  --wood: 10px;
+  --wood: 5px;
   --plank: var(--wood);
   --post: var(--wood);
   --divider: var(--wood);
   --wood-tile: 256px;
   --wood-base: #d4a470;
   /* darkens the grain a touch (the old 3D shelf got this from its lighting) */
-  --wood-shade: linear-gradient(rgba(70, 40, 15, 0.16), rgba(70, 40, 15, 0.16));
-  --board-light: linear-gradient(180deg, rgba(255, 235, 205, 0.32) 0, rgba(255, 235, 205, 0.06) 2px, rgba(0, 0, 0, 0) 45%, rgba(40, 22, 8, 0.32) 100%);
+  --wood-shade: linear-gradient(rgba(70, 40, 15, 0.06), rgba(70, 40, 15, 0.06)); /* back wall only */
+  /* the frame (posts, top board, shelves, dividers) is one lighter maple, all the
+     same tone so equal widths look equal; the back wall keeps the darker grain */
+  --wash-frame: linear-gradient(rgba(246, 210, 160, 0.5), rgba(246, 210, 160, 0.5));
+  /* shelves: bright front lip, darker underside */
+  --board-light: linear-gradient(180deg, rgba(255, 246, 225, 0.75) 0, rgba(255, 240, 210, 0.35) 1px, rgba(255, 232, 195, 0.1) 35%, rgba(110, 60, 20, 0.28) 100%);
   position: relative;
   max-width: 1100px;
   margin: 1rem 0.75rem calc(2.5rem + env(safe-area-inset-bottom));
@@ -761,7 +778,7 @@ body.shelf-page {
   box-shadow: 0 10px 30px rgba(40, 25, 15, 0.25);
   /* back wall: lighter grain, shaded towards the edges like the lit 3D unit */
   background:
-    radial-gradient(ellipse at 50% 30%, rgba(255, 240, 220, 0.06), rgba(60, 35, 15, 0.3) 120%),
+    radial-gradient(ellipse at 50% 30%, rgba(255, 240, 220, 0.08), rgba(60, 35, 15, 0.2) 120%),
     var(--wood-shade),
     var(--wood-back, none) 0 0 / var(--wood-tile),
     var(--wood-base);
@@ -776,8 +793,8 @@ body.shelf-page {
   width: var(--post);
   z-index: 3;
   background:
-    linear-gradient(90deg, rgba(255, 235, 205, 0.2), rgba(0, 0, 0, 0) 40%, rgba(40, 22, 8, 0.3)),
-    var(--wood-shade),
+    linear-gradient(90deg, rgba(255, 244, 222, 0.5) 0, rgba(255, 238, 210, 0.18) 1px, rgba(0, 0, 0, 0) 40%, rgba(110, 60, 20, 0.28) 100%),
+    var(--wash-frame),
     var(--wood-frame, none) 0 0 / var(--wood-tile),
     var(--wood-base);
 }
@@ -801,7 +818,7 @@ body.shelf-page {
   right: calc(-1 * var(--post));
   height: var(--plank);
   z-index: 3;
-  background: var(--board-light), var(--wood-shade), var(--wood-board, none) 0 0 / var(--wood-tile), var(--wood-base);
+  background: var(--board-light), var(--wash-frame), var(--wood-board, none) 0 0 / var(--wood-tile), var(--wood-base);
   box-shadow: 0 5px 8px -3px rgba(40, 22, 8, 0.45);
 }
 
@@ -816,18 +833,19 @@ body.shelf-page {
   align-items: flex-end;
   justify-content: center;
   min-height: 0;
-  --floor: 2px;         /* books stand just behind the shelf's front edge */
-  padding: 1.5rem 10px calc(var(--plank) + var(--floor) - 2px);
-  /* inside the cubby, light comes from the front and above:
-     shelf floor catching light, shade under the board above, shade in the corners by the dividers */
+  --floor: 8px;         /* the shelf's top surface, seen going back to the wall (.gb-floor) */
+  /* books stand on the floor, a little in from the front edge */
+  padding: 1.5rem 10px calc(var(--plank) + var(--floor) * 0.45);
+  /* inside the cubby, light comes from the front and above: a little shade on the
+     back wall where it meets the floor, under the board above, and in the corners */
   background:
     linear-gradient(0deg,
-      rgba(0, 0, 0, 0) var(--plank),
-      rgba(45, 25, 10, 0.3) var(--plank),
-      rgba(45, 25, 10, 0.08) calc(var(--plank) + 6px),
-      rgba(0, 0, 0, 0) calc(var(--plank) + 18px)) no-repeat,
-    linear-gradient(180deg, rgba(35, 18, 6, 0.55) 0, rgba(35, 18, 6, 0.22) 10px, rgba(35, 18, 6, 0.06) 34%, rgba(0, 0, 0, 0) 60%) no-repeat,
-    linear-gradient(90deg, rgba(35, 18, 6, 0.28) 0, rgba(35, 18, 6, 0) 16px, rgba(35, 18, 6, 0) calc(100% - 16px), rgba(35, 18, 6, 0.28) 100%) no-repeat;
+      rgba(0, 0, 0, 0) calc(var(--plank) + var(--floor)),
+      rgba(45, 25, 10, 0.2) calc(var(--plank) + var(--floor)),
+      rgba(45, 25, 10, 0.06) calc(var(--plank) + var(--floor) + 6px),
+      rgba(0, 0, 0, 0) calc(var(--plank) + var(--floor) + 16px)) no-repeat,
+    linear-gradient(180deg, rgba(35, 18, 6, 0.42) 0, rgba(35, 18, 6, 0.16) 10px, rgba(35, 18, 6, 0.04) 34%, rgba(0, 0, 0, 0) 60%) no-repeat,
+    linear-gradient(90deg, rgba(35, 18, 6, 0.2) 0, rgba(35, 18, 6, 0) 16px, rgba(35, 18, 6, 0) calc(100% - 16px), rgba(35, 18, 6, 0.2) 100%) no-repeat;
   border: 0;
   font: inherit;
   color: inherit;
@@ -848,7 +866,7 @@ body.shelf-page {
   /* front edge of the board: lit top lip, shade underneath, grain running sideways */
   background:
     var(--board-light),
-    var(--wood-shade),
+    var(--wash-frame),
     var(--wood-board, none) var(--bx, 0px) calc(var(--by, 0px) - var(--ch, 0px) + var(--plank)) / var(--wood-tile),
     var(--wood-base);
   box-shadow: 0 5px 8px -3px rgba(40, 22, 8, 0.45);
@@ -865,8 +883,8 @@ body.shelf-page {
   width: var(--divider);
   z-index: 2; /* above both neighbouring cubbies, so neither paints over it */
   background:
-    linear-gradient(90deg, rgba(255, 235, 205, 0.18), rgba(0, 0, 0, 0) 45%, rgba(40, 22, 8, 0.32)),
-    var(--wood-shade),
+    linear-gradient(90deg, rgba(255, 244, 222, 0.5) 0, rgba(255, 238, 210, 0.18) 1px, rgba(0, 0, 0, 0) 40%, rgba(110, 60, 20, 0.28) 100%),
+    var(--wash-frame),
     var(--wood-frame, none) calc(var(--bx, 0px) - var(--cw, 0px) + var(--divider) / 2) var(--by, 0px) / var(--wood-tile),
     var(--wood-base);
   box-shadow: 3px 0 6px rgba(40, 22, 8, 0.18), -2px 0 5px rgba(40, 22, 8, 0.12);
@@ -874,10 +892,35 @@ body.shelf-page {
 
 .gbook.is-row-end::before { display: none; }
 
+/* filtered out (desktop): the book fades to a ghost where it stands */
+.gbook .gbook-3d { transition: opacity 450ms ease, filter 450ms ease; }
+.gbook.is-ghost { cursor: default; }
+.gbook.is-ghost .gbook-3d { opacity: 0.16; filter: grayscale(1); }
+.gbook.is-ghost:hover,
+.gbook.is-ghost:focus-visible { --open: 0; }
+
+/* the shelf floor: the board's top surface going back to the wall. Same frame
+   wood, darker at the back crease, catching the light towards the front edge.
+   Below the books (z 0) and the dividers, which stand on it. */
+.gb-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--plank);
+  height: var(--floor);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(60, 32, 8, 0.45) 0, rgba(60, 32, 8, 0.22) 1px, rgba(60, 32, 8, 0.1) 35%, rgba(255, 240, 212, 0.2) 100%),
+    var(--wash-frame),
+    var(--wood-board, none) var(--bx, 0px) calc(var(--by, 0px) - var(--ch, 0px) + var(--plank) + var(--floor)) / var(--wood-tile),
+    var(--wood-base);
+}
+
 .gbook-3d {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(4px -2px 6px rgba(35, 18, 6, 0.28));
+  /* shadows are on .gb-cover (onto the back wall) and ::after (contact with the floor) */
   display: block;
   width: 100%;
   max-width: 170px;
@@ -886,6 +929,19 @@ body.shelf-page {
 }
 
 .gbook.is-audio .gbook-3d { width: 82%; }
+
+/* contact shadow: a tight dark line where the book stands on the shelf floor */
+.gbook-3d::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -3px;
+  bottom: -2px;
+  height: 4px;
+  z-index: 0;
+  background: radial-gradient(ellipse 55% 100% at 50% 20%, rgba(35, 18, 6, 0.45), rgba(35, 18, 6, 0) 75%);
+  pointer-events: none;
+}
 
 .gb-back,
 .gb-pages,
@@ -897,8 +953,8 @@ body.shelf-page {
 .gb-back {
   inset: 2% 0 0 2%;
   background: linear-gradient(90deg, #5d564d, #7a7268 55%, #6b645a);
-  border-radius: 0 5px 5px 0;
-  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 0 1px 1px 0;
+  box-shadow: none;
 }
 
 .gb-pages { inset: 0; }
@@ -909,7 +965,7 @@ body.shelf-page {
   width: 97%;
   background: #f6f2ea;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 1px 1px 0;
   transition: transform 700ms var(--ease);
 }
 /* page edges fan out further for thicker books */
@@ -921,9 +977,9 @@ body.shelf-page {
   inset: 0;
   z-index: 3;
   overflow: hidden;
-  border-radius: 2px 5px 5px 2px;
+  border-radius: 0 1px 1px 0; /* books have square corners */
   background: #d9cfc2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 8px 14px rgba(0, 0, 0, 0.08);
+  box-shadow: 3px -3px 7px -2px rgba(35, 18, 6, 0.32);
   transform-origin: left center;
   transform: perspective(1400px) translateX(calc(var(--open) * -2.7%)) rotateY(calc(var(--open) * -14deg)) scaleX(calc(1 - var(--open) * 0.04));
   transition: transform 700ms var(--ease), box-shadow 700ms var(--ease);
@@ -965,7 +1021,7 @@ body.shelf-page {
 .gb-light {
   inset: 0;
   z-index: 5;
-  border-radius: 2px 5px 5px 2px;
+  border-radius: 0 1px 1px 0;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5));
   opacity: calc(0.08 + var(--open) * 0.12);
   transform-origin: left center;
@@ -976,9 +1032,9 @@ body.shelf-page {
 /* audiobooks: a CD case — no pages, no spine crease */
 .gbook.is-audio .gb-pages,
 .gbook.is-audio .gb-spine { display: none; }
-.gbook.is-audio .gb-back { inset: 0; border-radius: 3px; }
+.gbook.is-audio .gb-back { inset: 0; border-radius: 1px; }
 .gbook.is-audio .gb-cover,
-.gbook.is-audio .gb-light { border-radius: 3px; }
+.gbook.is-audio .gb-light { border-radius: 1px; }
 
 /* open: tapped (touch), or hover/focus on a real pointer */
 .gbook.is-open { --open: 1; }
@@ -988,11 +1044,11 @@ body.shelf-page {
 }
 .gbook.is-open .gb-cover,
 .gbook:focus-visible .gb-cover {
-  box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.25), 20px 20px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 10px -4px 18px -4px rgba(35, 18, 6, 0.3), 18px -6px 30px -8px rgba(35, 18, 6, 0.2);
 }
 @media (hover: hover) and (pointer: fine) {
   .gbook:hover .gb-cover {
-    box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.25), 20px 20px 40px rgba(0, 0, 0, 0.18);
+    box-shadow: 10px -4px 18px -4px rgba(35, 18, 6, 0.3), 18px -6px 30px -8px rgba(35, 18, 6, 0.2);
   }
 }
 .gbook:focus { outline: none; }
@@ -1006,7 +1062,7 @@ body.shelf-page {
 }
 
 @media (min-width: 560px) {
-  .bookcase { margin-inline: 1.5rem; --wood: 12px; }
+  .bookcase { margin-inline: 1.5rem; --wood: 6px; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .gbook { padding-inline: 16px; }
 }
@@ -1014,40 +1070,31 @@ body.shelf-page {
 /* desktop: bigger books, chunkier wood, a wider case */
 @media (min-width: 1024px) {
   .shelf-page .page-header,
-  .shelf-genre-filter,
-  .shelf-sort { padding-inline: 1.5rem; }
-  .bookcase { max-width: 1240px; --wood: 12px; }
+  .shelf-toolbar { padding-inline: 1.5rem; }
+  .bookcase { max-width: 1240px; --wood: 6px; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
-  .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) - 2px); }
+  .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) * 0.45); }
 }
 
 @media (min-width: 1300px) {
   .bookcase { margin-inline: auto; }
 }
 
-/* desktop: filter and sort share one line, to leave the height for the shelf */
-@media (min-width: 1024px) {
-  .shelf-genre-filter,
-  .shelf-sort {
-    display: inline-flex;
-    vertical-align: middle;
-    max-width: 100%;
-  }
-  .shelf-sort { padding-left: 0.5rem; }
-}
 
 /* desktop, fit to the window like the old 3D shelf
    (grid.js sets the columns, row height, case width and --book-h) */
 .bookcase.is-fit {
   /* boards about as thick, relative to the cubbies, as the old 3D shelf's */
-  --wood: 9px;
-  --fit-floor: 2px;
+  --wood: 5px;
+  --fit-floor: 9px;
   max-width: none;
   /* room around the case: grid.js reads these when sizing it */
   margin: 1.5rem auto 5rem;
 }
 
 /* filter and sort pinned along the bottom, as before */
+body.shelf-fit .shelf-toolbar { display: block; overflow: visible; padding: 0; }
+body.shelf-fit .shelf-sort { order: 0; padding-right: 0; margin-right: 0; border-right: 0; }
 body.shelf-fit .shelf-genre-filter,
 body.shelf-fit .shelf-sort {
   position: fixed;
@@ -1060,7 +1107,7 @@ body.shelf-fit .shelf-sort { right: 1.5rem; }
 
 .bookcase.is-fit .gbook {
   --floor: var(--fit-floor);
-  padding: 0 12px calc(var(--plank) + var(--floor) - 2px);
+  padding: 0 12px calc(var(--plank) + var(--floor) * 0.45);
 }
 .bookcase.is-fit .gbook-3d {
   width: min(100%, calc(var(--book-h) * var(--ar)));
@@ -1082,7 +1129,7 @@ body.shelf-fit .shelf-sort { right: 1.5rem; }
   width: 100%;
   height: 100%;
   justify-content: flex-start;
-  filter: drop-shadow(3px -1px 4px rgba(35, 18, 6, 0.3));
+  filter: drop-shadow(3px -3px 3px rgba(35, 18, 6, 0.24));
 }
 .deco.is-right { flex-direction: row-reverse; }
 
@@ -1214,3 +1261,11 @@ body.shelf-fit .shelf-sort { right: 1.5rem; }
 @media (prefers-reduced-motion: reduce) {
   .deco-flame { animation: none; }
 }
+
+/* phones and tablets (anything but the fitted desktop case): no world-mode X,
+   and the filter/sort chips speak for themselves without their labels */
+body.shelf-page:not(.shelf-fit) .screen-x { display: none !important; }
+body.shelf-page:not(.shelf-fit) .shelf-toolbar-label { display: none; }
+.book-counter .counter-short { display: none; }
+body.shelf-page:not(.shelf-fit) .book-counter .counter-long { display: none; }
+body.shelf-page:not(.shelf-fit) .book-counter .counter-short { display: inline; }

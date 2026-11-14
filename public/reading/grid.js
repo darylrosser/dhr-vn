@@ -4,7 +4,7 @@
 // on touch the notes appear just after, so you see it open first.
 import {
   CURRENT_YEAR, booksForYear, bookMatchesGenreFilter, updateGenreFilterLabels,
-  setBookCounter, coverUrl, escapeHtml, modalEl, fillModal, initModal,
+  setBookCounter, coverUrl, thumbUrl, escapeHtml, modalEl, fillModal, initModal,
   drawWoodGrain, rotateCanvas90
 } from './books.js';
 
@@ -48,10 +48,10 @@ function buildCell(book) {
   btn.setAttribute('aria-label', 'Open notes for ' + book.title + (book.author ? ' by ' + book.author : ''));
   btn.style.setProperty('--depth', pageDepth(book));
   if (book.type === 'audio') btn.style.setProperty('--ar', '1'); // square covers; right size before the image loads
-  btn.style.viewTransitionName = 'gbook-' + String(book.id).replace(/[^\w-]/g, '');
 
-  const url = coverUrl(book.isbn);
+  const url = thumbUrl(book.isbn);
   btn.innerHTML =
+    '<span class="gb-floor" aria-hidden="true"></span>' +
     '<span class="gbook-3d" aria-hidden="true">' +
       '<span class="gb-back"></span>' +
       '<span class="gb-pages"><span></span><span></span><span></span></span>' +
@@ -64,6 +64,10 @@ function buildCell(book) {
       '<span class="gb-light"></span>' +
     '</span>';
 
+  // Only the book itself slides when sorting or filtering; the cubby (wood,
+  // floor, shading) stays put as part of the bookcase.
+  btn.querySelector('.gbook-3d').style.viewTransitionName = 'gbook-' + String(book.id).replace(/[^\w-]/g, '');
+
   const img = btn.querySelector('img');
   if (img) {
     const setAspect = () => {
@@ -73,15 +77,23 @@ function buildCell(book) {
       }
     };
     if (img.complete) setAspect(); else img.addEventListener('load', setAspect, { once: true });
-    img.addEventListener('error', () => {
+    // no thumbnail yet (a newly added book)? use the full cover; no cover at all? title and author
+    img.addEventListener('error', function onError() {
+      const full = coverUrl(book.isbn);
+      if (!img.dataset.full && full) {
+        img.dataset.full = '1';
+        img.src = full;
+        return;
+      }
+      img.removeEventListener('error', onError);
       img.replaceWith(Object.assign(document.createElement('span'), {
         className: 'gb-fallback',
         innerHTML: '<b>' + escapeHtml(book.title) + '</b>' + escapeHtml(book.author || '')
       }));
-    }, { once: true });
+    });
   }
 
-  btn.addEventListener('click', () => openBook(book, btn));
+  btn.addEventListener('click', () => { if (!btn.classList.contains('is-ghost')) openBook(book, btn); });
   return btn;
 }
 
@@ -89,12 +101,27 @@ function visibleBooks() {
   return booksForYear(CURRENT_YEAR, sortKey).filter(b => bookMatchesGenreFilter(b, genreKey));
 }
 
+// Filtering: on the desktop case, books that don't match fade to ghosts where
+// they stand (as on the old 3D shelf), so the case, its empty cubbies and their
+// decorations never move. On phones they're hidden and the rest close up, so you
+// aren't scrolling past rows of ghosts.
+function ghostMode() {
+  return innerWidth >= FIT_MIN_WIDTH && innerHeight >= FIT_MIN_HEIGHT;
+}
+let lastGhostMode = null;
+
 function render() {
+  const ghost = ghostMode();
+  lastGhostMode = ghost;
   const books = booksForYear(CURRENT_YEAR, sortKey);
   books.forEach(book => {
     let cell = cells.get(book.id);
     if (!cell) { cell = buildCell(book); cells.set(book.id, cell); }
-    cell.hidden = !bookMatchesGenreFilter(book, genreKey);
+    const match = bookMatchesGenreFilter(book, genreKey);
+    cell.hidden = !ghost && !match;
+    cell.classList.toggle('is-ghost', ghost && !match);
+    cell.tabIndex = match ? 0 : -1;
+    if (match) cell.removeAttribute('aria-hidden'); else cell.setAttribute('aria-hidden', 'true');
     grid.appendChild(cell); // re-append = reorder
   });
   layout();
@@ -177,6 +204,7 @@ function layout() {
     const f = document.createElement('div');
     f.className = 'gbook is-empty';
     f.setAttribute('aria-hidden', 'true');
+    f.innerHTML = '<span class="gb-floor"></span>';
     decorate(f);
     fillers.push(f);
   }
@@ -244,7 +272,10 @@ function fitToScreen(count) {
   return rows * FIT_COLS;
 }
 
-addEventListener('resize', () => scheduleLayout());
+addEventListener('resize', () => {
+  if (ghostMode() !== lastGhostMode) render(); // crossing the desktop/phone line switches filter style
+  else scheduleLayout();
+});
 
 let layoutFrame = 0;
 function scheduleLayout() {

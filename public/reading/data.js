@@ -276,7 +276,7 @@ window.booksData = [
     author: 'Bill Gurley',
     readDate: '2026-03-20',
     isbn: 9780593799666,
-    type: 'print',
+    type: 'audio',
     numberOfPages: 272,
     durationHours: 7,
     durationMinutes: 58,
