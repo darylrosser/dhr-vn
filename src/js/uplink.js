@@ -15,6 +15,10 @@
 
   function capable() {
     if (!place) return false;
+    // The reading shelf only offers world mode on its desktop layout (the same
+    // size grid.js fits the bookcase to); on phones and tablets it hides the ✕,
+    // so don't download three.js and the workshop (~7 MB) there.
+    if (kind === 'app' && !window.matchMedia('(min-width: 1024px) and (min-height: 560px)').matches) return false;
     try {
       if (!document.createElement('canvas').getContext('webgl2')) return false;
     } catch (e) { return false; }
