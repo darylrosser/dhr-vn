@@ -5,86 +5,88 @@
 }
 
 body {
-  background: linear-gradient(180deg, #d8cdc0 0%, #c9bcaa 45%, #b8a898 100%);
-  overflow: hidden;
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--bg);
+  font-family: var(--font-serif);
 }
 
-.page-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  padding: 1rem 1.5rem;
-  background: transparent;
-  color: #000;
+
+
+/* the line under the site bar: the count on the left, a link on the right */
+.shelf-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
+  padding: 0.9rem 1rem 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
 }
-
-.page-header-end {
-  display: flex;
-  align-items: center;
-}
-
 .book-counter {
-  text-align: right;
-  color: #000;
-  font-size: 0.95rem;
-  font-style: italic;
+  margin: 0;
+  color: var(--ink-dim);
 }
+.shelf-stats-link {
+  flex: none;
+  color: var(--link);
+  text-decoration: none;
+}
+.shelf-stats-link:hover { color: var(--link-hover); }
 
-.shelf-genre-filter,
-.shelf-sort {
-  position: fixed;
-  bottom: 1.25rem;
-  z-index: 10;
+/* filter and sort: two horizontally scrolling chip rows under the header */
+/* filter and sort: one horizontally scrolling chip row under the header,
+   sort first (it's short), a thin rule, then the genres */
+.shelf-toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  max-width: min(46rem, calc(100vw - 2rem));
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.3rem 1rem;
+  -webkit-overflow-scrolling: touch;
 }
-
-.shelf-genre-filter {
-  left: 1.5rem;
-  justify-content: flex-start;
-}
-
+.shelf-toolbar::-webkit-scrollbar { display: none; }
+.shelf-genre-filter,
 .shelf-sort {
-  right: 1.5rem;
-  justify-content: flex-end;
-  max-width: calc(100vw - 2rem);
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.shelf-sort {
+  order: -1;
+  padding-right: 0.6rem;
+  margin-right: 0.25rem;
+  border-right: 1px solid var(--rule);
 }
 
 .shelf-toolbar-label {
   font-size: 0.85rem;
-  color: #000;
+  color: var(--ink-dim);
 }
 
 .shelf-chip-btn {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.8rem;
-  color: #000;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.45rem 0.8rem;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 }
 
 .shelf-chip-btn:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border-color: var(--ink-dim);
 }
 
 .shelf-chip-btn.is-active {
-  background: rgba(0, 0, 0, 0.1);
-  border-color: rgba(0, 0, 0, 0.55);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--link) 14%, transparent);
+  border-color: var(--link);
   font-style: italic;
 }
 
@@ -93,43 +95,8 @@ body {
   cursor: not-allowed;
 }
 
-@media (max-width: 900px) {
-  .shelf-genre-filter {
-    bottom: 3.5rem;
-    left: 0.75rem;
-    right: 0.75rem;
-    max-width: none;
-  }
 
-  .shelf-sort {
-    bottom: 0.75rem;
-    left: 0.75rem;
-    right: 0.75rem;
-    max-width: none;
-  }
-}
 
-.page-header a {
-  color: #000;
-  text-decoration: none;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  border-radius: 999px;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.page-header a:hover {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.5);
-}
-
-.page-header-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
 
 /* ----- Stats page ----- */
 body.stats-page {
@@ -139,24 +106,19 @@ body.stats-page {
   background-attachment: fixed;
 }
 
-.stats-page .page-header {
-  position: sticky;
-  background: linear-gradient(180deg, rgba(216, 205, 192, 0.96) 0%, rgba(216, 205, 192, 0.82) 70%, rgba(216, 205, 192, 0) 100%);
-  backdrop-filter: blur(2px);
-}
 
 .stats-main {
   max-width: 1040px;
   margin: 0 auto;
   padding: 1rem 1.5rem 4rem;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .stats-page-title {
   font-size: 1.9rem;
   font-weight: 400;
   margin: 0.5rem 0 1.75rem;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .stats-section {
@@ -168,10 +130,10 @@ body.stats-page {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin: 0 0 0.9rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid var(--rule);
 }
 
 .stat-grid {
@@ -181,8 +143,8 @@ body.stats-page {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
   border-radius: 12px;
   padding: 1.1rem 1.2rem;
   box-shadow: 0 2px 10px rgba(40, 30, 20, 0.06);
@@ -191,20 +153,20 @@ body.stats-page {
 .stat-value {
   font-size: 1.85rem;
   line-height: 1.1;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .stat-label {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin-top: 0.5rem;
 }
 
 .stat-sub {
   font-size: 0.8rem;
-  color: #8a8074;
+  color: var(--ink-dim);
   font-style: italic;
   margin-top: 0.25rem;
 }
@@ -216,13 +178,13 @@ body.stats-page {
 .stat-highlight-title {
   font-size: 1.1rem;
   line-height: 1.3;
-  color: #2c2a26;
+  color: var(--ink);
   margin-top: 0.45rem;
 }
 
 .stat-highlight-author {
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin-top: 0.15rem;
 }
 
@@ -232,7 +194,7 @@ body.stats-page {
   gap: 0.45rem;
   margin-top: 0.6rem;
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
 }
 
 .stat-highlight-rating .modal-rating-stars {
@@ -241,7 +203,7 @@ body.stats-page {
 
 .stats-note {
   font-size: 0.78rem;
-  color: #8a8074;
+  color: var(--ink-dim);
   font-style: italic;
   margin-top: 0.8rem;
   line-height: 1.45;
@@ -250,8 +212,8 @@ body.stats-page {
 /* Trend chart */
 .trend-wrap {
   margin-top: 1.1rem;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
   border-radius: 12px;
   padding: 1.1rem 1.2rem 0.6rem;
   box-shadow: 0 2px 10px rgba(40, 30, 20, 0.06);
@@ -259,7 +221,7 @@ body.stats-page {
 
 .trend-caption {
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin-bottom: 0.5rem;
 }
 
@@ -270,26 +232,26 @@ body.stats-page {
 }
 
 .trend-grid {
-  stroke: rgba(0, 0, 0, 0.1);
+  stroke: var(--rule);
   stroke-width: 1;
 }
 
 .trend-axis {
-  fill: #8a8074;
+  fill: var(--ink-dim);
   font-size: 12px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-mono);
 }
 
 .trend-line {
-  stroke: #b8860b;
+  stroke: var(--mark);
   stroke-width: 2.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .trend-dot {
-  fill: #b8860b;
-  stroke: #faf9f7;
+  fill: var(--mark);
+  stroke: var(--bg);
   stroke-width: 1.5;
 }
 
@@ -307,7 +269,7 @@ body.stats-page {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .bar-name {
@@ -317,7 +279,7 @@ body.stats-page {
 }
 
 .bar-track {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--rule);
   border-radius: 999px;
   height: 0.7rem;
   overflow: hidden;
@@ -326,13 +288,13 @@ body.stats-page {
 .bar-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #c79b27, #b8860b);
+  background: linear-gradient(90deg, var(--mark), var(--link));
   border-radius: 999px;
 }
 
 .bar-count {
   text-align: right;
-  color: #5a554d;
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -349,19 +311,19 @@ body.stats-page {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.65rem 0.9rem;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
   border-radius: 10px;
 }
 
 .author-name {
   font-size: 1rem;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .author-meta {
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   white-space: nowrap;
 }
 
@@ -374,21 +336,21 @@ body.stats-page {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .month-table th,
 .month-table td {
   text-align: left;
   padding: 0.65rem 0.9rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--rule);
 }
 
 .month-table th {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #5a554d;
+  color: var(--ink-soft);
   font-weight: 600;
 }
 
@@ -399,7 +361,7 @@ body.stats-page {
 }
 
 .month-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--bg-raised);
 }
 
 @media (max-width: 768px) {
@@ -419,15 +381,6 @@ body.stats-page {
     grid-template-columns: 7rem 1fr 2rem;
     font-size: 0.82rem;
   }
-}
-
-#canvas-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.08));
 }
 
 /* ----- Modal (from reading tool) ----- */
@@ -454,7 +407,7 @@ body.stats-page {
 
 .modal-content {
   position: relative;
-  background: #faf9f7;
+  background: var(--bg-raised);
   border-radius: 12px;
   width: 90vw;
   max-width: 880px;
@@ -473,17 +426,17 @@ body.stats-page {
   width: 2rem;
   height: 2rem;
   border: none;
-  background: rgba(0, 0, 0, 0.06);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
   border-radius: 50%;
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-  color: #2c2a26;
+  color: var(--ink);
   z-index: 2;
 }
 
 .modal-close:hover {
-  background: rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
 .modal-body {
@@ -551,24 +504,24 @@ body.stats-page {
   font-size: 1.35rem;
   margin: 1.25rem 0 0.35rem;
   line-height: 1.3;
-  color: #2c2a26;
+  color: var(--ink);
 }
 
 .modal-author {
   font-size: 1rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin: 0 0 0.95rem;
 }
 
 .modal-meta {
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin: 0 0 0.5rem;
 }
 
 .modal-genres {
   font-size: 0.85rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin: 0 0 0.25rem;
 }
 
@@ -586,7 +539,7 @@ body.stats-page {
 .modal-rating-info {
   cursor: help;
   font-size: 0.7rem;
-  color: #5a554d;
+  color: var(--ink-soft);
   opacity: 0.7;
 }
 
@@ -609,8 +562,8 @@ body.stats-page {
   top: 100%;
   margin-top: 0.35rem;
   padding: 0.6rem 0.9rem;
-  background: #2c2a26;
-  color: #faf9f7;
+  background: var(--ink);
+  color: var(--bg);
   font-size: 0.8rem;
   line-height: 1.45;
   border-radius: 6px;
@@ -636,7 +589,7 @@ body.stats-page {
 }
 
 .modal-rating-stars .stars-bg {
-  color: #c9c4b8;
+  color: var(--ink-dim);
 }
 
 .modal-rating-stars .stars-fill {
@@ -644,7 +597,7 @@ body.stats-page {
   left: 0;
   top: 0;
   overflow: hidden;
-  color: #b8860b;
+  color: var(--mark);
   white-space: nowrap;
 }
 
@@ -653,7 +606,7 @@ body.stats-page {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #5a554d;
+  color: var(--ink-soft);
   margin: 1.25rem 0 0.5rem;
 }
 
@@ -663,7 +616,7 @@ body.stats-page {
 
 .modal-review {
   font-size: 0.9rem;
-  color: #2c2a26;
+  color: var(--ink);
   font-style: italic;
   margin: 0 0 1rem;
   line-height: 1.45;
@@ -673,7 +626,7 @@ body.stats-page {
 .modal-description {
   font-size: 0.9rem;
   margin: 0 0 1.5rem;
-  color: #2c2a26;
+  color: var(--ink);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -756,3 +709,544 @@ body.stats-page {
     font-size: 1.4rem;
   }
 }
+
+/* ===== The shelf page (index.html): a bookcase of CSS books ===== */
+body.shelf-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-attachment: fixed;
+}
+
+/* the bookcase: back wall + side posts + top board + shelves, in the old 3D shelf's wood */
+.bookcase {
+  /* one thickness for every piece of wood: posts, top board, shelves, dividers */
+  --wood: 5px;
+  --plank: var(--wood);
+  --post: var(--wood);
+  --divider: var(--wood);
+  --wood-tile: 256px;
+  --wood-base: #d4a470;
+  /* darkens the grain a touch (the old 3D shelf got this from its lighting) */
+  --wood-shade: linear-gradient(rgba(70, 40, 15, 0.06), rgba(70, 40, 15, 0.06)); /* back wall only */
+  /* the frame (posts, top board, shelves, dividers) is one lighter maple, all the
+     same tone so equal widths look equal; the back wall keeps the darker grain */
+  --wash-frame: linear-gradient(rgba(246, 210, 160, 0.5), rgba(246, 210, 160, 0.5));
+  /* shelves: bright front lip, darker underside */
+  --board-light: linear-gradient(180deg, rgba(255, 246, 225, 0.75) 0, rgba(255, 240, 210, 0.35) 1px, rgba(255, 232, 195, 0.1) 35%, rgba(110, 60, 20, 0.28) 100%);
+  position: relative;
+  max-width: 1100px;
+  margin: 1rem 0.75rem calc(2.5rem + env(safe-area-inset-bottom));
+  padding: 0 var(--post);
+  box-shadow: 0 10px 30px rgba(40, 25, 15, 0.25);
+  /* back wall: lighter grain, shaded towards the edges like the lit 3D unit */
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 240, 220, 0.08), rgba(60, 35, 15, 0.2) 120%),
+    var(--wood-shade),
+    var(--wood-back, none) 0 0 / var(--wood-tile),
+    var(--wood-base);
+}
+
+.bookcase::before,
+.bookcase::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--post);
+  z-index: 3;
+  background:
+    linear-gradient(90deg, rgba(255, 244, 222, 0.5) 0, rgba(255, 238, 210, 0.18) 1px, rgba(0, 0, 0, 0) 40%, rgba(110, 60, 20, 0.28) 100%),
+    var(--wash-frame),
+    var(--wood-frame, none) 0 0 / var(--wood-tile),
+    var(--wood-base);
+}
+.bookcase::before { left: 0; }
+.bookcase::after { right: 0; }
+
+.book-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 0;
+  padding-top: var(--plank);
+}
+
+/* top board */
+.book-grid::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--post));
+  right: calc(-1 * var(--post));
+  height: var(--plank);
+  z-index: 3;
+  background: var(--board-light), var(--wash-frame), var(--wood-board, none) 0 0 / var(--wood-tile), var(--wood-base);
+  box-shadow: 0 5px 8px -3px rgba(40, 22, 8, 0.45);
+}
+
+/* one cell = one book standing on its own length of plank; planks join up across a row */
+.gbook {
+  --ar: 0.65;           /* cover aspect, replaced once the image loads */
+  --depth: 0.5;         /* 0–1, from page count */
+  --open: 0;            /* 1 while the cover is swung open */
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+  --floor: 8px;         /* the shelf's top surface, seen going back to the wall (.gb-floor) */
+  /* books stand on the floor, a little in from the front edge */
+  padding: 1.5rem 10px calc(var(--plank) + var(--floor) * 0.45);
+  /* inside the cubby, light comes from the front and above: a little shade on the
+     back wall where it meets the floor, under the board above, and in the corners */
+  background:
+    linear-gradient(0deg,
+      rgba(0, 0, 0, 0) calc(var(--plank) + var(--floor)),
+      rgba(45, 25, 10, 0.2) calc(var(--plank) + var(--floor)),
+      rgba(45, 25, 10, 0.06) calc(var(--plank) + var(--floor) + 6px),
+      rgba(0, 0, 0, 0) calc(var(--plank) + var(--floor) + 16px)) no-repeat,
+    linear-gradient(180deg, rgba(35, 18, 6, 0.42) 0, rgba(35, 18, 6, 0.16) 10px, rgba(35, 18, 6, 0.04) 34%, rgba(0, 0, 0, 0) 60%) no-repeat,
+    linear-gradient(90deg, rgba(35, 18, 6, 0.2) 0, rgba(35, 18, 6, 0) 16px, rgba(35, 18, 6, 0) calc(100% - 16px), rgba(35, 18, 6, 0.2) 100%) no-repeat;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.gbook[hidden] { display: none; }
+.gbook.is-empty { cursor: default; }
+
+.gbook::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--plank);
+  /* front edge of the board: lit top lip, shade underneath, grain running sideways */
+  background:
+    var(--board-light),
+    var(--wash-frame),
+    var(--wood-board, none) var(--bx, 0px) calc(var(--by, 0px) - var(--ch, 0px) + var(--plank)) / var(--wood-tile),
+    var(--wood-base);
+  box-shadow: 0 5px 8px -3px rgba(40, 22, 8, 0.45);
+  z-index: 2; /* above every cubby, so its shadow falls on the row below */
+}
+
+/* cubby divider on the right of each book, like the 3D unit (not on the last in a row: the side post is there) */
+.gbook::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: var(--plank);
+  right: calc(var(--divider) / -2);
+  width: var(--divider);
+  z-index: 2; /* above both neighbouring cubbies, so neither paints over it */
+  background:
+    linear-gradient(90deg, rgba(255, 244, 222, 0.5) 0, rgba(255, 238, 210, 0.18) 1px, rgba(0, 0, 0, 0) 40%, rgba(110, 60, 20, 0.28) 100%),
+    var(--wash-frame),
+    var(--wood-frame, none) calc(var(--bx, 0px) - var(--cw, 0px) + var(--divider) / 2) var(--by, 0px) / var(--wood-tile),
+    var(--wood-base);
+  box-shadow: 3px 0 6px rgba(40, 22, 8, 0.18), -2px 0 5px rgba(40, 22, 8, 0.12);
+}
+
+.gbook.is-row-end::before { display: none; }
+
+/* filtered out (desktop): the book fades to a ghost where it stands */
+.gbook .gbook-3d { transition: opacity 450ms ease, filter 450ms ease; }
+.gbook.is-ghost { cursor: default; }
+.gbook.is-ghost .gbook-3d { opacity: 0.16; filter: grayscale(1); }
+.gbook.is-ghost:hover,
+.gbook.is-ghost:focus-visible { --open: 0; }
+
+/* the shelf floor: the board's top surface going back to the wall. Same frame
+   wood, darker at the back crease, catching the light towards the front edge.
+   Below the books (z 0) and the dividers, which stand on it. */
+.gb-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--plank);
+  height: var(--floor);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(60, 32, 8, 0.45) 0, rgba(60, 32, 8, 0.22) 1px, rgba(60, 32, 8, 0.1) 35%, rgba(255, 240, 212, 0.2) 100%),
+    var(--wash-frame),
+    var(--wood-board, none) var(--bx, 0px) calc(var(--by, 0px) - var(--ch, 0px) + var(--plank) + var(--floor)) / var(--wood-tile),
+    var(--wood-base);
+}
+
+.gbook-3d {
+  position: relative;
+  z-index: 1;
+  /* shadows are on .gb-cover (onto the back wall) and ::after (contact with the floor) */
+  display: block;
+  width: 100%;
+  max-width: 170px;
+  aspect-ratio: var(--ar);
+  transform-style: preserve-3d;
+}
+
+.gbook.is-audio .gbook-3d { width: 82%; }
+
+/* contact shadow: a tight dark line where the book stands on the shelf floor */
+.gbook-3d::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -3px;
+  bottom: -2px;
+  height: 4px;
+  z-index: 0;
+  background: radial-gradient(ellipse 55% 100% at 50% 20%, rgba(35, 18, 6, 0.45), rgba(35, 18, 6, 0) 75%);
+  pointer-events: none;
+}
+
+.gb-back,
+.gb-pages,
+.gb-pages > span,
+.gb-cover,
+.gb-spine,
+.gb-light { position: absolute; pointer-events: none; }
+
+.gb-back {
+  inset: 2% 0 0 2%;
+  background: linear-gradient(90deg, #5d564d, #7a7268 55%, #6b645a);
+  border-radius: 0 1px 1px 0;
+  box-shadow: none;
+}
+
+.gb-pages { inset: 0; }
+.gb-pages > span {
+  top: 1.5%;
+  bottom: 0.5%;
+  right: 0;
+  width: 97%;
+  background: #f6f2ea;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0 1px 1px 0;
+  transition: transform 700ms var(--ease);
+}
+/* page edges fan out further for thicker books */
+.gb-pages > span:nth-child(1) { transform: translateX(calc(var(--open) * (3% + var(--depth) * 4%) * 1.0)); }
+.gb-pages > span:nth-child(2) { transform: translateX(calc(var(--open) * (3% + var(--depth) * 4%) * 0.55)); }
+.gb-pages > span:nth-child(3) { transform: translateX(calc(var(--open) * (3% + var(--depth) * 4%) * 0.2)); }
+
+.gb-cover {
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: 0 1px 1px 0; /* books have square corners */
+  background: #d9cfc2;
+  box-shadow: 3px -3px 7px -2px rgba(35, 18, 6, 0.32);
+  transform-origin: left center;
+  transform: perspective(1400px) translateX(calc(var(--open) * -2.7%)) rotateY(calc(var(--open) * -14deg)) scaleX(calc(1 - var(--open) * 0.04));
+  transition: transform 700ms var(--ease), box-shadow 700ms var(--ease);
+}
+.gb-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gb-fallback {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 100%;
+  padding: 0.75rem 0.6rem 0.75rem 1rem;
+  font-size: 0.75rem;
+  color: #3a332b;
+  text-align: left;
+}
+.gb-fallback b { font-size: 0.9rem; }
+
+/* the spine hinge: a crease line + soft highlight a little in from the left edge */
+.gb-spine {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  width: 4%;
+  margin-left: calc(5% - var(--open) * 1.8%);
+  /* a thin pressed groove: dark line, faint lit edge, short fade */
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: inset 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  transition: margin-left 700ms var(--ease);
+}
+.gb-light {
+  inset: 0;
+  z-index: 5;
+  border-radius: 0 1px 1px 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5));
+  opacity: calc(0.08 + var(--open) * 0.12);
+  transform-origin: left center;
+  transform: perspective(1400px) rotateY(calc(var(--open) * -14deg));
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+
+/* audiobooks: a CD case — no pages, no spine crease */
+.gbook.is-audio .gb-pages,
+.gbook.is-audio .gb-spine { display: none; }
+.gbook.is-audio .gb-back { inset: 0; border-radius: 1px; }
+.gbook.is-audio .gb-cover,
+.gbook.is-audio .gb-light { border-radius: 1px; }
+
+/* open: tapped (touch), or hover/focus on a real pointer */
+.gbook.is-open { --open: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .gbook:hover,
+  .gbook:focus-visible { --open: 1; }
+}
+.gbook.is-open .gb-cover,
+.gbook:focus-visible .gb-cover {
+  box-shadow: 10px -4px 18px -4px rgba(35, 18, 6, 0.3), 18px -6px 30px -8px rgba(35, 18, 6, 0.2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .gbook:hover .gb-cover {
+    box-shadow: 10px -4px 18px -4px rgba(35, 18, 6, 0.3), 18px -6px 30px -8px rgba(35, 18, 6, 0.2);
+  }
+}
+.gbook:focus { outline: none; }
+.gbook:focus-visible .gbook-3d { outline: 2px solid rgba(0, 0, 0, 0.55); outline-offset: 6px; }
+
+/* the open book is the one that's "raised" during a view transition */
+::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-pages > span, .gb-cover, .gb-spine, .gb-light { transition: none; }
+}
+
+@media (min-width: 560px) {
+  .bookcase { margin-inline: 1.5rem; --wood: 6px; }
+  .book-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .gbook { padding-inline: 16px; }
+}
+
+/* desktop: bigger books, chunkier wood, a wider case */
+@media (min-width: 1024px) {
+  .shelf-head,
+  .shelf-toolbar { padding-inline: 1.5rem; }
+  .bookcase { max-width: 1240px; --wood: 6px; }
+  .book-grid { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
+  .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) * 0.45); }
+}
+
+@media (min-width: 1300px) {
+  .bookcase { margin-inline: auto; }
+}
+
+
+/* desktop, fit to the window like the old 3D shelf
+   (grid.js sets the columns, row height, case width and --book-h) */
+.bookcase.is-fit {
+  /* boards about as thick, relative to the cubbies, as the old 3D shelf's */
+  --wood: 5px;
+  --fit-floor: 9px;
+  max-width: none;
+  /* room around the case: grid.js reads these when sizing it */
+  margin: 1.5rem auto 5rem;
+}
+
+/* filter and sort pinned along the bottom, as before */
+/* one bar along the bottom: genres on the left, sort on the right. When the
+   window is too narrow for both, the genres scroll sideways instead of running
+   under the sort chips. */
+body.shelf-fit .shelf-toolbar {
+  position: fixed;
+  left: 1.5rem;
+  right: 1.5rem;
+  bottom: 1.25rem;
+  z-index: 10;
+  justify-content: space-between;
+  gap: 1.5rem;
+  overflow: visible;
+  padding: 0;
+}
+body.shelf-fit .shelf-genre-filter {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.shelf-fit .shelf-genre-filter::-webkit-scrollbar { display: none; }
+/* narrower desktops: drop the labels first; if the genres still don't fit,
+   fade their right edge to show there's more to scroll (grid.js sets is-clipped) */
+@media (max-width: 1299px) {
+  body.shelf-fit .shelf-toolbar-label { display: none; }
+}
+body.shelf-fit .shelf-genre-filter.is-clipped {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+}
+body.shelf-fit .shelf-sort { order: 0; flex: none; padding-right: 0; margin-right: 0; border-right: 0; }
+
+.bookcase.is-fit .gbook {
+  --floor: var(--fit-floor);
+  padding: 0 12px calc(var(--plank) + var(--floor) * 0.45);
+}
+.bookcase.is-fit .gbook-3d {
+  width: min(100%, calc(var(--book-h) * var(--ar)));
+  max-width: none;
+}
+.bookcase.is-fit .gbook.is-audio .gbook-3d {
+  width: min(82%, calc(var(--book-h) * 0.82));
+}
+
+/* ----- decorations in empty cubbies (grid.js decorate) -----
+   Sized in the old 3D shelf's units: a book is about 4.7 units tall. */
+.deco {
+  --u: calc(var(--book-h, 150px) / 4.7);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  justify-content: flex-start;
+  filter: drop-shadow(3px -3px 3px rgba(35, 18, 6, 0.24));
+}
+.deco.is-right { flex-direction: row-reverse; }
+
+.deco-spine {
+  flex: 0 0 auto;
+  width: calc(var(--u) * var(--w));
+  height: calc(var(--book-h, 150px) * var(--h));
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 30%, rgba(0, 0, 0, 0.14)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 8%, rgba(0, 0, 0, 0.12) 9%, rgba(0, 0, 0, 0) 11%, rgba(0, 0, 0, 0) 88%, rgba(0, 0, 0, 0.12) 89%, rgba(0, 0, 0, 0) 91%),
+    var(--c);
+  border-radius: 1px 1px 0 0;
+  box-shadow: inset -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.deco-item {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 calc(var(--u) * 0.45);
+  transform: rotate(var(--tilt, 0deg));
+  transform-origin: bottom center;
+}
+.deco:not(:has(.deco-spine)) { justify-content: center; }
+/* plants and candles sat nearer the camera on the 3D shelf, so they read a bit bigger */
+.deco-plant,
+.deco-candle { --u: calc(var(--book-h, 150px) / 4.7 * 1.35); }
+.deco > .deco-item:only-child { margin: 0 auto; }
+
+/* plants: a pot and a cluster of leaves */
+.deco-pot {
+  display: block;
+  width: calc(var(--u) * 1);
+  height: calc(var(--u) * 0.65);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.12) 35%, rgba(0, 0, 0, 0.22)), #8b6914;
+  border-radius: 2px 2px 30% 30% / 2px 2px 18% 18%;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+}
+.deco-plant.is-leafy .deco-pot { width: calc(var(--u) * 0.9); height: calc(var(--u) * 0.55); background-color: #6b5344; }
+.deco-leaves {
+  display: block;
+  position: relative;
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 0.95);
+  margin-bottom: calc(var(--u) * -0.12);
+  background:
+    radial-gradient(circle at 50% 70%, #5a8c69 0 22%, transparent 23%),
+    radial-gradient(circle at 26% 62%, #4a7c59 0 20%, transparent 21%),
+    radial-gradient(circle at 74% 60%, #4a7c59 0 19%, transparent 20%),
+    radial-gradient(circle at 38% 34%, #568a65 0 18%, transparent 19%),
+    radial-gradient(circle at 63% 30%, #3f6e4d 0 17%, transparent 18%),
+    radial-gradient(circle at 50% 14%, #4f8460 0 14%, transparent 15%);
+}
+.deco-plant.is-leafy .deco-leaves {
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.25);
+  background:
+    linear-gradient(#5c4a3a, #5c4a3a) 50% 100% / calc(var(--u) * 0.08) 60% no-repeat,
+    radial-gradient(ellipse 22% 16% at 50% 40%, #3d6b50 98%, transparent),
+    radial-gradient(ellipse 20% 14% at 28% 50%, #457a5b 98%, transparent),
+    radial-gradient(ellipse 20% 14% at 72% 46%, #3d6b50 98%, transparent),
+    radial-gradient(ellipse 18% 13% at 38% 22%, #4a8262 98%, transparent),
+    radial-gradient(ellipse 18% 13% at 64% 18%, #3d6b50 98%, transparent);
+}
+
+/* jar candle: dark red jar, cream wax, a small lit flame */
+.deco-jar {
+  display: block;
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 1.25);
+  border-radius: 3px 3px 4px 4px;
+  background:
+    radial-gradient(ellipse 40% 9% at 50% 7%, #fff8e7 96%, transparent),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.25), rgba(255, 255, 255, 0.14) 35%, rgba(0, 0, 0, 0.3)),
+    #5c2830;
+}
+.deco-flame {
+  display: block;
+  width: calc(var(--u) * 0.16);
+  height: calc(var(--u) * 0.3);
+  margin-bottom: 1px;
+  border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 75%, #fff4c2, #ffb300 55%, #ff8a00);
+  box-shadow: 0 0 calc(var(--u) * 0.5) calc(var(--u) * 0.15) rgba(255, 170, 40, 0.45);
+  animation: deco-flicker 2.8s ease-in-out infinite;
+}
+@keyframes deco-flicker {
+  0%, 100% { transform: scale(1, 1); opacity: 1; }
+  40% { transform: scale(0.94, 1.06) translateX(0.3px); opacity: 0.92; }
+  70% { transform: scale(1.04, 0.96); }
+}
+
+/* desk lamp: dark base and stem, a cream shade with warm light under it */
+.deco-shade {
+  display: block;
+  position: relative;
+  width: calc(var(--u) * 2.1);
+  height: calc(var(--u) * 0.85);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.2) 40%, rgba(0, 0, 0, 0.16)), #f5f5dc;
+  clip-path: polygon(26% 0, 74% 0, 100% 100%, 0 100%);
+}
+.deco-lamp::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--u) * 0.8);
+  left: 50%;
+  width: calc(var(--u) * 2.6);
+  height: calc(var(--u) * 1.8);
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 0, rgba(255, 228, 170, 0.35), transparent 70%);
+  pointer-events: none;
+}
+.deco-stem {
+  display: block;
+  width: calc(var(--u) * 0.1);
+  height: calc(var(--u) * 1.3);
+  background: #1a1a1a;
+}
+.deco-base {
+  display: block;
+  width: calc(var(--u) * 1.35);
+  height: calc(var(--u) * 0.25);
+  border-radius: 40% 40% 2px 2px / 70% 70% 2px 2px;
+  background: linear-gradient(90deg, #1f1f1f, #3a3a3a 40%, #222);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deco-flame { animation: none; }
+}
+
+/* phones and tablets (anything but the fitted desktop case): the filter/sort
+   chips speak for themselves without their labels */
+body.shelf-page:not(.shelf-fit) .shelf-toolbar-label { display: none; }
+.book-counter .counter-short { display: none; }
+body.shelf-page:not(.shelf-fit) .book-counter .counter-long { display: none; }
+body.shelf-page:not(.shelf-fit) .book-counter .counter-short { display: inline; }

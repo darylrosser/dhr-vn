@@ -34,7 +34,7 @@ export function setupMailApp() {
                 // Show success message
                 alert('Message sent successfully! I\'ll get back to you soon.');
                 form.reset();
-                document.getElementById('email-to').value = 'Daryl Hensman-Rosser'; // Reset the "to" field
+                document.getElementById('email-to').value = 'Daryl Rosser'; // Reset the "to" field
             } else {
                 throw new Error('Network response was not ok');
             }

@@ -34,14 +34,17 @@
 }
 
 .bar-prompt {
+  display: flex;
+  align-items: baseline;
   margin: 0;
   min-width: 0;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--ink-dim);
 }
+.bar-prompt > a, .bar-prompt > span { flex: none; }
+.bar-prompt .prompt-dollar { margin-left: .35em; } /* its leading space is trimmed in a flex row */
 .bar-prompt a { color: var(--ink-soft); text-decoration: none; }
 .bar-prompt a:hover { color: var(--link-hover); }
 .bar-prompt .prompt-host { color: var(--link); font-weight: 600; }
@@ -55,6 +58,62 @@
   animation: blink 1.1s steps(1) infinite;
 }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* the prompt takes commands (prompt.js): the block cursor sits after the $
+   until you focus the input, then the real caret takes over */
+.bar-prompt .bar-cursor { order: 2; flex: none; }
+.bar-input {
+  order: 3;
+  flex: 1;
+  min-width: 4ch;
+  margin-left: .45em;
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  outline: 0;
+  caret-color: var(--link);
+}
+.bar-input::placeholder { color: var(--ink-dim); opacity: .6; }
+.bar-input:focus ~ .bar-cursor,
+.bar-input:not(:placeholder-shown) ~ .bar-cursor { display: none; }
+.bar-input:not([hidden]) { cursor: text; }
+
+/* command output, dropping down under the bar */
+.bar-out {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  width: min(66rem, calc(100% - 2rem));
+  transform: translateX(-50%);
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  padding: .7rem 1rem .8rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .25);
+  font: .82rem/1.6 var(--font-mono);
+  color: var(--ink-soft);
+}
+.bar-out .line { margin: 0; white-space: pre-wrap; }
+.bar-out .out + .out { margin-top: .15rem; }
+.bar-out .ps1 { color: var(--hot); }
+.bar-out a { text-decoration: none; }
+.bar-out .t-dim { color: var(--ink-dim); }
+.bar-out .t-err { color: var(--hot); }
+.bar-out .t-warn { color: var(--mark); }
+.bar-out .linkish {
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.bar-out .linkish:hover { color: var(--link-hover); }
 
 .bar-nav { display: flex; gap: 1.1rem; }
 .bar-nav a { color: var(--ink-soft); text-decoration: none; }
@@ -73,7 +132,7 @@
   cursor: pointer;
 }
 .theme-toggle:hover { color: var(--ink); border-color: var(--ink-dim); }
-.theme-toggle-label::before { content: '◐ '; }
+.theme-toggle-label { display: block; line-height: 1; }
 
 @media (max-width: 640px) {
   .bar-inner { flex-wrap: wrap; row-gap: .4rem; }
@@ -368,3 +427,28 @@
 
 .dossier-verdict { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--d-frame); }
 .dossier mark { background: var(--d-ink); color: #120c00; text-shadow: none; padding: 0 .3em; }
+
+/* ---------------------------------------------------------------- home
+   Just the intro and the latest writing. */
+.home mark {
+  background: color-mix(in srgb, var(--mark) 26%, transparent);
+  color: inherit;
+  padding: 0 .15em;
+}
+.prose .home-latest { list-style: none; padding: 0; margin: 0; }
+.home-latest li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .2rem 1rem;
+  padding: .75rem 0;
+  border-top: 1px dashed var(--rule);
+}
+.prose .home-latest li + li { margin-top: 0; }
+.home-latest li:last-child { border-bottom: 1px dashed var(--rule); }
+.home-latest a { text-decoration: none; font-weight: 600; }
+.home-latest a:hover { text-decoration: underline; }
+.home-latest-meta { font: .78rem var(--font-mono); color: var(--ink-dim); white-space: nowrap; }
+.home-more { margin: .9rem 0 0; font: .82rem var(--font-mono); text-align: right; }
+.home-more a { text-decoration: none; }

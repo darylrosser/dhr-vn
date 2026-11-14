@@ -1,5 +1,21 @@
 // Book data for the reading shelf. Loaded by reading/index.html; sets window.booksData.
-// Optional: rating (1–5), review (short comment).
+//
+// Optional: rating (1–5) and review (your thoughts). Leave either out if you
+// haven't got to it yet: without a review the notes show the description
+// instead, and unrated books are skipped in the rating stats.
+//
+// Smallest useful entry:
+//   {
+//     id: '48',
+//     title: 'Title',
+//     author: 'Author',
+//     readDate: '2026-11-14',
+//     isbn: 9780000000000,       // cover at covers/<isbn>.jpg, then `npm run thumbs`
+//     type: 'print',             // or 'audio' (add durationHours / durationMinutes)
+//     numberOfPages: 300,
+//     genres: ['Science Fiction'],
+//     description: 'Publisher blurb…',
+//   },
 
 window.booksData = [
   {
@@ -276,7 +292,7 @@ window.booksData = [
     author: 'Bill Gurley',
     readDate: '2026-03-20',
     isbn: 9780593799666,
-    type: 'print',
+    type: 'audio',
     numberOfPages: 272,
     durationHours: 7,
     durationMinutes: 58,
