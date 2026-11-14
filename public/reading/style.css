@@ -744,8 +744,11 @@ body.shelf-page {
 
 /* the bookcase: back wall + side posts + top board + shelves, in the old 3D shelf's wood */
 .bookcase {
-  --plank: 14px;
-  --post: 10px;
+  /* one thickness for every piece of wood: posts, top board, shelves, dividers */
+  --wood: 10px;
+  --plank: var(--wood);
+  --post: var(--wood);
+  --divider: var(--wood);
   --wood-tile: 256px;
   --wood-base: #d4a470;
   /* darkens the grain a touch (the old 3D shelf got this from its lighting) */
@@ -813,18 +816,16 @@ body.shelf-page {
   align-items: flex-end;
   justify-content: center;
   min-height: 0;
-  --floor: 7px;         /* the shelf's top surface, seen just above its front edge */
+  --floor: 2px;         /* books stand just behind the shelf's front edge */
   padding: 1.5rem 10px calc(var(--plank) + var(--floor) - 2px);
   /* inside the cubby, light comes from the front and above:
      shelf floor catching light, shade under the board above, shade in the corners by the dividers */
   background:
     linear-gradient(0deg,
       rgba(0, 0, 0, 0) var(--plank),
-      rgba(255, 238, 212, 0.22) var(--plank),
-      rgba(120, 80, 45, 0.10) calc(var(--plank) + var(--floor) - 1px),
-      rgba(45, 25, 10, 0.38) calc(var(--plank) + var(--floor) - 1px),
-      rgba(45, 25, 10, 0.10) calc(var(--plank) + var(--floor) + 6px),
-      rgba(0, 0, 0, 0) calc(var(--plank) + var(--floor) + 20px)) no-repeat,
+      rgba(45, 25, 10, 0.3) var(--plank),
+      rgba(45, 25, 10, 0.08) calc(var(--plank) + 6px),
+      rgba(0, 0, 0, 0) calc(var(--plank) + 18px)) no-repeat,
     linear-gradient(180deg, rgba(35, 18, 6, 0.55) 0, rgba(35, 18, 6, 0.22) 10px, rgba(35, 18, 6, 0.06) 34%, rgba(0, 0, 0, 0) 60%) no-repeat,
     linear-gradient(90deg, rgba(35, 18, 6, 0.28) 0, rgba(35, 18, 6, 0) 16px, rgba(35, 18, 6, 0) calc(100% - 16px), rgba(35, 18, 6, 0.28) 100%) no-repeat;
   border: 0;
@@ -860,13 +861,13 @@ body.shelf-page {
   position: absolute;
   top: 0;
   bottom: var(--plank);
-  right: calc(var(--divider, 6px) / -2);
-  width: var(--divider, 6px);
+  right: calc(var(--divider) / -2);
+  width: var(--divider);
   z-index: 2; /* above both neighbouring cubbies, so neither paints over it */
   background:
     linear-gradient(90deg, rgba(255, 235, 205, 0.18), rgba(0, 0, 0, 0) 45%, rgba(40, 22, 8, 0.32)),
     var(--wood-shade),
-    var(--wood-frame, none) calc(var(--bx, 0px) - var(--cw, 0px) + var(--divider, 6px) / 2) var(--by, 0px) / var(--wood-tile),
+    var(--wood-frame, none) calc(var(--bx, 0px) - var(--cw, 0px) + var(--divider) / 2) var(--by, 0px) / var(--wood-tile),
     var(--wood-base);
   box-shadow: 3px 0 6px rgba(40, 22, 8, 0.18), -2px 0 5px rgba(40, 22, 8, 0.12);
 }
@@ -1003,7 +1004,7 @@ body.shelf-page {
 }
 
 @media (min-width: 560px) {
-  .bookcase { margin-inline: 1.5rem; --post: 14px; --plank: 16px; }
+  .bookcase { margin-inline: 1.5rem; --wood: 12px; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .gbook { padding-inline: 16px; }
 }
@@ -1013,9 +1014,9 @@ body.shelf-page {
   .shelf-page .page-header,
   .shelf-genre-filter,
   .shelf-sort { padding-inline: 1.5rem; }
-  .bookcase { max-width: 1240px; --post: 12px; --plank: 12px; }
+  .bookcase { max-width: 1240px; --wood: 12px; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
-  .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) - 2px); --floor: 9px; }
+  .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) - 2px); }
 }
 
 @media (min-width: 1300px) {
@@ -1037,10 +1038,8 @@ body.shelf-page {
    (grid.js sets the columns, row height, case width and --book-h) */
 .bookcase.is-fit {
   /* boards about as thick, relative to the cubbies, as the old 3D shelf's */
-  --plank: 9px;
-  --post: 11px;
-  --divider: 5px;
-  --fit-floor: 6px;
+  --wood: 9px;
+  --fit-floor: 2px;
   max-width: none;
   /* room around the case: grid.js reads these when sizing it */
   margin: 1.5rem auto 5rem;
