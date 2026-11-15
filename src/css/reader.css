@@ -247,7 +247,8 @@
 
 /* figures break out a little wider than the text column */
 .prose figure { margin: 2.2rem -2rem; }
-.prose figure img {
+.prose figure img,
+.prose figure video {
   display: block;
   width: auto;
   max-width: 100%;

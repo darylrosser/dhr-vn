@@ -444,7 +444,7 @@ export function build() {
 
 // ---------------------------------------------------------------- dev server
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.avif': 'image/avif', '.woff2': 'font/woff2', '.otf': 'font/otf', '.webp': 'image/webp', '.glb': 'model/gltf-binary' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.avif': 'image/avif', '.woff2': 'font/woff2', '.otf': 'font/otf', '.webp': 'image/webp', '.glb': 'model/gltf-binary', '.mp4': 'video/mp4' };
 
 function serve(port = 4321) {
   http.createServer((req, res) => {
