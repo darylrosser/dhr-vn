@@ -474,10 +474,14 @@ body.stats-page {
 
 .modal-cover img {
   display: block;
-  max-width: 280px;
-  max-height: 75vh;
-  width: auto;
+  /* Sized from the shelf thumbnail's aspect ratio (--ar, set in books.js) so
+     the box is right before the full cover loads: no layout shift. */
+  --cover-w: 280px;
+  --cover-h: 75vh;
+  width: min(var(--cover-w), calc(var(--cover-h) * var(--ar, 0.6667)));
+  aspect-ratio: var(--ar, 0.6667);
   height: auto;
+  object-fit: cover;
   border-radius: 3px;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.08) inset,
@@ -686,8 +690,8 @@ body.stats-page {
   }
 
   .modal-cover img {
-    max-width: 160px;
-    max-height: 42vh;
+    --cover-w: 160px;
+    --cover-h: 42vh;
   }
 
   .modal-cover .book-placeholder {
