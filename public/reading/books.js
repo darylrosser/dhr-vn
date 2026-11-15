@@ -225,6 +225,7 @@ export function fillModal(book) {
   modalDescription.textContent = showDescription ? (book.description || 'No description.') : '';
   renderModalCover(modalCover, book);
   modalEl.hidden = false;
+  document.documentElement.classList.add('is-modal-open');
   modalClose.focus();
   return true;
 }

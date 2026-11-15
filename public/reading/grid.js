@@ -166,7 +166,6 @@ function decoItem(kind) {
     el.className = 'deco-item deco-lamp';
     el.innerHTML = '<span class="deco-shade"></span><span class="deco-stem"></span><span class="deco-base"></span>';
   }
-  el.style.setProperty('--tilt', rand(-3, 3).toFixed(1) + 'deg');
   return el;
 }
 
@@ -315,6 +314,7 @@ function showInModal(book) {
 
 function closeModal() {
   modalEl.hidden = true;
+  document.documentElement.classList.remove('is-modal-open');
   const cell = openCell;
   openCell = null;
   openBookId = null;

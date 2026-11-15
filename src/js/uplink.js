@@ -28,10 +28,56 @@
     return true;
   }
 
+  // ------------------------------------------------------- the saved peek
+  // The room round the monitor is rendered once (world.js) and kept, so the
+  // next page can show the bezel and peek straight away instead of waiting
+  // for the whole room to load and render again. Keyed to this build of
+  // world.js, so a deploy that changes the room renders it afresh.
+  const PEEK_KEY = 'dhr-peek';
+  let hasPeek = false;
+
+  function usePeek(img, scale) {
+    root.style.setProperty('--world-peek', `url("${img}")`);
+    if (scale) root.style.setProperty('--peek-scale', scale);
+    hasPeek = true;
+  }
+
+  function loadSavedPeek() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PEEK_KEY) || 'null');
+      if (!saved || saved.v !== window.__dhrAssets.world) return;
+      // the image is stretched to the window, so it has to be the same shape
+      if (Math.abs(saved.w / saved.h - innerWidth / innerHeight) > 0.02) return;
+      usePeek(saved.img, saved.scale);
+    } catch (e) { /* no storage: wait for the room as before */ }
+  }
+
+  // Shrink the render to the window's own size first: a retina canvas as a
+  // JPEG is too big to keep, and the room only shows round the edges.
+  function savePeek(src, scale) {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const w = Math.min(innerWidth, 1920);
+        const h = Math.round(w * img.height / img.width);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        localStorage.setItem(PEEK_KEY, JSON.stringify({
+          v: window.__dhrAssets.world, w: innerWidth, h: innerHeight, scale,
+          img: c.toDataURL('image/jpeg', 0.8),
+        }));
+      } catch (e) { /* full or blocked: the next page just waits */ }
+    };
+    img.src = src;
+  }
+
   function setState(state, text) {
     up.state = state;
-    // the bezel only appears once the room behind it is ready to show
-    root.classList.toggle('uplink-ready', state === 'ready');
+    // the bezel appears once there's a room to show behind it: the saved
+    // one at once, or this page's once it has loaded
+    root.classList.toggle('uplink-ready', state === 'ready' || (hasPeek && state !== 'failed'));
+    if (state === 'ready' || state === 'failed') root.classList.remove('uplink-waiting');
     for (const b of document.querySelectorAll('[data-jack]')) {
       b.dataset.state = state;
       const label = b.querySelector('.jack-state');
@@ -57,8 +103,10 @@
       .then((world) => {
         up.world = world;
         // what the bezel reveals: the room round this monitor, rendered once
-        if (world.peek) root.style.setProperty('--world-peek', `url("${world.peek}")`);
-        if (world.peekScale) root.style.setProperty('--peek-scale', world.peekScale);
+        if (world.peek) {
+          usePeek(world.peek, world.peekScale);
+          savePeek(world.peek, world.peekScale);
+        }
         setState('ready', 'ready');
         if (up.pending || location.hash === '#world') { up.pending = false; jackOut(); }
       })
@@ -83,6 +131,7 @@
       setTimeout(() => { s.classList.remove('is-unplugging'); up.world.exit(); }, 260);
     } else if (up.state === 'syncing' || (up.state === 'offline' && capable())) {
       up.pending = true;
+      root.classList.add('uplink-waiting'); // clicked the saved room before the real one loaded
       emit('pending');
       start();
     } else {
@@ -115,7 +164,7 @@
   function setPeek(on, instant) {
     clearTimeout(dwell);
     if (on === peeking) return;
-    if (on && (up.state !== 'ready' || (up.world && up.world.active))) return;
+    if (on && (!hasPeek || up.state === 'failed' || (up.world && up.world.active))) return;
     peeking = on;
     if (on) {
       // shrink round the middle of the window, showing only what's on screen
@@ -124,6 +173,7 @@
       root.style.setProperty('--peek-clip', `inset(${Math.max(0, -r.top)}px 0 ${Math.max(0, r.bottom - innerHeight)}px 0)`);
       root.classList.add('is-peek-clip', 'is-peeking');
       peekedAt = performance.now();
+      start(); // someone's looking: load the real room now rather than after the idle wait
     } else {
       root.classList.remove('is-peeking');
       if (instant || reducedMotion) root.classList.remove('is-peek-clip');
@@ -170,6 +220,8 @@
     for (const b of document.querySelectorAll('[data-jack]')) b.addEventListener('click', jackOut);
     if (!capable()) return;
     root.classList.add('has-uplink');
+    loadSavedPeek();
+    if (hasPeek) root.classList.add('uplink-ready');
     for (const b of document.querySelectorAll('[data-jack]')) b.hidden = false;
     watchEdges();
     if (kind === 'terminal') return; // terminal.js starts the uplink after its boot

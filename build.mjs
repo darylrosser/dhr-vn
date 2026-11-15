@@ -80,7 +80,9 @@ const BEZEL = `<div class="bezel" aria-hidden="true">
 
 // `place` = where the page lives in the warehouse (world.js PLACES); none = no world mode.
 function head({ title, description, canonical, kind, place = '' }) {
-  const fullTitle = title ? `${title} | ${SITE.name}` : SITE.name;
+  // the homepage is just my name (search results already show the domain);
+  // every other page is '<page> | dhr.vn'
+  const fullTitle = title ? `${title} | ${SITE.name}` : 'Daryl Rosser';
   return `<!DOCTYPE html>
 <html lang="en" data-kind="${kind}"${place ? ` data-place="${place}"` : ''}>
 <head>
@@ -383,6 +385,38 @@ function out(rel, html) {
   fs.writeFileSync(file, html);
 }
 
+// ---------------------------------------------------------------- F1 timing screen
+// The warehouse's F1 screen shows the last real race: the top eight and their
+// gaps, fetched from Jolpica (the Ergast API's successor) when the site builds
+// and written to /f1.json. No result (offline, API down): no file, and the
+// screen falls back to a made-up grid.
+let f1Result = null;
+
+async function fetchF1() {
+  try {
+    const res = await fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json', { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const race = (await res.json()).MRData.RaceTable.Races[0];
+    if (!race) throw new Error('no race yet this season');
+    const leaderLaps = Number(race.Results[0].laps);
+    return {
+      race: race.raceName.replace(/Grand Prix$/i, 'GP').toUpperCase(),
+      date: race.date,
+      rows: race.Results.slice(0, 8).map((r, i) => {
+        const laps = leaderLaps - Number(r.laps);
+        const gap = i === 0 ? 'WINNER'
+          : r.Time && r.status === 'Finished' ? r.Time.time
+          : laps > 0 && /lap/i.test(r.status) ? `+${laps} LAP${laps > 1 ? 'S' : ''}`
+          : r.Time ? r.Time.time : r.status.toUpperCase();
+        return { code: r.Driver.code || r.Driver.familyName.slice(0, 3).toUpperCase(), gap };
+      }),
+    };
+  } catch (e) {
+    console.warn(`F1 screen: no race result (${e.message}), using the made-up grid`);
+    return null;
+  }
+}
+
 export function build() {
   const t0 = Date.now();
   fs.rmSync(DIST, { recursive: true, force: true });
@@ -403,6 +437,7 @@ export function build() {
     readingUrl: SITE.readingUrl,
   }));
   shelfChrome();
+  if (f1Result) out('f1.json', JSON.stringify(f1Result));
 
   console.log(`built ${posts.length} posts, ${pages.length} pages in ${Date.now() - t0} ms`);
 }
@@ -439,5 +474,6 @@ function serve(port = 4321) {
   fs.watch(path.join(ROOT, 'build.mjs'), () => console.log('build.mjs changed: restart the server to pick it up'));
 }
 
+f1Result = await fetchF1();
 build();
 if (process.argv.includes('--serve')) serve(Number(process.env.PORT) || 4321);

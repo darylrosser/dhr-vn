@@ -6,12 +6,12 @@
 //   plugs the cable into the back of your neck, and you dive into the monitor:
 //   into the page you came from (no reload), or another page (loaded for real).
 //   Clicking the monitor, or a thing that opens a page (the TV wall or the
-//   top-left screen → blog, the evidence board → about), does that.
+//   left screen → blog, the evidence board → about), does that.
 // - Jacking out is the reverse: the page you're on (or the home terminal) is
 //   on the monitor, live DOM via CSS3DRenderer, the camera starts where it
 //   fills the window, the arm yanks the plug out of your neck and you get up
 //   to your spot behind the desk. Out in the room the monitor runs a
-//   screensaver: JACK IN TO ENTER.
+//   login screen: JACK IN TO ENTER.
 // - The phone isn't a screen you go into: it comes up into view wherever
 //   you're looking, the contact page on it. The books (and the bookcase) open the reading app.
 // - /reading/ (its own three.js app, kind 'app'): the app fades away and you're
@@ -190,13 +190,25 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   const chairPose = (at = GAZE.monitor) => ({ pos: CHAIR.clone(), look: at.clone(), fov: CHAIR_FOV });
 
   // a page on the monitor (the screensaver off), or nothing (the screensaver on)
-  function putOnMonitor(node) {
+  // A page on the monitor keeps its header, as it looks in the window: a
+  // still copy of it (ids dropped, so it can't trip up the real one's
+  // prompt), above the page. The terminal has no header to keep.
+  function barCopy(bar) {
+    if (!bar) return null;
+    const copy = bar.cloneNode(true);
+    copy.querySelector('.bar-out')?.remove();
+    for (const el of [copy, ...copy.querySelectorAll('[id]')]) el.removeAttribute('id');
+    return copy;
+  }
+  const liveBar = () => (kind === 'reader' ? barCopy(document.querySelector('header.bar')) : null);
+
+  function putOnMonitor(node, bar = node === surface ? liveBar() : null) {
     if (!node) {
       screenObject.visible = false;
       world.setMonitorIdle(true);
       return;
     }
-    if (screenEl.firstChild !== node) screenEl.replaceChildren(node);
+    if (node.parentNode !== screenEl) screenEl.replaceChildren(...(bar ? [bar, node] : [node]));
     screenEl.classList.toggle('is-terminal', node === surface && kind === 'terminal');
     screenObject.visible = true;
     world.setMonitorIdle(false);
@@ -217,7 +229,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     const node = document.createElement('main');
     node.className = 'reader';
     node.innerHTML = main.innerHTML;
-    const page = { node, title: doc.title };
+    const page = { node, title: doc.title, bar: barCopy(doc.querySelector('header.bar')) };
     pageCache.set(path, page);
     return page;
   }
@@ -411,7 +423,8 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   function hotspotLabel(spot) {
     if (spot.action !== 'monitor') return spot.label;
-    return kind === 'app' ? 'Jack in: the terminal →' : `Jack in: ${origin.title.replace(/ \| dhr\.vn$/, '') || 'the terminal'} →`;
+    if (kind === 'app') return 'Jack in: the terminal →';
+    return `Jack in: ${place === 'home' ? 'dhr.vn' : origin.title.replace(/ \| dhr\.vn$/, '') || 'the terminal'} →`;
   }
 
   // Click / tap a thing in reach: use it. Holding the phone, anywhere off it
@@ -425,14 +438,10 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (node) use(node);
   }
 
-  const center = new THREE.Vector3();
   function use(node) {
     const spot = node.userData.hotspot;
     if (spot.action === 'monitor') jackIn();
-    else if (spot.action === 'look') {
-      new THREE.Box3().setFromObject(node).getCenter(center);
-      seat.lookAt(center);
-    } else if (spot.visit) visit(spot.visit);
+    else if (spot.visit) visit(spot.visit);
   }
 
   function onKey(e) {
@@ -453,6 +462,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
 
   let active = false;
   let busy = false;      // exit is setting up / flying out
+  let leaveAfterExit = false; // Back / Esc pressed mid step-out: go back once it lands
   let entering = false;  // jacking in
   let raf = 0;
   let frameNo = 0;
@@ -504,7 +514,12 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     window.addEventListener('click', onClick);
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
-    if (location.hash !== '#world') { history.pushState({ world: true }, '', `${location.pathname}#world`); pushedHistory = true; }
+    // In the room is a history entry of its own (so Back steps out), marked in
+    // its state, not the address: the URL stays the page's own. An old
+    // /page#world link lands here too; the #world comes off.
+    const here = location.pathname + location.search;
+    if (location.hash === '#world') history.replaceState({ world: true }, '', here);
+    else if (!inWorldEntry()) { history.pushState({ world: true }, '', here); pushedHistory = true; }
     active = true;
     clock.getDelta();
     raf = requestAnimationFrame(loop);
@@ -531,6 +546,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     requestAnimationFrame(() => renderer.domElement.classList.add('is-on'));
     fly(currentPose(), standPose(), () => {
       busy = false;
+      if (leftDuringExit()) return;
       setMode('room');
       ui.classList.add('is-on');
     }, { ms: 1800 });
@@ -555,6 +571,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
       await sleep(400);
       await flyP(currentPose(), standPose(), { ms: 1500, arc: 0.08 });
       busy = false;
+      if (leftDuringExit()) return;
       setMode('room');
       ui.classList.add('is-on');
     }, {
@@ -592,7 +609,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     jackInto(path);
   }
 
-  function setUrl(path) { history.replaceState(history.state, '', `${path}#world`); }
+  function setUrl(path) { history.replaceState({ world: true }, '', path); }
 
   // "Jack in" (the button, the monitor): back into the page you came from, or,
   // holding the phone, into the contact page.
@@ -616,7 +633,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     if (mode === 'phone') await lowerPhone({ ms: 300, resume: false });
     await plugIn(async () => {
       const p = await page;
-      if (p) putOnMonitor(p.node);
+      if (p) putOnMonitor(p.node, p.bar);
     });
     renderer.domElement.classList.remove('is-on');
     setTimeout(() => window.location.assign(url), reducedMotion ? 0 : 200);
@@ -643,7 +660,7 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
       glitch.classList.add('is-on');
     }
     await onScreen();
-    if (kind === 'terminal' && screenEl.firstChild === surface) {
+    if (kind === 'terminal' && surface.parentNode === screenEl) {
       surface.classList.remove('crt-on');
       void surface.offsetWidth;
       surface.classList.add('crt-on');
@@ -658,11 +675,23 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   // history if we added an entry, so the back button stays in sync.
   function leave() {
     if (!active || entering) return;
-    if (pushedHistory && location.hash === '#world') history.back(); // popstate → enter()
+    if (pushedHistory && inWorldEntry()) history.back(); // popstate → enter()
     else { history.replaceState(null, '', origin.url); enter(); }
   }
 
+  // Stepping out is one camera move after another, and only one move runs at
+  // a time: going back in halfway would have the two fight over the camera
+  // (and wait forever on a move that got replaced). So it waits for the step
+  // out to land, then goes straight back.
+  function leftDuringExit() {
+    if (!leaveAfterExit) return false;
+    leaveAfterExit = false;
+    enter();
+    return true;
+  }
+
   async function enter() {
+    if (busy && !entering) { leaveAfterExit = true; return; }
     if (!active || entering) return;
     entering = true;
     busy = true;
@@ -724,9 +753,10 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
     putOnMonitor(null);
   }
 
+  function inWorldEntry() { return !!(history.state && history.state.world); }
   window.addEventListener('popstate', () => {
-    if (location.hash === '#world' && !active) exit();
-    else if (location.hash !== '#world' && active) enter();
+    if (inWorldEntry() && !active) exit();
+    else if (!inWorldEntry() && active) enter();
   });
 
   world.link.onJolt = (amount) => { shake = Math.max(shake, amount); };
