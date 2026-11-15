@@ -108,7 +108,7 @@ the robot arm `src/js/arm.js`.
 
 ### What exists and must keep working
 
-- Every page is plain HTML first (terminal home, reader pages, `/reading/` shelf app, `/mac`).
+- Every page is plain HTML first (terminal home, reader pages, `/reading/` shelf app).
 - `src/js/uplink.js` (every page): capability check, background load of `world.js`, the ways
   out of a page: corner **✕** (`[data-jack]`, with an uplink LED) and the **bezel edge**
   (`[data-jack-edge]`, hover peeks at a render of the page's place via `--world-peek`).

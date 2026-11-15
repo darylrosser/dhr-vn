@@ -230,63 +230,50 @@ html.in-world .skip-link { display: none; }
 }
 
 /* ---------------------------------------------------------------- the way out: bezel + close ✕ */
-/* Every page is a screen in the warehouse. Its edge is a thin bezel; hovering
-   it pulls the bezel back to show the room behind (--world-peek, a render of
-   this page's place set by uplink.js once the world has loaded). Clicking the
-   edge, or the ✕ in the screen's chrome, steps out into the warehouse. */
+/* Every page is a screen in the warehouse. Its edge is a thin dark bezel, a
+   hint there's something round it. Rest the pointer on the edge (uplink.js)
+   and the page shrinks back into its monitor: <html> shows the room from just
+   behind the screen (--world-peek, rendered by world.js with the screen filling
+   --peek-scale of it), and <body> shrinks to exactly that size. Once it has,
+   clicking the room steps out into the warehouse; the bezel itself never does. */
 
-@property --peek-tint { syntax: '<color>'; inherits: false; initial-value: rgba(5, 4, 3, .9); }
-
-.bezel { display: none; }
-html.has-uplink:not(.in-world) .bezel { display: block; }
+/* its own layer above the page (the header bar included): the fade-in below
+   makes it a stacking context, so the z-index has to live here */
+.bezel { display: none; position: relative; z-index: 70; }
+/* shown once the warehouse has loaded (uplink.js), so hovering it always works */
+html.has-uplink.uplink-ready:not(.in-world) .bezel { display: block; animation: bezel-in .6s ease-out both; }
+@keyframes bezel-in { from { opacity: 0; } }
 
 .bezel-edge {
-  --peek-tint: rgba(5, 4, 3, .9);
   position: fixed;
   z-index: 70;
-  cursor: pointer;
-  background:
-    linear-gradient(var(--peek-tint), var(--peek-tint)),
-    var(--world-peek, radial-gradient(ellipse at 30% 40%, rgba(42, 212, 201, .5), transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(255, 140, 30, .5), transparent 60%), #07080c);
-  background-size: 100vw 100vh;
-  background-position: center;
-  background-attachment: fixed;
-  transition: width .32s cubic-bezier(.2, .7, .2, 1), height .32s cubic-bezier(.2, .7, .2, 1), --peek-tint .32s;
+  cursor: pointer;          /* shows there's something here; uplink.js reads the hover, and clicking the edge does nothing */
+  background: rgba(5, 4, 3, .3);   /* barely there until you rest on it */
 }
-.bezel-edge[data-edge="top"]    { top: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 -1px 0 rgba(255, 176, 0, .28); }
-.bezel-edge[data-edge="bottom"] { bottom: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 1px 0 rgba(255, 176, 0, .28); }
-.bezel-edge[data-edge="left"]   { top: 0; bottom: 0; left: 0; width: 7px; box-shadow: inset -1px 0 0 rgba(255, 176, 0, .28); }
-.bezel-edge[data-edge="right"]  { top: 0; bottom: 0; right: 0; width: 7px; box-shadow: inset 1px 0 0 rgba(255, 176, 0, .28); }
+.bezel-edge[data-edge="top"]    { top: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 -1px 0 rgba(255, 176, 0, .12); }
+.bezel-edge[data-edge="bottom"] { bottom: 0; left: 0; right: 0; height: 7px; box-shadow: inset 0 1px 0 rgba(255, 176, 0, .12); }
+.bezel-edge[data-edge="left"]   { top: 0; bottom: 0; left: 0; width: 7px; box-shadow: inset -1px 0 0 rgba(255, 176, 0, .12); }
+.bezel-edge[data-edge="right"]  { top: 0; bottom: 0; right: 0; width: 7px; box-shadow: inset 1px 0 0 rgba(255, 176, 0, .12); }
 
-/* peeking: the screen draws back, the room shows through, light spills in */
-html.is-peeking .bezel-edge { --peek-tint: rgba(5, 4, 3, .12); }
-html.is-peeking .bezel-edge[data-edge="top"],
-html.is-peeking .bezel-edge[data-edge="bottom"] { height: 34px; }
-html.is-peeking .bezel-edge[data-edge="left"],
-html.is-peeking .bezel-edge[data-edge="right"] { width: 34px; }
-html.is-peeking .bezel-edge[data-edge="top"]    { box-shadow: inset 0 -1px 0 rgba(255, 176, 0, .6), 0 10px 30px rgba(42, 212, 201, .18); }
-html.is-peeking .bezel-edge[data-edge="bottom"] { box-shadow: inset 0 1px 0 rgba(255, 176, 0, .6), 0 -10px 30px rgba(42, 212, 201, .18); }
-html.is-peeking .bezel-edge[data-edge="left"]   { box-shadow: inset -1px 0 0 rgba(255, 176, 0, .6), 10px 0 30px rgba(255, 140, 30, .16); }
-html.is-peeking .bezel-edge[data-edge="right"]  { box-shadow: inset 1px 0 0 rgba(255, 176, 0, .6), -10px 0 30px rgba(255, 140, 30, .16); }
-
-.bezel-hint {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font: .64rem/1 var(--font-crt);
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: #ffb000;
-  text-shadow: 0 0 8px rgba(255, 176, 0, .6), 0 1px 3px #000;
-  opacity: 0;
-  transition: opacity .2s .1s;
+/* the room behind the page, only while peeking (otherwise <html> keeps the
+   page colour, e.g. in the scrollbar gutter of pages that don't scroll) */
+html.has-uplink.is-peek-clip:not(.in-world) {
+  background: #050403 var(--world-peek, none) center / 100vw 100vh no-repeat fixed;
 }
-html.is-peeking .bezel-hint { opacity: 1; }
+html.has-uplink:not(.in-world) { background: var(--bg); }
+html.has-uplink:not(.in-world) body {
+  min-height: 100vh;
+  transform-origin: var(--peek-origin, 50% 50%);
+  transition: transform .5s cubic-bezier(.2, .7, .2, 1);
+}
+html.is-peek-clip body { clip-path: var(--peek-clip); }
+html.is-peeking body { transform: scale(var(--peek-scale, .8)); }
+html.is-peeking .bezel { visibility: hidden; }
+html.is-peeking { cursor: pointer; }
+
 
 @media (prefers-reduced-motion: reduce) {
-  .bezel-edge { transition: none; }
+  html.has-uplink:not(.in-world) body { transition: none; }
 }
 
 /* close ✕: window chrome on the screen, with an uplink LED */

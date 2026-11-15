@@ -72,8 +72,15 @@ body {
   color: var(--ink-soft);
   background: transparent;
   border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 0.45rem 0.8rem;
+  -webkit-appearance: none;
+  appearance: none;
+  /* A pill whose radius is exactly half its height (line-height + padding +
+     border), never a clamped one like 999px: Chrome drew clamped radii with
+     stray lines through the chips while the page was scaled (warehouse peek). */
+  --chip-py: 0.45rem;
+  line-height: 1.3;
+  padding: var(--chip-py) 0.8rem;
+  border-radius: calc(0.65em + var(--chip-py) + 1px);
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 }
@@ -1033,6 +1040,8 @@ body.shelf-page {
 @media (min-width: 1024px) {
   .shelf-head,
   .shelf-toolbar { padding-inline: 1.5rem; }
+  /* phones keep the bigger chips as tap targets; with a mouse they can be quieter */
+  .shelf-chip-btn { --chip-py: 0.3rem; font-size: 0.74rem; padding-inline: 0.7rem; }
   .bookcase { max-width: 1240px; --wood: 6px; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); }
   .gbook { padding: 2rem 22px calc(var(--plank) + var(--floor) * 0.45); }

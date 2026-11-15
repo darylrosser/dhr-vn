@@ -28,6 +28,7 @@ import { createSeat } from './seat.js';
 
 const START_FOV = 40;   // in the screen: it fills the window
 const SEAT_FOV = 52;    // standing back
+const PEEK_SCALE = 0.8; // hovering the page's edge: the page shrinks to this, the room shows round it
 const CHAIR_FOV = 56;   // sat at the desk
 const READING_URL = '/reading/';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -125,8 +126,15 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   renderer.compile(scene, camera);
   world.update(0, 0);
   composer.render();
-  // that same frame is what the page's bezel reveals when you hover its edge
-  const peek = renderer.domElement.toDataURL('image/jpeg', 0.7);
+  // What hovering the page's edge reveals: the room from just behind this
+  // monitor, its screen filling PEEK_SCALE of the frame. The page shrinks to
+  // exactly that size, so it looks like it is the screen on the desk.
+  const peekDist = (fit.startPos.z - fit.center.z) / PEEK_SCALE;
+  setPose(fit.center.clone().add(V(0, 0, peekDist)), fit.center, START_FOV);
+  world.update(0, 0);
+  composer.render();
+  const peek = renderer.domElement.toDataURL('image/jpeg', 0.75);
+  setPose(STAND, GAZE.desk, SEAT_FOV);
   onStatus('syncing 95%');
 
   // ---------------------------------------------------------------- HUD
@@ -722,5 +730,5 @@ export async function createWorld({ kind, place, surface, reducedMotion, onStatu
   });
 
   world.link.onJolt = (amount) => { shake = Math.max(shake, amount); };
-  return { exit, visit, enter: leave, peek, get active() { return active; } };
+  return { exit, visit, enter: leave, peek, peekScale: PEEK_SCALE, get active() { return active; } };
 }

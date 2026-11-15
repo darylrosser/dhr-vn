@@ -4,3 +4,7 @@
 /blog.html      /blog/     301
 /contact.html   /contact/  301
 /blog/post.html /blog/     301
+
+# the old desktop-OS page, removed
+/mac            /          301
+/mac.html       /          301
