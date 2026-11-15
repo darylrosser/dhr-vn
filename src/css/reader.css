@@ -114,6 +114,13 @@
   cursor: pointer;
 }
 .bar-out .linkish:hover { color: var(--link-hover); }
+.bar-out a:focus-visible,
+.bar-out .linkish:focus-visible {
+  outline: none;
+  color: var(--bg);
+  background: var(--link);
+  box-shadow: 0 0 0 2px var(--link);
+}
 
 .bar-nav { display: flex; gap: 1.1rem; }
 .bar-nav a { color: var(--ink-soft); text-decoration: none; }
@@ -450,5 +457,5 @@
 .home-latest a { text-decoration: none; font-weight: 600; }
 .home-latest a:hover { text-decoration: underline; }
 .home-latest-meta { font: .78rem var(--font-mono); color: var(--ink-dim); white-space: nowrap; }
-.home-more { margin: .9rem 0 0; font: .82rem var(--font-mono); text-align: right; }
+.prose .home-more { margin: 1.1rem 0 0; font: .82rem var(--font-mono); text-align: right; }
 .home-more a { text-decoration: none; }

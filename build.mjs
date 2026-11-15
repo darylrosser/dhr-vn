@@ -74,7 +74,7 @@ const IMPORT_MAP = `<script type="importmap">${JSON.stringify({ imports: {
 const BEZEL = `<div class="bezel" aria-hidden="true">
   <div class="bezel-edge" data-edge="top" data-jack-edge></div>
   <div class="bezel-edge" data-edge="right" data-jack-edge></div>
-  <div class="bezel-edge" data-edge="bottom" data-jack-edge><span class="bezel-hint">▸ exit to warehouse</span></div>
+  <div class="bezel-edge" data-edge="bottom" data-jack-edge></div>
   <div class="bezel-edge" data-edge="left" data-jack-edge></div>
 </div>`;
 
@@ -155,7 +155,7 @@ function footer() {
     <p class="foot-meta">© ${new Date().getFullYear()} ${SITE.name} <span class="foot-dim">// end of transmission</span></p>
     <div class="foot-badges">
       <img src="/images/badges/aol-sucks.gif" alt="AOL Sucks" width="88" height="31">
-      <a href="/mac"><img src="/images/badges/mac-made.gif" alt="Made on a Mac" width="88" height="31"></a>
+      <img src="/images/badges/mac-made.gif" alt="Made on a Mac" width="88" height="31">
       <img src="/images/badges/valid-xhtml.gif" alt="Valid XHTML" width="88" height="31">
       <img src="/images/badges/claude-powered.gif" alt="Claude Powered" width="88" height="31">
     </div>
@@ -259,8 +259,8 @@ function homeView(posts) {
   <p class="kicker"><span class="kicker-cmd">whoami</span></p>
   <h1>&lt;Claude: Insert self aggrandising line here&gt;</h1>
   <p>My name is Daryl. I live in Saigon, which is in Vietnam, which is on Earth, which is in the Milky Way. Which is also a chocolate bar. And choco stars. Man, I miss those things.</p>
-  <p>I run a marketing agency that occasionally convinces businesses to give us money<sup><a href="#fn1" id="ref1">1</a></sup> in exchange for making them slightly more money. I also write an inordinate amount of code, though "write" is perhaps generous when it's mostly become insulting AI agents until they get it right.<sup><a href="#fn2" id="ref2">2</a></sup></p>
-  <p>I read books. Many books. <mark>Too many books</mark>, if you ask my wife, who has requested I stop buying books until I finish the ones currently occupying three bookshelves, two nightstands, and what used to be the dining room table.</p>
+  <p>I run a marketing agency that occasionally convinces businesses to give us money<sup><a href="#fn1" id="ref1">1</a></sup> in exchange for making them slightly more money. I also write an inordinate amount of code, though "write" is perhaps generous when it's mostly insulting AI agents until they get it right.<sup><a href="#fn2" id="ref2">2</a></sup></p>
+  <p>I read a fair bit. Print books, audiobooks, eBooks. <mark>Too many books</mark>, if you ask my wife, who has requested I stop buying books until I finish the ones currently occupying three bookshelves, two nightstands, and what used to be the dining room table.</p>
   <p>This is where I write about some of this, and occasionally other things that seem important at 2am.</p>
 
   <h2>Latest writing</h2>
@@ -286,6 +286,7 @@ function notFoundView() {
     canonical: '/404/',
     active: '',
     crumbs: ['404'],
+    place: 'home',
     body: `<article class="prose">
   <p class="kicker"><span class="kicker-cmd">cd</span> ???</p>
   <h1>No such file or directory.</h1>
@@ -304,7 +305,7 @@ function notFoundView() {
 //   <!-- site:scripts -->  theme toggle (+ world mode on pages that have a place)
 const SHELF_PAGES = [
   { file: 'reading/index.html', crumbs: ['reading'], place: 'reading', skipTo: '#book-grid' },
-  { file: 'reading/stats.html', crumbs: ['reading', 'stats'], place: '', skipTo: '#stats-main' },
+  { file: 'reading/stats.html', crumbs: ['reading', 'stats'], place: 'reading', skipTo: '#stats-main' },
 ];
 
 // The shelf's own files are linked by plain names (style.css, data.js…), and

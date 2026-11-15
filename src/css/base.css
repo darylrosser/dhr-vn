@@ -109,7 +109,6 @@ a:hover { color: var(--link-hover); }
 
 .foot {
   margin-top: 6rem;
-  border-top: 1px solid var(--rule);
   font-family: var(--font-mono);
   font-size: .8rem;
   color: var(--ink-dim);
@@ -187,21 +186,23 @@ a:hover { color: var(--link-hover); }
 }
 
 .foot-inner {
-  max-width: 68rem;
+  max-width: 42rem;          /* the article column (40rem) plus its 1rem gutters */
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
   display: grid;
   gap: 1rem;
-  justify-items: center;
-  text-align: center;
+  justify-items: start;
+  text-align: left;
 }
-.foot-nav { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; justify-content: center; }
+.foot-nav { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; }
 .foot-nav a { color: var(--ink-soft); text-decoration: none; }
 .foot-nav a::before { content: './'; color: var(--ink-dim); }
 .foot-nav a:hover { color: var(--link-hover); }
 .foot-meta { margin: 0; }
 .foot-dim { opacity: .6; }
-.foot-badges { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; image-rendering: pixelated; }
+.foot-badges { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; image-rendering: pixelated; }
+.foot-badges a { display: block; }
+.foot-badges img { display: block; width: 88px; height: 31px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
