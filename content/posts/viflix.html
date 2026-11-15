@@ -1,0 +1,259 @@
+<!--
+{
+  "title": "I built my own Netflix",
+  "date": "2026-11-15",
+  "description": "Viflix: my own Netflix, built over 15 months on top of Jellyfin. The stack, the features, the polish, and how I built it.",
+  "cover": "/images/blog/viflix/home-focused-card.png",
+  "excerpt": "If you're ever a guest at my house, you'll quickly learn that we don't have Netflix, Apple TV, Disney+, or any others. We have Viflix."
+}
+-->
+
+    <p>If you're ever a guest at my house, you'll quickly learn that we don't have Netflix, Apple TV, Disney+, or any others. We have Viflix.</p>
+    <p>Named after my wife, Vi, this is an endlessly complex front-end for the heavy lifting done by Jellyfin and the -arr stack. Altogether it's about 58k lines of Python, 33k of Javascript, 13k of CSS, a 5k-line Swift app for the "TV", and a 5k-line Kotlin app for the projector.</p>
+    <p>And for my fellow idiots, it's my own Netflix.</p>
+    <figure>
+        <video src="/images/blog/viflix/focus-glide-and-colour-wash.mp4" poster="/images/blog/viflix/focus-glide-and-colour-wash.poster.jpg" autoplay muted loop playsinline></video>
+        <figcaption>Viflix in TV mode, which is how we use it 90% of the time.</figcaption>
+    </figure>
+
+    <hr />
+    <h2>Don't do this at home (...seriously)</h2>
+    <p>After 15 months of building this, I'd strongly advise against doing the same. Even if it is cool as heck.</p>
+    <p>My v1 was a folder of movies on an old Macbook Pro 2016, a PWA for my phone that displayed and searched them all, and a 1-click <code>open -a IINA</code> to launch them on my TV connected laptop.</p>
+    <p>That became a Netflix-like interface. Custom player. Bluetooth remote controlled. Custom rows for discovery. Live TV integration (via IPTV, free legal sources of course). Custom match score algorithm.... and more.</p>
+    <p>I would not set out to build this from scratch. It's not really worth it, knowing the time and effort it'd take.</p>
+    <p>Thankfully, using it is a breeze. There are no guides or tutorials, any time my wife got stuck or confused, I fixed the UX so it wouldn't happen again. Let me show you.</p>
+
+    <hr />
+    <h2>Using Viflix</h2>
+
+    <h3>The Library</h3>
+    <p>It starts with a home screen. That's every show, every movie, all in one place. Rows to organise and discover. Continue watching at the top (always).</p>
+    <p>Latest releases next, we tend to watch new stuff most often. Then Most Popular, based on TMDB trending, filtered to our own library. For You, built on our own match engine. Unwatched, prioritising longest in library, then highest match score, easy way to find some gems we missed.</p>
+    <figure>
+        <video src="/images/blog/viflix/top-10-row.mp4" poster="/images/blog/viflix/top-10-row.poster.jpg" autoplay muted loop playsinline></video>
+        <figcaption>Most Popular, with the big Netflix-style numbers.</figcaption>
+    </figure>
+    <p>Then algorithmic rows. Because you watched X. Genres or categories like "Root for the Bad Guy". Actors, directors, and composers that we like. And All Movies / Shows on their own tabs, though you'd be better off searching in most cases.</p>
+    <figure>
+        <video src="/images/blog/viflix/themed-rows.mp4" poster="/images/blog/viflix/themed-rows.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+    <p>Home is the default, then there's Movies which is essentially the same but filtered, and Shows which is a simpler version. And Live, which is a hand-picked list of live TV channels.</p>
+    <figure>
+        <img src="/images/blog/viflix/tab-shows.png" loading="lazy" alt="Viflix Shows tab in TV mode">
+        <figcaption>Shows</figcaption>
+    </figure>
+    <figure>
+        <img src="/images/blog/viflix/tab-movies.png" loading="lazy" alt="Viflix Movies tab in TV mode">
+        <figcaption>Movies</figcaption>
+    </figure>
+    <figure>
+        <img src="/images/blog/viflix/tab-live.png" loading="lazy" alt="Viflix Live tab in TV mode">
+        <figcaption>Live</figcaption>
+    </figure>
+
+    <h3>Recommendations</h3>
+    <p>TMDB related movies were failing miserably, so I built my own match score to estimate how likely we are to enjoy a movie/show. I use this in tandem with IMDb ratings.</p>
+    <p>I rated over a thousand movies based on my wife's and my preferences to train it (e.g. Princess Diaries got a love, despite my lack of interest). Then created an elastic-net "taste learner" over genres, people, keywords, and studios based on these and ongoing ratings.</p>
+    <p>Now everything shows a match score and reasoning:</p>
+    <figure>
+        <img src="/images/blog/viflix/match-score.png" loading="lazy" alt="Viflix details page showing a 96% match because we loved Return of the Jedi">
+        <figcaption>Revenge of the Sith: 96% Match, because we loved Return of the Jedi. Plus Lucasfilm and John Williams.</figcaption>
+    </figure>
+
+    <h3>Searching</h3>
+    <p>If you can't find what you're looking for, search is a click away. Search acts as both discovery and filtering.</p>
+    <p>First pass is a <code>scope=library</code> query. That lets you find media we own by name, genre, people, or metadata. Second pass is a debounced <code>scope=full</code>, that pulls from TMDB.</p>
+    <figure>
+        <video src="/images/blog/viflix/two-pass-search.mp4" poster="/images/blog/viflix/two-pass-search.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+    <p>Now it's useful for not only finding what we have, but discovering new items. And if you find something interesting?</p>
+    <p>Open it up. You'll get a full TMDB backed details page, an estimated match %, and a button. Now I would never do this, but theoretically if you wanted to, this button could POST to an endpoint that adds the title to Radarr or Sonarr, which goes off, finds it matching your profile settings, downloads it, fetches the subtitles (via Bazarr), adds it to your library, then auto-refreshes the library so it's available within 30 seconds of completion. But that's just theoretical, of course.</p>
+    <figure>
+        <video src="/images/blog/viflix/search-not-in-library-download.mp4" poster="/images/blog/viflix/search-not-in-library-download.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+    <p>For me, I'm obviously just using Radarr and Sonarr for media management. And only have media from DVDs that I own. Of course.</p>
+
+    <h3>Item details</h3>
+    <p>When you land on something, focus for the trailer (muted autoplay from cached yt-dlp videos), and click to expand.</p>
+    <figure>
+        <video src="/images/blog/viflix/open-a-title.mp4" poster="/images/blog/viflix/open-a-title.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+    <p>Details include the title, year, genres, match score, IMDb rating, description, and our rating (or option to leave one). For shows, this will be episode specific details if you open it from Continue Watching.</p>
+    <p>Action buttons here include:</p>
+    <ul>
+        <li>Continue playing or Play movie/episode</li>
+        <li>Play from beginning (if we're midway through)</li>
+        <li>Episodes (for navigating other episodes, used constantly for our regular rewatched shows)</li>
+        <li>View cast (we almost never use this, but we had the data so why not)</li>
+        <li>More [collection/universe] (e.g. More Star Wars to see other movies in this universe).</li>
+        <li>Remove item (hidden if you scroll down, for media management)</li>
+    </ul>
+    <p>So if you fancy a Marvel night, you just pop open the MCU menu, and there's every single MCU movie both in-library and missing. Hand curated since TMDB works from collections e.g. Avengers, not universes like MCU.</p>
+    <figure>
+        <video src="/images/blog/viflix/marvel-collection-browser.mp4" poster="/images/blog/viflix/marvel-collection-browser.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+
+    <h3>Press Play</h3>
+    <p>Press play and you'll see our Viflix intro. Made entirely by Claude using Blender. Please don't sue me Netflix, it's just for fun at home.</p>
+    <figure>
+        <video src="/images/blog/viflix/viflix-intro.mp4" poster="/images/blog/viflix/viflix-intro.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+    <p>After that the media will play right away, every time. Preloading begins when you hover a card for a second or open the details, plus the 4s intro clip, it feels instant.</p>
+    <p>Episode intros are automatically skipped. Including recaps. At my wife's request, one-click cancel if you'd prefer not to.</p>
+    <figure>
+        <video src="/images/blog/viflix/play-intro-skip-recap.mp4" poster="/images/blog/viflix/play-intro-skip-recap.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+    <p>Skip markers come from Intro Skipper first. But it only found intros in 16% of Modern Family, and TheIntroDB (the fallback) put the credits 2-11 minutes early, so Up Next would cut off the ending mid-scene. So I built my own detector for shows. It fingerprints the audio that every episode in a season shares (that's the intro and credits), then checks the picture to make sure the "credits" aren't actually a scene.</p>
+
+    <h3>The Player</h3>
+    <p>I built custom controls for the player to fit the look and feel of the app, while giving far more control. Playback, transcoding, etc is handled by Jellyfin.</p>
+    <p>1-click to pause. Left or right to jump 10s. Scrubber for faster jumping and trickplay via Jellyfin for preview thumbnails.</p>
+    <figure>
+        <video src="/images/blog/viflix/scrubbing-thumbnails.mp4" poster="/images/blog/viflix/scrubbing-thumbnails.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+    <p>Episodes viewer for shows. Collection viewer for collections/universes. Same as the details page. Next episode to skip.</p>
+    <p>Audio for language switching. Defaulted to English if available, or the item's default language. I cannot stand dubbing. But selectable as a backup, saved per title in SQLite.</p>
+    <p>Subtitles for changing subs. Defaulted to Vietnamese, if available, for my wife, or English, if not. Subtitle downloading via OpenSubtitles if it's low quality, not a match, or otherwise has issues. Syncing via ffsubsync if it's not timed properly.</p>
+    <figure>
+        <video src="/images/blog/viflix/find-subtitles.mp4" poster="/images/blog/viflix/find-subtitles.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+
+    <h3>Up Next</h3>
+    <p>Finish an episode, and it'll automatically queue up the next one. Pre-loaded in the background, autoplaying with a 22s countdown warning in advance. Timed for the credits start or end of file if none detected/listed.</p>
+    <figure>
+        <video src="/images/blog/viflix/up-next.mp4" poster="/images/blog/viflix/up-next.poster.jpg" controls muted playsinline preload="none"></video>
+    </figure>
+    <p>Movies will have the same as a suggestion for franchises/collections, but 1-click play, never autoplay.</p>
+
+    <h3>Controls</h3>
+    <p>Bluetooth remote control replicates keyboard navigation. Every feature of the app can be navigated by keyboard. Including an on-screen keyboard.</p>
+    <figure>
+        <img src="/images/blog/viflix/search-keyboard.png" loading="lazy" alt="Viflix on-screen keyboard for search">
+    </figure>
+    <p>Vi Remote PWA on our phones as an alternative. Built touch-first with gestures to navigate, hold to speak. We tend to use this more these days as we can never seem to find the remote. Should have thought of this before spending $45 on the remote. Oops.</p>
+    <figure>
+        <video src="/images/blog/viflix/vi-remote.mp4" poster="/images/blog/viflix/vi-remote.poster.jpg" controls muted playsinline preload="none"></video>
+        <figcaption>Swipe to move, tap to open, a backwards C to go back, and a question mark to search.</figcaption>
+    </figure>
+    <p>Of course there's a separate version for web and phones, which works with touch and mouse. We just rarely use them.</p>
+
+    <hr />
+    <h2>UX Polish</h2>
+    <p>I've spent a considerable amount of time improving the UX, along with the overall speed and feel of the app.</p>
+
+    <h3>Speed</h3>
+    <p>Everything should happen ideally within 100ms of an action, maximum 200ms. This is surprisingly difficult for media on a 10-year-old laptop.</p>
+    <p>I built benchmarks for basically every action in-app, then had Claude measure each and help me action plan fixes to hit these targets. Pressing an arrow on the remote used to take about 650ms to show on screen, now it's about 150ms.</p>
+    <p>Most important was lazy loading and pre-loading almost everything. Rows are cached and lazy-loaded, the first 3 load with the page, the rest right after, and only rows near where you are draw their cards. Cards/posters within a row are similarly lazy loaded, until you reach near the edge.</p>
+    <p>Trailers and card backdrops are pre-loaded when you're near them. Media is preloaded when you focus for a second or click the details. Next episodes are preloaded 22 seconds before autoplay.</p>
+
+    <h3>Animations</h3>
+    <p>The antithesis to speed is my likely excessive use of animation. But it needs to look good.</p>
+    <p>Navigating between buttons like the header menu uses a jelly-like effect for smoothness. There's a similarly cool animation when switching between menu pages.</p>
+    <p>Opening an item stretches the trailer to fill the screen, then continues playing from the same point. Closing it shrinks it down the opposite way.</p>
+    <p>Navigating between cards feels smooth with the focus ring showing where you're at and gliding between cards.</p>
+    <p>Fading text between rows, dimming unfocused cards/rows, etc. Maybe overkill? But I like the feel of it.</p>
+    <p>Another cool one? The rubber-band animation. Reach the end of the row and this animation will let you know. Because sometimes we genuinely thought something had broken without it.</p>
+    <figure>
+        <video src="/images/blog/viflix/end-of-row-bump.mp4" poster="/images/blog/viflix/end-of-row-bump.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+
+    <h3>Background colour wash</h3>
+    <p>The background colour isn't a theme. Each poster gets drawn into a 40x40 canvas and averaged, favouring colourful midtones:</p>
+<pre><code>ctx.drawImage(img, 0, 0, 40, 40);
+const data = ctx.getImageData(0, 0, 40, 40).data;
+for (let i = 0; i &lt; data.length; i += 4) {
+    const R = data[i], G = data[i + 1], B = data[i + 2];
+    const bri = (R + G + B) / 3;
+    if (bri &lt; 24 || bri &gt; 235) continue;
+    const max = Math.max(R, G, B);
+    const min = Math.min(R, G, B);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const weight = 0.3 + sat * 1.8;
+    r += R * weight;
+    g += G * weight;
+    b += B * weight;
+    n += weight;
+}</code></pre>
+    <p>Results go in an 80-entry cache. The final colour is 82% poster, 18% the page's base colour (sage for Home, gold for Movies, blue for Shows, red for Live).</p>
+    <p>Just gives it a little something nice when you're swiping around:</p>
+    <figure>
+        <video src="/images/blog/viflix/tab-colours.mp4" poster="/images/blog/viflix/tab-colours.poster.jpg" autoplay muted loop playsinline></video>
+    </figure>
+
+    <hr />
+    <h2>Stupid stuff I fixed along the way</h2>
+    <p>Plenty broke over 15 months. A few favourites:</p>
+    <p><strong>X-Men was a 22-minute TV special.</strong> Matching files to TMDB just took the first search result. So X2 became a 17-minute webcast, Spirited became Spirited Away, and The Lion King (2019) became the 1994 one. Now it prefers an exact title, then the year, then the vote count.</p>
+    <p><strong>57 episodes of Dexter's Laboratory went missing.</strong> "S02E001" was read as episode 0, so 65 episodes squeezed into 8 slots and overwrote each other every scan. Three-digit episode numbers work now.</p>
+    <p><strong>Pausing broke the audio.</strong> Pause for more than 30 seconds and the audio drifted out of sync. The fix restarted the stream when you hit play. Which looked like the end of the episode, so Up Next skipped us to the next one. Fixed that too.</p>
+    <p><strong>Vi's subtitles turned to gibberish.</strong> Jellyfin doesn't say which encoding its subtitles use, so they were read wrong, and every Vietnamese accent mark broke the moment a sync fix was applied. Not ideal when they're the subtitles my wife actually reads.</p>
+    <p><strong>The subtitle timing slider.</strong> A nightmare. At one point its arrows moved the subtitles the wrong way. So I built my own sync with Whisper (speech-to-text), which fight scenes kept fooling. Then found ffsubsync, the same approach Bazarr uses, and it just worked. The slider's gone. Auto-fix is the only option now.</p>
+
+    <hr />
+    <h2>The Stack</h2>
+    <p>Hosting:</p>
+    <ul>
+        <li><strong>Hardware:</strong> 2016 dual-core Macbook Pro permanently connected to the TV with SSH access, screen sharing, and the screensaver disabled.</li>
+        <li><strong>Supervision:</strong> launchd starts everything at login and restarts the core services if they crash.</li>
+        <li><strong>Access:</strong> Caddy for HTTPS, Tailscale for access across our devices</li>
+        <li><strong>Deploys:</strong> Push to GitHub (only if tests pass), then one command pulls, checks, restarts, and rolls back if it doesn't come up healthy</li>
+        <li><strong>Backups:</strong> Nightly SQLite backups</li>
+    </ul>
+    <p>The app itself:</p>
+    <ul>
+        <li><strong>Backend:</strong> Python + Flask, server-rendered Jinja templates, SQLite.</li>
+        <li><strong>Frontend:</strong> Vanilla JS and CSS. hls.js handles playback in the browser, with native HLS only for live TV.</li>
+        <li><strong>Recommendations and Match Scoring:</strong> Numpy + sci-kit learn as a nightly batch job.</li>
+        <li><strong>Tests:</strong> Pytest, Playwright browser tests.</li>
+    </ul>
+    <p>Data sources and APIs:</p>
+    <ul>
+        <li><strong>TMDB:</strong> Metadata, posters, search, trending, collections.</li>
+        <li><strong>OMDb:</strong> RT and Metacritic scores.</li>
+        <li><strong>IMDb:</strong> Ratings from the official dataset</li>
+        <li><strong>OpenSubtitles:</strong> Subtitles search and downloads.</li>
+        <li><strong>TheIntroDB:</strong> Alternative skip-marker source.</li>
+    </ul>
+    <p>Media:</p>
+    <ul>
+        <li><strong>Jellyfin:</strong> Streaming, transcoding, trickplay. Seriously, could not recommend it enough. The sane version of this whole post is to just use Jellyfin and not build a custom frontend like a maniac.</li>
+        <li><strong>Intro Skipper:</strong> Plugin for Jellyfin to skip intros/credits. I built custom checks on top as it kept cutting off specific shows at the wrong moments.</li>
+        <li><strong>ffmpeg:</strong> Bumper and intro detection, subtitle reference audio (for syncing), intro render's post-processing, etc.</li>
+        <li><strong>-Arr stack:</strong> Radarr (films), Sonarr (shows), Bazarr (subtitles), etc.</li>
+        <li><strong>yt-dlp:</strong> Trailers, cached locally.</li>
+        <li><strong>ffsubsync:</strong> Auto-fix subtitles sync</li>
+        <li><strong>Blender (driven from Python via bpy):</strong> renders the Viflix intro</li>
+    </ul>
+    <p>Viewing:</p>
+    <ul>
+        <li><strong>TV:</strong> Connected to my media server via HDMI (old mac) with a native macOS app in Swift (AppKit, WKWebView, AVPlayer for live TV).</li>
+        <li><strong>Projector:</strong> Old Android 6 TV box running a native app in Kotlin (Media3/Exoplayer, AndroidX Leanback grids, OkHttp, Coil, coroutines).</li>
+        <li><strong>Phones &amp; Laptops:</strong> Responsive PWA</li>
+        <li><strong>Vi Remote:</strong> Another PWA, gestures and voice transcripts sent to the media server, then on to the TV over server-sent events.</li>
+        <li><strong>Satechi R2:</strong> Really nice bluetooth remote to control Viflix on TV. Custom mapped with Karabiner-Elements.</li>
+    </ul>
+    <p>... I did warn you it was a lot.</p>
+
+
+    <hr />
+    <h2>How I built it</h2>
+
+    <h3>Cursor (yuck)</h3>
+    <p>I started building the first version of this in August 2025. I've never used Python before, but told Cursor I wanted it in Python. I forget the specific model, most of my Cursor usage before switching to Claude was in auto mode. Sometimes Grok for planning, then auto. Back then, maybe it was Claude for planning. I forget.</p>
+    <p>The first version of the Viflix you've seen today was also built in Cursor. It messed up, a lot. I had to read the code, read the changes, diagnose the issues, and basically give it a solution to resolve most bugs.</p>
+    <p>It also had this annoying habit, with my codebase getting increasingly big, that every fix would end up in it breaking other features. So I had to check every implementation to make sure it wasn't messing with perfectly good features/files.</p>
+
+    <h3>Claude Code + Opus 5.5</h3>
+    <p>Opus 5.5 is very recent, but made all of this so much easier. It cleaned up my codebase. Created about 8,600 lines of tests, including Playwright browser tests. Helped me increase the speed/efficiency.</p>
+    <p>And basically did all of this without me having to look at a line of code. It probably wouldn't have taken me as long if I had this from the start. Though honestly, most of what makes this great is that I've spent 6+ months using it daily and fixing the bugs and issues along the way.</p>
+
+    <h3>Android app</h3>
+    <p>I was looking through an old cupboard last week and found an old Kiwibox (android tv box). So I asked Claude (Opus 5.5 High) to look at my repo and make an Android 6 compatible app to run on it.</p>
+    <p>It worked on first run. Then took a bit more effort to reach enough polish. Still a few minor issues, but it's working extremely well.</p>
+    <p>I've got it permanently connected to my projector now, so we can watch movies from our bedroom projected onto the wall. The Vi Remote works with the android app too.</p>
+
+    <hr />
+    <p>That's about all I've got for you. 15 months of work and about 120,000 lines of code, apparently. But mostly, an awesome app that my wife and I use daily with little to no maintenance, if I could stop adding features at least.</p>
+    <p>Should you do this? Hellllll no. But if you did, it could be fun? It is for me.</p>
