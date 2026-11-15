@@ -211,6 +211,7 @@ function postView(post) {
     active: 'blog',
     crumbs: ['blog', post.slug],
     place: 'blog',
+    scripts: post.body.includes('<video') ? `<script src="${asset('js/post-video.js')}" defer></script>` : '',
     body: `<article class="prose">
   <p class="kicker"><span class="kicker-cmd">cat</span> ${esc(post.slug)}.md <span class="kicker-dim">·</span> <time datetime="${post.date}">${fmtDate(post.date)}</time> <span class="kicker-dim">·</span> ${readMinutes(post.body)} min read</p>
   <h1>${post.title}</h1>
