@@ -191,13 +191,43 @@ def build(quick=False):
     for i, (tool, x, y, flat) in enumerate(hang):
         # the flat-lying scans are stood up; all turned to face the room
         peg.model(f'peg_{i}', tool, (x, y - 0.12, 0.02), rot=(-math.pi / 2 * flat, 0, 0), bake='hero', max_tris=800, tex=128)
+    # The rest of the board, filled the way a used one is: a spanner set and a
+    # row of screwdrivers in sizes, the saws up top, the long things down the
+    # edges. The scans come in different ways up, so each gets its own turn:
+    # FLAT ones lie on their backs, SIDE ones stand side-on to the room.
+    FACE, FLAT, SIDE = (0, 0, 0), (-math.pi / 2, 0, 0), (0, math.pi / 2, 0)
+    more = [  # (tool, x along the board, bottom y, rot, scale)
+        # top row
+        ('handsaw_wood', -0.65, 0.22, SIDE, 1.0), ('rusted_hacksaw', 0.0, 0.24, FACE, 1.0),
+        ('pipe_wrench', 0.45, 0.2, FACE, 1.0), ('ratchet_wrench', 0.78, 0.22, FACE, 1.0),
+        # bottom row: spanners small to big, screwdrivers, the odds and ends
+        # (FLAT ones turn about their middle: y is their centre, not their bottom)
+        ('combination_wrench', -1.0, -0.47, FLAT, 0.6), ('combination_wrench', -0.92, -0.45, FLAT, 0.7),
+        ('combination_wrench', -0.84, -0.43, FLAT, 0.8), ('combination_wrench', -0.75, -0.41, FLAT, 0.9),
+        ('screwdriver', -0.62, -0.58, FACE, 0.9), ('screwdriver', -0.56, -0.58, FACE, 1.0),
+        ('flathead_screwdriver', -0.5, -0.6, FACE, 0.85), ('flathead_screwdriver', -0.44, -0.6, FACE, 1.0),
+        ('magnifying_glass_01', -0.27, -0.6, (0, 0, 0.2), 1.0), ('medical_tape', -0.1, -0.47, FLAT, 1.0),
+        ('wooden_hammer_01', 0.1, -0.6, (0, 0, -0.12), 1.0), ('propane_torch', 0.33, -0.62, FACE, 1.0),
+        ('hatchet', 0.58, -0.6, SIDE, 1.0),
+        # down the edges
+        ('vintage_hand_drill', 0.86, -0.62, FACE, 1.0), ('bolt_cutters_01', 1.07, -0.62, FACE, 1.0),
+        ('crowbar_01', -1.12, -0.25, SIDE, 1.0),
+    ]
+    for i, (tool, x, y, rot, sc) in enumerate(more):
+        peg.model(f'peg_more_{i}', tool, (x, y, 0.02), rot=rot, scale=sc, bake='hero', max_tris=800, tex=128)
     z.model('bench_toolbox', 'metal_toolbox', (X0 + 0.45, 0.92, 1.4), rot=(0, 1.3, 0), bake='hero', max_tris=1200, tex=256)
     z.model('bench_cans', 'spray_paint_bottles', (X0 + 0.35, 0.92, 3.0), rot=(0, 2.0, 0), bake='hero', max_tris=800, tex=256)
     z.model('bench_oil', 'small_oil_can_01', (X0 + 0.5, 0.92, 2.55), rot=(0, 0.6, 0), bake='hero', max_tris=800, tex=256)
     z.model('bench_lamp_w', 'desk_lamp_arm_01', (X0 + 0.3, 0.92, 1.85), rot=(0, 1.6, 0), bake='hero', max_tris=2000, tex=256)
+    # the rest of a bench that gets used: a vice on the end, the drill put down
+    # mid-job, gloves, more spray
+    z.model('bench_vice', 'bench_vice_01', (X0 + 0.68, 0.92, 3.3), rot=(0, math.pi / 2, 0), bake='hero', max_tris=1500, tex=256)
+    z.model('bench_drill', 'Drill_01', (X0 + 0.55, 0.92, 2.2), rot=(0, 2.4, 0), bake='hero', max_tris=1500, tex=256)
+    z.model('bench_gloves', 'garden_gloves_01', (X0 + 0.6, 0.92, 1.05), rot=(0, 0.4, 0), bake='hero', max_tris=800, tex=128)
+    z.model('bench_lube', 'lubricant_spray', (X0 + 0.25, 0.92, 2.75), rot=(0, 1.0, 0), bake='hero', max_tris=600, tex=128)
     z.light('SPOT', (X0 + 0.6, 1.6, 2.1), '#ffd9a0', 90, size=0.06, aim=(X0 + 0.4, 0.9, 2.3), spot=math.radians(80), blend=0.5, name='tool_lamp')
     # the bookcase: steel uprights, plank shelves, full of books (the reading list too)
-    books.bookcase(z.sub((X0 + 0.21, 0, -0.4), math.pi / 2), rnd, dark_steel, bench_top, bays=2, bay_w=1.2, height=3.0, levels=6, hotspot='reading')
+    books.bookcase(z.sub((X0 + 0.21, 0, -0.4), math.pi / 2), rnd, dark_steel, bench_top, bays=2, bay_w=1.2, height=3.0, levels=6)
     # XƯỞNG ("workshop") in teal neon over the tool wall
     z.text('neon_dhr', 'DHR.VN', 0.36, (X0 + 0.05, 2.95, 2.2), rot=(0, math.pi / 2, 0), material=emissive('w_neon_teal', '#2ad4c9', 2.6), tube=0.008, role='flicker')
     z.light('AREA', (X0 + 0.4, 2.95, 2.2), '#2ad4c9', 20, size=(0.3, 1.1), aim=(X0 + 3, 2.5, 2.2), name='neon_spill')

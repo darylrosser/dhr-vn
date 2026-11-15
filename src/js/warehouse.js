@@ -27,11 +27,10 @@ export const ZONES = { workshop: {} };
 // What clicking a thing in the room does (hotspot contract labels + targets).
 // Pages open where you sit: on the monitor, or on the phone for contact.
 const HOTSPOTS = {
-  blog: { label: 'Blog: field reports →', visit: '/blog/' },
-  about: { label: 'Case file: about →', visit: '/about/' },
+  blog: { label: 'Blog →', visit: '/blog/' },
+  about: { label: 'About →', visit: '/about/' },
   reading: { label: 'Reading list →', visit: '/reading/' },
-  contact: { label: 'Phone: get in touch →', visit: '/contact/' },
-  garage: { label: 'Time machine: projects (coming soon)', action: 'look' },
+  contact: { label: 'Contact →', visit: '/contact/' },
 };
 
 const AMBER = '#ffb000', TEAL = '#2ad4c9', HOT = '#ff6a1a', DIM = '#6b4c12';
@@ -402,34 +401,48 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     return s;
   }
 
-  // While you're out in the room (not jacked in) the monitor runs a screensaver:
-  // JACK IN TO ENTER drifting about the screen, bouncing off its edges.
+  // While you're out in the room (not jacked in) the monitor sits on a login
+  // screen: DHR.VN, a guest login, JACK IN TO ENTER. Only the cursor blinks.
   const saver = document.createElement('canvas');
   saver.width = 512;
   saver.height = 320;
   const saverTex = new THREE.CanvasTexture(saver);
   saverTex.colorSpace = THREE.SRGBColorSpace;
   const saverMat = new THREE.MeshBasicMaterial({ map: saverTex, toneMapped: false, color: new THREE.Color(1.2, 1.2, 1.2) });
-  const saverState = { x: 60, y: 70, vx: 46, vy: 31, next: 0, last: 0 };
+  const saverState = { next: 0 };
   function paintSaver(t) {
     const ctx = saver.getContext('2d');
-    const s = saverState;
-    const dt = Math.min(0.2, t - (s.last || t));
-    s.last = t;
-    const BW = 300, BH = 112;
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
-    if (s.x < 8 || s.x > 512 - BW - 8) { s.vx *= -1; s.x = Math.max(8, Math.min(512 - BW - 8, s.x)); }
-    if (s.y < 8 || s.y > 320 - BH - 8) { s.vy *= -1; s.y = Math.max(8, Math.min(320 - BH - 8, s.y)); }
+    const W = 512, H = 320, cx = W / 2;
     ctx.fillStyle = '#040302';
-    ctx.fillRect(0, 0, 512, 320);
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = AMBER;
     ctx.font = '900 italic 52px Orbitron, "Arial Black", sans-serif';
-    ctx.fillText('DHR.VN', s.x + 6, s.y + 52);
+    ctx.fillText('DHR.VN', cx, 118);
+    // the login: a field with the user filled in
+    ctx.strokeStyle = DIM;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 130, 146, 260, 38);
+    ctx.textAlign = 'left';
+    ctx.font = '18px "Share Tech Mono", monospace';
+    ctx.fillStyle = DIM;
+    ctx.fillText('user:', cx - 118, 171);
+    ctx.fillStyle = AMBER;
+    ctx.fillText('guest', cx - 60, 171);
     ctx.font = '20px "Share Tech Mono", monospace';
-    ctx.fillStyle = Math.sin(t * 3) > -0.3 ? TEAL : DIM;
-    ctx.fillText('> JACK IN TO ENTER_', s.x + 8, s.y + 92);
-    scanlinesBig(ctx, 512, 320);
+    ctx.fillStyle = TEAL;
+    const prompt = '> JACK IN TO ENTER';
+    const pw = ctx.measureText(prompt).width;
+    const px = cx - (pw + 14) / 2;
+    ctx.fillText(prompt, px, 222);
+    if (Math.sin(t * 4) > 0) ctx.fillRect(px + pw + 4, 206, 10, 18); // the cursor
+    ctx.textAlign = 'center';
+    ctx.font = '14px "Share Tech Mono", monospace';
+    ctx.fillStyle = DIM;
+    ctx.fillText('SAIGON // UPLINK READY', cx, 290);
+    ctx.textAlign = 'start';
+    scanlinesBig(ctx, W, H);
     saverTex.needsUpdate = true;
   }
   const blankMat = glassBack.material;
@@ -442,7 +455,7 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   }
   updaters.push((t) => {
     if (!saverOn || t < saverState.next) return;
-    saverState.next = t + 1 / 15;
+    saverState.next = t + 1 / 8; // only the cursor changes
     paintSaver(t);
   });
 
@@ -511,6 +524,15 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
     });
     root.traverse((o) => {
       const d = o.userData;
+      // (the baked model predates these: no Blender to rebake with)
+      // one way to each page: the reading list is the pile on the desk, so the
+      // bookcase is just a bookcase (the time machine's tag finds no hotspot: it's scenery)
+      if (d.hotspot === 'reading' && o.name.startsWith('bookcase')) delete d.hotspot;
+      // the bench CRT doubled the desk's blog screen: it's playing Viflix now
+      if (d.role === 'screen' && d.hotspot === 'blog' && d.row === 9) { delete d.hotspot; d.painter = 'viflix'; }
+      // the desk's left pair: the blog at eye level, the camera on the dogs up top
+      if (d.role === 'screen' && d.col === 9 && d.row === 1 && d.hotspot === 'blog') { delete d.hotspot; d.painter = 'dogcam'; }
+      else if (d.role === 'screen' && d.col === 9 && d.row === 0 && !d.painter) { d.hotspot = 'blog'; d.painter = 'blog'; }
       if (d.lightmap) lit.push(lightmap(o, d.lightmap, d.lm || 4));
       if (d.role === 'screen') screens.push(o);
       else if (d.role === 'window') buildWindow(o, d);
@@ -618,7 +640,11 @@ export function createWarehouse(scene, renderer, { reducedMotion = false, camera
   // 3 per frame). A screen can name its painter (the TVs: 'static') and tint.
 
   function buildScreenWall(faces) {
-    const kinds = shuffle(Object.keys(SCREEN_PAINTERS).filter((k) => k !== 'blog' && k !== 'static'), rand);
+    // The rest pick at random, but never a painter something else already
+    // shows: one F1 timing screen on the desk, not two (likewise the car's
+    // roof screen and time circuits).
+    const taken = new Set(['blog', 'static', 'syslog', 'timecircuits', ...faces.map((f) => f.userData.painter).filter(Boolean)]);
+    const kinds = shuffle(Object.keys(SCREEN_PAINTERS).filter((k) => !taken.has(k)), rand);
     const screens = [];
     faces.sort((a, b) => (a.userData.col - b.userData.col) || (a.userData.row - b.userData.row));
     for (const face of faces) {
@@ -1002,7 +1028,40 @@ function scanlines(ctx) {
   for (let y = 0; y < 160; y += 3) ctx.fillRect(0, y, 256, 1);
 }
 
-const F1_CODES = ['VER', 'NOR', 'LEC', 'PIA', 'HAM', 'RUS', 'SAI', 'ALO'];
+// the dogs' camera still, loaded the first time its screen paints
+let dogcamImg = null;
+function dogcamImage() {
+  if (!dogcamImg) {
+    dogcamImg = new Image();
+    dogcamImg.src = new URL(`../images/dogcam.jpg${new URL(import.meta.url).search}`, import.meta.url).href;
+  }
+  return dogcamImg;
+}
+// the still at a cheap camera's resolution, made once it has loaded
+let dogcamLow = null;
+function dogcamFeed() {
+  if (dogcamLow) return dogcamLow;
+  const img = dogcamImage();
+  if (!img.complete || !img.naturalWidth) return null;
+  dogcamLow = document.createElement('canvas');
+  dogcamLow.width = 96;
+  dogcamLow.height = 60;
+  dogcamLow.getContext('2d').drawImage(img, 0, 0, 96, 60);
+  return dogcamLow;
+}
+
+const F1_CODES = ['NOR', 'VER', 'PIA', 'RUS', 'LEC', 'ANT', 'HAM', 'HAD']; // only if /f1.json is missing
+
+// the last race's result, fetched once (see build.mjs); null until it arrives, or if there isn't one
+let f1Data = null;
+let f1Asked = false;
+function f1Result() {
+  if (!f1Asked) {
+    f1Asked = true;
+    fetch('/f1.json').then((r) => (r.ok ? r.json() : null)).then((d) => { f1Data = d; }).catch(() => {});
+  }
+  return f1Data;
+}
 
 // the phone's lock screen: a dusky Saigon wallpaper, the time, a notification
 function paintLockScreen(ctx, t) {
@@ -1170,7 +1229,25 @@ const SCREEN_PAINTERS = {
     ctx.fillText('BOOKSHOPS TRACKED: 19', 8, 146);
     scanlines(ctx);
   },
+  // the last real race's top eight (build.mjs writes /f1.json from Jolpica);
+  // without it, a made-up grid whose gaps drift
   timing(ctx, t, s) {
+    const f1 = f1Result();
+    if (f1) {
+      screenBase(ctx, `F1 // ${f1.race}`);
+      ctx.fillStyle = Math.sin(t * 2) > 0 ? TEAL : DIM;
+      ctx.fillText('FINAL', 218, 6);
+      f1.rows.forEach((r, i) => {
+        const y = 22 + i * 17;
+        ctx.fillStyle = i < 3 ? TEAL : AMBER;
+        ctx.fillText(`P${i + 1}`, 10, y);
+        ctx.fillText(r.code, 40, y);
+        ctx.fillStyle = AMBER;
+        ctx.fillText(r.gap, 246 - ctx.measureText(r.gap).width, y);
+      });
+      scanlines(ctx);
+      return;
+    }
     screenBase(ctx, 'F1 // LIVE TIMING');
     s.gaps = s.gaps || F1_CODES.map((_, i) => i * 1.4 + Math.random());
     s.gaps = s.gaps.map((g, i) => (i ? Math.max(0.1, g + (Math.random() - 0.5) * 0.05) : 0));
@@ -1182,6 +1259,83 @@ const SCREEN_PAINTERS = {
       ctx.fillStyle = AMBER;
       ctx.fillText(i ? `+${s.gaps[i].toFixed(3)}` : 'LEADER', 180, y);
     });
+    scanlines(ctx);
+  },
+  // Viflix, the home Netflix: something on, something next
+  viflix(ctx, t) {
+    ctx.fillStyle = '#050402';
+    ctx.fillRect(0, 0, 256, 160);
+    ctx.textBaseline = 'top';
+    ctx.font = '20px "Orbitron", "Share Tech Mono", monospace';
+    ctx.fillStyle = HOT;
+    ctx.fillText('VIFLIX', 10, 10);
+    ctx.font = '10px "Share Tech Mono", monospace';
+    ctx.fillStyle = DIM;
+    ctx.fillText('NOW PLAYING', 176, 16);
+    ctx.font = '15px "Share Tech Mono", monospace';
+    ctx.fillStyle = AMBER;
+    ctx.fillText('DEXTER: RESURRECTION', 10, 48);
+    ctx.font = '10px "Share Tech Mono", monospace';
+    ctx.fillStyle = TEAL;
+    ctx.fillText('98% MATCH', 10, 70);
+    // the episode plays on: 52 minutes, looping
+    const LEN = 52 * 60 + 10;
+    const pos = (1421 + t) % LEN;
+    const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+    ctx.fillStyle = DIM;
+    ctx.fillRect(10, 96, 236, 4);
+    ctx.fillStyle = HOT;
+    ctx.fillRect(10, 96, 236 * pos / LEN, 4);
+    ctx.fillStyle = AMBER;
+    ctx.fillText(clock(pos), 10, 106);
+    ctx.fillText(clock(LEN), 246 - ctx.measureText(clock(LEN)).width, 106);
+    ctx.fillStyle = DIM;
+    ctx.fillText('UP NEXT', 10, 136);
+    ctx.fillStyle = AMBER;
+    ctx.fillText('F1 // LAS VEGAS GP', 64, 136);
+    scanlines(ctx);
+  },
+  // the home camera on the dogs: a real still (src/images/dogcam.jpg), made
+  // to look like the feed: grain, flicker, now and then a tear, timestamp
+  dogcam(ctx, t) {
+    ctx.fillStyle = '#0b0b0a';
+    ctx.fillRect(0, 0, 256, 160);
+    const img = dogcamFeed();
+    if (img) {
+      // a tear every few seconds: a band of the picture slips sideways
+      const tearing = (t % 7.3) < 0.18;
+      ctx.drawImage(img, 0, 0, 256, 160); // blown up from the low-res feed: soft
+      if (tearing) {
+        const y = Math.floor(Math.random() * 130);
+        ctx.drawImage(ctx.canvas, 0, y, 256, 18, 6 + Math.random() * 10, y, 256, 18);
+      }
+      // a dim, slightly green camera in a dark room
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = '#6f7d6a';
+      ctx.fillRect(0, 0, 256, 160);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = `rgba(160, 190, 150, ${0.02 + Math.random() * 0.03})`;
+      ctx.fillRect(0, 0, 256, 160);
+    }
+    for (let i = 0; i < 1400; i++) {
+      ctx.fillStyle = Math.random() < 0.5 ? `rgba(200,220,190,${Math.random() * 0.16})` : `rgba(0,0,0,${Math.random() * 0.35})`;
+      ctx.fillRect(Math.random() * 256, Math.random() * 160, 1, 1);
+    }
+    const v = ctx.createRadialGradient(128, 80, 50, 128, 80, 160);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.75)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, 256, 160);
+    ctx.font = '10px "Share Tech Mono", monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#c8d2c0';
+    ctx.fillText('CAM 02 // LIVING ROOM', 8, 6);
+    if (Math.sin(t * 4) > 0) { ctx.fillStyle = HOT; ctx.fillText('● REC', 214, 6); }
+    // Saigon time, like the clock screen
+    const now = new Date(Date.now() + (7 * 60 + new Date().getTimezoneOffset()) * 60000);
+    const pad = (n) => String(n).padStart(2, '0');
+    ctx.fillStyle = '#c8d2c0';
+    ctx.fillText(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${now.toTimeString().slice(0, 8)}`, 8, 146);
     scanlines(ctx);
   },
   library(ctx) {

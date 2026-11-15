@@ -394,7 +394,9 @@ class Zone:
             before = set(bpy.data.objects)
             bpy.ops.import_scene.gltf(filepath=assets.fetch_model(asset))
             new = [o for o in bpy.data.objects if o not in before]
-            meshes = [o for o in new if o.type == 'MESH']
+            # a rigged scan's bone handles (custom shapes) are meshes too: not part of the prop
+            handles = {pb.custom_shape for a in new if a.type == 'ARMATURE' for pb in a.pose.bones if pb.custom_shape}
+            meshes = [o for o in new if o.type == 'MESH' and o not in handles]
             for o in meshes:
                 o.data = o.data.copy()
                 mw = o.matrix_world.copy()
@@ -427,6 +429,8 @@ class Zone:
             src.data.transform(Matrix.Translation(Vector((-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]))))
             print(f'    model {asset}: {len(src.data.polygons)} faces, {hi[0] - lo[0]:.2f} × {hi[2] - lo[2]:.2f} × {hi[1] - lo[1]:.2f} m (w × h × d)', flush=True)
             for slot in src.material_slots:
+                if slot.material is None:  # some rigged scans carry an empty slot
+                    continue
                 slot.material['tex'] = tex
                 # scanned props' bulbs come very hot; keep them a glow, not a flare
                 p = _principled(slot.material)
@@ -628,10 +632,15 @@ def denoise(rgb):
     """OpenImageDenoise (bundled with bpy) on an HxWx3 float32 image."""
     global _oidn
     if _oidn is None:
-        d = os.path.dirname(bpy.__file__)
-        while not os.path.exists(os.path.join(d, 'lib', 'libOpenImageDenoise.so.2')):
+        # bpy's own copy: .so.2 on Linux, .dylib on macOS, somewhere above bpy/
+        names = ('libOpenImageDenoise.so.2', 'libOpenImageDenoise.2.dylib', 'libOpenImageDenoise.dylib')
+        d, found = os.path.dirname(bpy.__file__), None
+        while not found:
+            found = next((os.path.join(d, 'lib', n) for n in names if os.path.exists(os.path.join(d, 'lib', n))), None)
+            if not found and os.path.dirname(d) == d:
+                raise RuntimeError('OpenImageDenoise not found beside bpy')
             d = os.path.dirname(d)
-        lib = ctypes.CDLL(os.path.join(d, 'lib', 'libOpenImageDenoise.so.2'))
+        lib = ctypes.CDLL(found)
         vp, cp = ctypes.c_void_p, ctypes.c_char_p
         lib.oidnNewDevice.restype = vp
         lib.oidnCommitDevice.argtypes = [vp]

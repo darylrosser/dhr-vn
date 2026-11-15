@@ -405,6 +405,15 @@ body.stats-page {
   display: none;
 }
 
+/* while a book is open on a phone, the page behind it stays put */
+@media (max-width: 768px) {
+  html.is-modal-open,
+  html.is-modal-open body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+}
+
 .modal-backdrop {
   position: absolute;
   inset: 0;
@@ -640,17 +649,20 @@ body.stats-page {
 
 /* ----- Modal: mobile responsive ----- */
 @media (max-width: 768px) {
+  /* full screen on phones: no gaps round the sheet */
   .modal {
-    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
-    align-items: flex-start;
+    padding: 0;
+    align-items: stretch;
   }
 
   .modal-content {
     width: 100%;
     max-width: none;
-    height: auto;
-    max-height: calc(100vh - 1rem);
-    max-height: calc(100dvh - 1rem);
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -663,7 +675,8 @@ body.stats-page {
     overflow-x: hidden;
     flex: 1 1 auto;
     min-height: 0;
-    padding: 2.5rem 1rem 1.5rem;
+    padding: calc(3rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -1143,8 +1156,6 @@ body.shelf-fit .shelf-sort { order: 0; flex: none; padding-right: 0; margin-righ
   flex-direction: column;
   align-items: center;
   margin: 0 calc(var(--u) * 0.45);
-  transform: rotate(var(--tilt, 0deg));
-  transform-origin: bottom center;
 }
 .deco:not(:has(.deco-spine)) { justify-content: center; }
 /* plants and candles sat nearer the camera on the 3D shelf, so they read a bit bigger */
