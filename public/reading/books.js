@@ -171,6 +171,13 @@ function renderModalCover(container, book) {
   const url = coverUrl(book.isbn);
   if (url) {
     const img = document.createElement('img');
+    // Size the box before the full cover loads, so the modal doesn't jump.
+    // The shelf thumbnail has the same aspect ratio; CSS max sizes clamp it.
+    const thumb = document.querySelector('.gbook[data-id="' + CSS.escape(String(book.id)) + '"] img');
+    const ar = thumb && thumb.naturalWidth && thumb.naturalHeight
+      ? thumb.naturalWidth / thumb.naturalHeight
+      : (book.type === 'audio' ? 1 : 2 / 3);
+    img.style.setProperty('--ar', ar.toFixed(4));
     img.src = url;
     img.alt = book.title;
     img.onerror = () => {
