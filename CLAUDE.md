@@ -16,7 +16,7 @@ Daryl's personal site. **README.md** = how the site is laid out, how posts and p
 |---|---|---|
 | Repo | `~/Documents/Personal/Dev Projects/DHR.vn` | `~/dhr-vn` |
 | Extras | `drafts/` (post drafts + screenshots), Blender cache / renders, `.psd`s: none of it in git | just what's in git |
-| Node | yes | not installed: can't build locally, rely on Netlify (PR deploy preview for anything non-trivial) |
+| Node | yes | Node 22 in `~/.local/bin` (official binary; MacPorts / Homebrew can't build it on macOS 12) |
 
 On the media Mac it's not served from the checkout, so nothing goes live until pushed. Still, don't leave work uncommitted there; commit and push (or push a branch) when done.
 
