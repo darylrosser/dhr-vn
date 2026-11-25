@@ -49,7 +49,7 @@ function buildCell(book) {
   btn.style.setProperty('--depth', pageDepth(book));
   if (book.type === 'audio') btn.style.setProperty('--ar', '1'); // square covers; right size before the image loads
 
-  const url = thumbUrl(book.isbn);
+  const url = thumbUrl(book);
   btn.innerHTML =
     '<span class="gb-floor" aria-hidden="true"></span>' +
     '<span class="gbook-3d" aria-hidden="true">' +
@@ -79,7 +79,7 @@ function buildCell(book) {
     if (img.complete) setAspect(); else img.addEventListener('load', setAspect, { once: true });
     // no thumbnail yet (a newly added book)? use the full cover; no cover at all? title and author
     img.addEventListener('error', function onError() {
-      const full = coverUrl(book.isbn);
+      const full = coverUrl(book);
       if (!img.dataset.full && full) {
         img.dataset.full = '1';
         img.src = full;

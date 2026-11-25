@@ -11,6 +11,7 @@
 //     author: 'Author',
 //     readDate: '2026-11-14',
 //     isbn: 9780000000000,       // cover at covers/<isbn>.jpg, then `npm run thumbs`
+//     // no ISBN (e.g. an Audible Original)? cover: 'some-name' -> covers/some-name.jpg
 //     type: 'print',             // or 'audio' (add durationHours / durationMinutes)
 //     numberOfPages: 300,
 //     genres: ['Science Fiction'],
@@ -676,5 +677,19 @@ window.booksData = [
     durationMinutes: 49,
     genres: ['Science', 'History'],
     description: 'Pinker\'s case that reason, science and humanism have made the world far better than most people believe, measured through health, wealth, safety, knowledge and more, and an argument for keeping faith with the ideals that got us here.',
+  },
+  {
+    id: '50',
+    title: 'Exoplanet',
+    author: 'Benjamin Percy',
+    readDate: '2026-11-25',
+    cover: 'exoplanet-audible', // Audible Original: no ISBN
+    type: 'audio',
+    durationHours: 4,
+    durationMinutes: 8,
+    genres: ['Science Fiction'],
+    rating: 4.6,
+    review: 'This feels like sitting in an IMAX theatre watching a blockbuster sci-fi movie, but the screen isn\'t working. Which is to say, it is INCREDIBLE for an audiobook. Truly the best audio experience I\'ve ever heard.\n\nNow the story is decent, I really enjoyed it and would have liked it as a regular audiobook. The story alone isn\'t a 4.6, but it\'s great. The length is really the only thing that sucks, I\'d love it to be so much longer, but that\'s also a good thing. The story itself builds up and closes out well.\n\nBut honestly, this just leads me to wishing that more audiobooks follow this approach. Never mind the fact it had Anthony Mackie and John Leguizamo voicing characters, it\'s the sound effects, the character voices, pacing... everything was fantastic.',
+    description: 'A full-cast Audible Original sci-fi thriller written by Benjamin Percy and executive produced by Andy Weir, starring Anthony Mackie, Ariana DeBose and John Leguizamo.',
   },
 ];

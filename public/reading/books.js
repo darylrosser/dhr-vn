@@ -131,15 +131,23 @@ function readingPath(path) {
   return path;
 }
 
+// A book's cover file is named after its ISBN, or after `cover` for books with
+// no ISBN (an Audible Original, say): covers/<name>.jpg.
+function coverName(book) {
+  return book.cover || book.isbn || null;
+}
+
 // Full-size cover (the notes modal).
-export function coverUrl(isbn) {
-  return isbn ? readingPath('covers/' + isbn + '.jpg') : null;
+export function coverUrl(book) {
+  const name = coverName(book);
+  return name ? readingPath('covers/' + name + '.jpg') : null;
 }
 
 // Small cover for the shelf: 360px wide WebP, ~25 KB instead of up to ~500 KB.
 // Made by tools/cover-thumbs.sh; grid.js falls back to the full cover if one is missing.
-export function thumbUrl(isbn) {
-  return isbn ? readingPath('covers/thumbs/' + isbn + '.webp') : null;
+export function thumbUrl(book) {
+  const name = coverName(book);
+  return name ? readingPath('covers/thumbs/' + name + '.webp') : null;
 }
 
 export function escapeHtml(text) {
@@ -168,7 +176,7 @@ const modalCover = document.getElementById('modal-cover');
 
 function renderModalCover(container, book) {
   container.innerHTML = '';
-  const url = coverUrl(book.isbn);
+  const url = coverUrl(book);
   if (url) {
     const img = document.createElement('img');
     // Size the box before the full cover loads, so the modal doesn't jump.
