@@ -692,4 +692,17 @@ window.booksData = [
     review: 'This feels like sitting in an IMAX theatre watching a blockbuster sci-fi movie, but the screen isn\'t working. Which is to say, it is INCREDIBLE for an audiobook. Truly the best audio experience I\'ve ever heard.\n\nNow the story is decent, I really enjoyed it and would have liked it as a regular audiobook. It isn\'t a 4.6, but it\'s great. The length is really the only thing that sucks, I\'d love it to be so much longer, but that\'s also a good thing. The story itself builds up and closes out well.\n\nBut honestly, this just leads me to wishing that more audiobooks follow this approach. Never mind the fact it had Anthony Mackie and John Leguizamo voicing characters, it\'s the sound effects, the character voices, pacing... everything was fantastic.',
     description: 'A full-cast Audible Original sci-fi thriller written by Benjamin Percy and executive produced by Andy Weir, starring Anthony Mackie, Ariana DeBose and John Leguizamo.',
   },
+  {
+    id: '51',
+    title: 'HBR Guide to Buying a Small Business',
+    author: 'Richard S. Ruback and Royce Yudkoff',
+    readDate: '2026-11-25',
+    isbn: 9781633692503,
+    type: 'print',
+    numberOfPages: 320,
+    genres: ['Business', 'Finance'],
+    rating: 4.2,
+    review: 'This is really more of a textbook than a story or typical book. But it is an excellent textbook. I don\'t think they could fit any more detail into this few pages if they tried.\n\nI read this out of curiosity, more than anything else. I\'m a huge Buffett fan, huge value investor fan, and always been interested in the idea of buying a small business. Though, I\'m much more interested in working remotely, so this particular flavour is not for me. That didn\'t make it any less interesting to read about though.\n\nI\'d say this is firmly a must-read if this is a path you\'re interested in. And probably not worth it at all, if it\'s not. I just like the investment world and always been interested by search funds.',
+    description: 'Two Harvard Business School professors make the case for a third path besides a big-firm career or a start-up: buy a small business and run it as CEO. The guide covers deciding whether the path suits you, raising capital for the acquisition, finding and evaluating prospects, why a "dull" business can be the best investment, negotiating with the seller, and keeping a deal from falling through at the last minute.',
+  },
 ];
