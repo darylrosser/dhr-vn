@@ -56,7 +56,7 @@
     const pct = (num / 5) * 100;
     const label = 'Rated ' + formatRating(num) + ' out of 5';
     return '<span class="modal-rating-stars" title="' + escapeHtml(label) + '" aria-label="' + escapeHtml(label) +
-      '"><span class="stars-bg">☆☆☆☆☆</span><span class="stars-fill" style="width:' + pct + '%">★★★★★</span></span>';
+      '"><span class="stars-bg">★★★★★</span><span class="stars-fill" style="width:' + pct + '%">★★★★★</span></span>';
   }
 
   const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

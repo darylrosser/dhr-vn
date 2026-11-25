@@ -224,7 +224,7 @@ export function fillModal(book) {
     const num = Math.min(5, Math.max(0, Number(book.rating)));
     const pct = (num / 5) * 100;
     const exactLabel = 'Rated ' + (Number.isInteger(num) ? num : num.toFixed(1)) + ' out of 5';
-    modalRating.innerHTML = '<span class="modal-rating-stars" title="' + escapeHtml(exactLabel) + '" aria-label="' + escapeHtml(exactLabel) + '"><span class="stars-bg">☆☆☆☆☆</span><span class="stars-fill" style="width:' + pct + '%">★★★★★</span></span>';
+    modalRating.innerHTML = '<span class="modal-rating-stars" title="' + escapeHtml(exactLabel) + '" aria-label="' + escapeHtml(exactLabel) + '"><span class="stars-bg">★★★★★</span><span class="stars-fill" style="width:' + pct + '%">★★★★★</span></span>';
     document.getElementById('modal-rating-wrap').style.display = '';
   } else {
     modalRating.innerHTML = '';

@@ -608,8 +608,11 @@ body.stats-page {
   letter-spacing: 0.05em;
 }
 
+/* Both layers use the same ★ so they line up (☆ and ★ come from different
+   fonts with different widths); the back row is drawn as an outline. */
 .modal-rating-stars .stars-bg {
-  color: var(--ink-dim);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--ink-dim);
 }
 
 .modal-rating-stars .stars-fill {
