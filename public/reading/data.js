@@ -705,4 +705,15 @@ window.booksData = [
     review: 'This is really more of a textbook than a story or typical book. But it is an excellent textbook. I don\'t think they could fit any more detail into this few pages if they tried.\n\nI read this out of curiosity, more than anything else. I\'m a huge Buffett fan, huge value investor fan, and always been interested in the idea of buying a small business. Though, I\'m much more interested in working remotely, so this particular flavour is not for me. That didn\'t make it any less interesting to read about though.\n\nI\'d say this is firmly a must-read if this is a path you\'re interested in. And probably not worth it at all, if it\'s not. I just like the investment world and always been interested by search funds.',
     description: 'Two Harvard Business School professors make the case for a third path besides a big-firm career or a start-up: buy a small business and run it as CEO. The guide covers deciding whether the path suits you, raising capital for the acquisition, finding and evaluating prospects, why a "dull" business can be the best investment, negotiating with the seller, and keeping a deal from falling through at the last minute.',
   },
+  {
+    id: '52',
+    title: 'There Is No Antimemetics Division',
+    author: 'qntm',
+    readDate: '2026-11-28',
+    isbn: 9781804954751,
+    type: 'print',
+    numberOfPages: 288,
+    genres: ['Science Fiction', 'Thriller'],
+    description: 'An antimeme is an idea that censors itself: you can\'t record it, and you can\'t remember it. Some are harmless. Others are not. The Antimemetics Division is the team that fights them, in a war its own agents can never be sure they\'re fighting, against enemies they forget the moment they look away.',
+  },
 ];
