@@ -714,6 +714,8 @@ window.booksData = [
     type: 'print',
     numberOfPages: 288,
     genres: ['Science Fiction', 'Thriller'],
+    rating: 4.6,
+    review: 'I loved this. The first half felt like I, Robot, with mini connected stories exploring the implications of this idea. Then the second half turned existential, like a Cixin Liu novel. Basically my two favourites, combined.\n\nThe first half was better though. The short stories were more interesting, it was fun exploring the concept in different ways. The second half was so suspenseful, I read it fast, it drew me in, but it wasn\'t as... idk... mind blowing? Concept breaking?\n\nI need more books like this.',
     description: 'An antimeme is an idea that censors itself: you can\'t record it, and you can\'t remember it. Some are harmless. Others are not. The Antimemetics Division is the team that fights them, in a war its own agents can never be sure they\'re fighting, against enemies they forget the moment they look away.',
   },
 ];
